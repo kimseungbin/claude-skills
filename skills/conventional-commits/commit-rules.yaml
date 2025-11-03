@@ -1,0 +1,317 @@
+# Trip Settle Commit Message Rules
+# These rules define the commit message format for the Trip Settle monorepo
+
+format:
+  pattern: "{type}({scope}): {subject}"
+  max_subject_length: 72
+  max_body_line_length: 100
+
+types:
+  feat:
+    description: "A new feature"
+  fix:
+    description: "A bug fix"
+  refactor:
+    description: "Code change that neither fixes a bug nor adds a feature"
+  perf:
+    description: "Performance improvement"
+  test:
+    description: "Adding or updating tests"
+  docs:
+    description: "Documentation changes"
+  style:
+    description: "Code style changes (formatting, whitespace)"
+  build:
+    description: "Build system or dependency changes"
+  ci:
+    description: "CI/CD configuration changes"
+  chore:
+    description: "Other changes that don't modify src or test files"
+
+scopes:
+  frontend:
+    description: "Changes to packages/frontend (Svelte app)"
+    patterns:
+      - "packages/frontend/**"
+
+  backend:
+    description: "Changes to packages/backend (NestJS API)"
+    patterns:
+      - "packages/backend/**"
+
+  infra:
+    description: "Changes to packages/infra (AWS CDK)"
+    patterns:
+      - "packages/infra/**"
+
+  config:
+    description: "Configuration changes (TypeScript configs, environment configs)"
+    patterns:
+      - "config/**"
+      - "*.config.*"
+      - "tsconfig*.json"
+
+  monorepo:
+    description: "Changes affecting multiple packages or workspace root"
+    patterns:
+      - "package.json"
+      - "packages/*/package.json"
+
+  tools:
+    description: "Developer tooling (git hooks, scripts, linters, CI/CD)"
+    patterns:
+      - ".githooks/**"
+      - "scripts/**"
+      - ".eslintrc*"
+      - ".prettierrc*"
+      - ".github/workflows/**"
+      - ".github/actions/**"
+
+scope_selection_guide:
+  description: "How to choose the correct scope based on file patterns"
+  important: "Scope is determined by WHICH FILES are changed, not the type of change"
+
+  mapping:
+    ci_cd_files:
+      pattern: ".github/workflows/**"
+      scope: "tools"
+      examples:
+        - "ci(tools): Add E2E test job to workflow"
+        - "fix(tools): Remove redundant npm install in CI"
+        - "refactor(tools): Simplify GitHub Actions matrix strategy"
+      rationale: "CI/CD config files are developer tools, so use 'tools' scope"
+
+    git_hooks:
+      pattern: ".githooks/**"
+      scope: "tools"
+      examples:
+        - "feat(tools): Add pre-push hook for E2E tests"
+        - "fix(tools): Correct pre-commit hook exit code"
+      rationale: "Git hooks are developer tooling"
+
+    linter_config:
+      pattern: ".eslintrc*, .prettierrc*"
+      scope: "tools"
+      examples:
+        - "style(tools): Update Prettier line width to 120"
+        - "chore(tools): Add ESLint rule for unused imports"
+      rationale: "Linter configs are developer tools"
+
+    root_package_json:
+      pattern: "package.json (root)"
+      scope: "monorepo"
+      examples:
+        - "build(monorepo): Add concurrently for parallel dev servers"
+        - "chore(monorepo): Update workspace configuration"
+      rationale: "Root package.json affects the entire workspace"
+
+    frontend_files:
+      pattern: "packages/frontend/**"
+      scope: "frontend"
+      examples:
+        - "feat(frontend): Add expense filtering by date"
+        - "fix(frontend): Correct currency conversion calculation"
+        - "test(frontend): Add Playwright E2E tests for login"
+      rationale: "Frontend package changes use 'frontend' scope"
+
+    backend_files:
+      pattern: "packages/backend/**"
+      scope: "backend"
+      examples:
+        - "feat(backend): Implement trip settlement API"
+        - "fix(backend): Handle null user ID in auth middleware"
+        - "perf(backend): Add database index for expense queries"
+      rationale: "Backend package changes use 'backend' scope"
+
+    infra_files:
+      pattern: "packages/infra/**"
+      scope: "infra"
+      examples:
+        - "feat(infra): Add CloudFront CDN for frontend"
+        - "fix(infra): Correct RDS security group rules"
+      rationale: "Infrastructure code uses 'infra' scope"
+
+    config_files:
+      pattern: "config/**, tsconfig*.json, *.config.*"
+      scope: "config OR package scope depending on purpose"
+      examples:
+        - "chore(config): Update TypeScript target to ES2022"
+        - "refactor(config): Standardize environment variable naming"
+        - "fix(frontend): Fix Vite host validation for Docker E2E tests"
+      rationale: "Configuration files use 'config' scope for general config changes, but use package scope (frontend/backend/infra) when the change is specific to that package's functionality or testing"
+
+      disambiguation:
+        - question: "Does the config change affect how the package works or is tested?"
+          answer_yes: "Use package scope (frontend/backend/infra)"
+          answer_no: "Use config scope"
+        - question: "Is this a build/test infrastructure change?"
+          answer_yes: "Consider if it's test-specific (use package scope) or affects multiple packages (use tools/monorepo)"
+          answer_no: "Use config scope"
+
+    multi_package:
+      pattern: "Changes in 2+ packages"
+      scope: "monorepo"
+      examples:
+        - "refactor(monorepo): Standardize error handling across packages"
+        - "feat(monorepo): Add shared types package"
+      rationale: "Multi-package changes use 'monorepo' scope"
+
+  common_mistakes:
+    - mistake: "Using type name as scope (e.g., ci(ci):, test(test):)"
+      correct: "Determine scope from file location (e.g., ci(tools):, test(frontend):)"
+      explanation: "Type describes WHAT you did (ci, test, fix). Scope describes WHERE (tools, frontend, backend)."
+
+    - mistake: "Using 'ci' as scope for GitHub Actions changes"
+      correct: "Use 'tools' scope: ci(tools): ..."
+      explanation: "GitHub Actions files match the 'tools' scope pattern"
+
+    - mistake: "Using 'test' as scope for test files"
+      correct: "Use package scope: test(frontend): Add E2E tests"
+      explanation: "Test files are part of a package, so use that package's scope"
+
+conventions:
+  subject:
+    - "Use imperative mood: 'Add feature' not 'Added feature'"
+    - "Capitalize first letter when plain English (e.g., 'Add feature')"
+    - "Don't capitalize if it starts with backticks, code, or special characters"
+    - "No period at the end"
+    - "Be specific but concise"
+
+  body:
+    - "Separate from subject with blank line"
+    - "Explain what and why, not how"
+    - "Wrap at 100 characters"
+
+  footer:
+    - "Breaking changes: 'BREAKING CHANGE: description'"
+    - "Issue references: 'Refs #123' or 'Closes #123'"
+
+special_cases:
+  multi_package:
+    scope: "monorepo"
+
+  breaking_change:
+    footer_required: true
+    footer_format: "BREAKING CHANGE: <description>"
+
+examples:
+  feature_with_tests:
+    description: "New feature with comprehensive test coverage"
+    type: "feat"
+    scope: "frontend"
+    subject: "Add expense edit functionality"
+    body: |
+      - Add edit button to expense items
+      - Create inline edit form with keyboard support
+      - Add Playwright E2E tests for edit workflow
+      - Ensure Escape cancels edit, Enter saves
+    rationale: "Body uses bullet points to list specific changes, includes test additions, mentions keyboard accessibility"
+
+  bug_fix:
+    description: "Simple bug fix"
+    type: "fix"
+    scope: "backend"
+    subject: "Prevent duplicate expense creation"
+    body: |
+      Add transaction-level uniqueness constraint to prevent race condition
+      when multiple requests create the same expense simultaneously.
+
+      Refs #42
+    rationale: "Body explains the 'why' (race condition), includes issue reference"
+
+  refactor_multi_package:
+    description: "Refactoring across multiple packages"
+    type: "refactor"
+    scope: "monorepo"
+    subject: "Standardize error handling across packages"
+    body: |
+      - Implement unified error response format
+      - Update frontend error display
+      - Update backend error middleware
+      - Add integration tests for error flows
+    rationale: "Uses 'monorepo' scope when changes affect multiple packages"
+
+  documentation:
+    description: "Documentation update"
+    type: "docs"
+    scope: "project"
+    subject: "Add Docker-based E2E testing guide"
+    body: |
+      Document the Docker-first approach for E2E tests with comparison
+      to local testing. Includes troubleshooting section.
+    rationale: "No tests needed for docs-only changes (TDD workflow exception)"
+
+  breaking_change:
+    description: "Breaking change with footer"
+    type: "feat"
+    scope: "backend"
+    subject: "Change expense API response format"
+    body: |
+      Restructure expense response to include currency metadata and
+      localized formatting hints for frontend consumption.
+
+      BREAKING CHANGE: Response structure changed from flat to nested.
+      Frontend must update ExpenseList component to access `expense.data`
+      instead of top-level fields.
+    rationale: "Breaking changes must include footer explaining migration path"
+
+  build_dependency:
+    description: "Dependency update"
+    type: "build"
+    scope: "frontend"
+    subject: "Update Playwright to v1.56.1"
+    body: |
+      Update to latest Playwright version for improved stability.
+      Update Docker image in Dockerfile.e2e accordingly.
+    rationale: "Use 'build' type for dependency changes, mention impact on other files"
+
+workflow_integration:
+  description: "How to use this skill during TDD workflow commit phase"
+  steps:
+    - "After tests pass and code is formatted/linted"
+    - "Stage your changes: git add ."
+    - "Review changed files to determine scope (frontend/backend/monorepo/etc)"
+    - "Choose appropriate type (feat/fix/refactor/test/docs/etc)"
+    - "Write subject in imperative mood, be specific"
+    - "Add body with bullet points for multi-change commits"
+    - "Reference examples above for similar scenarios"
+
+  command_template: |
+    git commit -m "type(scope): Subject line under 72 chars
+
+    - Bullet point explaining what changed
+    - Another change or context
+    - Mention tests added or updated
+
+    Refs #issue_number (if applicable)"
+
+special_commit_triggers:
+  description: "Special keywords in commit messages that trigger automated workflows"
+
+  update_snapshots:
+    keyword: "[update-snapshots]"
+    workflow: "Update Visual Snapshots"
+    usage: "Include keyword ANYWHERE in commit message (subject or body)"
+    purpose: "Triggers automatic visual regression snapshot updates in CI"
+    when_to_use:
+      - "After UI changes that legitimately change appearance"
+      - "When visual regression tests fail with expected changes"
+      - "To update baseline screenshots after intentional design updates"
+    example: |
+      feat(frontend): Redesign expense card layout [update-snapshots]
+
+      - Increase card padding for better readability
+      - Add subtle shadow for depth
+      - Update typography hierarchy
+
+      Visual changes are intentional. Snapshots need updating.
+
+    alternatives:
+      - "Manual workflow dispatch via GitHub Actions UI"
+      - "PR comment: /update-snapshots"
+
+    important_notes:
+      - "Visual snapshots are ONLY updated in remote CI, never locally"
+      - "Workflow automatically commits updated snapshots back to branch"
+      - "Review snapshot changes before merging to ensure they're correct"
+      - "See CLAUDE.md section 'Visual Snapshot Management' for details"

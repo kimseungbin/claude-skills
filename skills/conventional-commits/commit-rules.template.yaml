@@ -1,0 +1,157 @@
+# Commit Message Rules Template
+# Copy this to commit-rules.yaml and customize for your project
+
+# Message format pattern
+format:
+  # Pattern: <type>(<scope>): <subject>
+  pattern: "{type}({scope}): {subject}"
+
+  # Maximum line lengths
+  max_subject_length: 72
+  max_body_line_length: 100
+
+# Allowed commit types
+types:
+  feat:
+    description: "A new feature"
+    examples:
+      - "feat(backend): Add trip expense calculation"
+      - "feat(frontend): Implement settlement dashboard"
+
+  fix:
+    description: "A bug fix"
+    examples:
+      - "fix(backend): Resolve currency conversion error"
+      - "fix(frontend): Fix date picker validation"
+
+  refactor:
+    description: "Code change that neither fixes a bug nor adds a feature"
+    examples:
+      - "refactor(backend): Extract settlement logic to separate service"
+      - "refactor(frontend): Simplify trip list component"
+
+  perf:
+    description: "Performance improvement"
+    examples:
+      - "perf(backend): Optimize database queries for settlements"
+
+  test:
+    description: "Adding or updating tests"
+    examples:
+      - "test(backend): Add unit tests for trip service"
+
+  docs:
+    description: "Documentation changes"
+    examples:
+      - "docs: Update README with deployment instructions"
+
+  style:
+    description: "Code style changes (formatting, whitespace)"
+    examples:
+      - "style: Reformat codebase with prettier"
+
+  build:
+    description: "Build system or dependency changes"
+    examples:
+      - "build: Update TypeORM to v0.3"
+      - "build(infra): Add CDK construct library"
+
+  ci:
+    description: "CI/CD configuration changes"
+    examples:
+      - "ci: Add GitHub Actions workflow"
+
+  chore:
+    description: "Other changes that don't modify src or test files"
+    examples:
+      - "chore: Update .gitignore"
+
+# Allowed scopes (areas of the codebase)
+scopes:
+  frontend:
+    description: "Changes to packages/frontend"
+    patterns:
+      - "packages/frontend/**"
+
+  backend:
+    description: "Changes to packages/backend"
+    patterns:
+      - "packages/backend/**"
+
+  infra:
+    description: "Changes to packages/infra"
+    patterns:
+      - "packages/infra/**"
+
+  config:
+    description: "Configuration changes at root or config/"
+    patterns:
+      - "config/**"
+      - "*.config.*"
+      - "tsconfig*.json"
+
+  monorepo:
+    description: "Changes affecting multiple packages or root"
+    patterns:
+      - "package.json"
+      - "packages/*/package.json"
+
+# Conventions and rules
+conventions:
+  # Subject line rules
+  subject:
+    - "Use imperative mood (Add, Fix, Update, not Added, Fixed, Updated)"
+    - "Don't capitalize first letter (unless it's a proper noun)"
+    - "No period at the end"
+    - "Be concise but descriptive"
+
+  # Body rules (optional)
+  body:
+    - "Separate from subject with blank line"
+    - "Explain what and why, not how"
+    - "Wrap at 100 characters"
+
+  # Footer rules (optional)
+  footer:
+    - "Breaking changes: Start line with 'BREAKING CHANGE:'"
+    - "Issue references: 'Refs #123' or 'Closes #123'"
+
+# Special cases
+special_cases:
+  # When changes span multiple packages
+  multi_package:
+    scope: "monorepo"
+    subject_prefix: "Update"
+
+  # When it's a breaking change
+  breaking_change:
+    footer_required: true
+    footer_format: "BREAKING CHANGE: <description>"
+
+  # Initial commits
+  initial_commit:
+    type: "chore"
+    subject: "Initial commit"
+
+# Examples of complete commit messages
+examples:
+  - |
+    feat(backend): Add trip settlement calculation logic
+
+    Implement algorithm to calculate fair settlements between trip
+    participants based on expenses and payments. Supports multiple
+    currencies with conversion.
+
+  - |
+    fix(frontend): Resolve date picker validation error
+
+    Date picker was accepting invalid date formats. Added proper
+    validation and error messages.
+
+    Closes #42
+
+  - |
+    refactor(monorepo): Consolidate TypeScript configurations
+
+    BREAKING CHANGE: tsconfig.json paths have changed. Update your
+    IDE settings to reference new base config.
