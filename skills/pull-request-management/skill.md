@@ -169,16 +169,108 @@ For sections requiring domain knowledge or judgment (40-80% confidence):
 
 **Decision process:**
 1. Analyze available information (code, docs, config)
-2. If confidence > 60%, make a selection and explain reasoning
-3. If confidence < 60%, suggest template update (see section 5)
+2. **Check actual diff content, not just file names**
+3. If confidence > 60%, make a selection and **ALWAYS explain reasoning with specific evidence**
+4. If confidence < 60%, suggest template update (see section 5)
 
-**Example (Medium-High Confidence):**
+#### Special: Deployment Impact Analysis (CRITICAL)
+
+**ALWAYS provide detailed reasoning for deployment impact. Never just check a box.**
+
+**Step 1: Identify Changed Files**
+```bash
+git diff <base>..<head> --name-only | grep -E "task-definition|config.data|fargate|service"
+```
+
+**Step 2: Check ACTUAL Changes (Not Just File Names)**
+```bash
+# Check if actual VALUES changed
+git diff <base>..<head> lib/constructs/service/task-definition.ts
+git diff <base>..<head> src/config/config.data.ts | grep -E "cpu|memory|env|desired"
+```
+
+**Step 3: Categorize Based on ACTUAL Changes**
+
+**High Impact - Task Definition Changes:**
+```bash
+# Look for actual VALUE changes in:
+- CPU: FargateCpu.CPU_256 → FargateCpu.CPU_512
+- Memory: FargateMemory.MEMORY_512 → FargateMemory.MEMORY_1024
+- Environment variables: new env vars, changed values
+- Container image, ports, volumes
+- Task/Execution roles
+```
+
+**Medium Impact - Scaling/Network Changes:**
+```bash
+# Look for:
+- desiredCount: 4 → 2 (task count change, NOT task definition)
+- minCapacity/maxCapacity changes
+- ALB rules, Security Groups
+- Auto-scaling policies
+```
+
+**Low Impact - Code Refactoring:**
+```bash
+# Look for:
+- Import path changes (same values, different location)
+- File moves without value changes
+- Documentation updates
+```
+
+**Common Mistakes to Avoid:**
+
+❌ **Wrong:**
+```markdown
+- [x] High Impact
+
+Reasoning: task-definition.ts file changed
+```
+→ Checking file name only, not actual diff content
+
+✅ **Correct:**
+```markdown
+- [x] Medium Impact
+
+Reasoning:
+- src/config/config.data.ts (fd282d1): desiredCount 4→2, minCapacity 4→2
+- This changes task COUNT, not task DEFINITION
+- ECS will scale down existing tasks, no new task deployment needed
+```
+
+---
+
+❌ **Wrong:**
+```markdown
+- [x] High Impact
+
+Reasoning: Fargate CPU enum file modified
+```
+→ File moved, values unchanged
+
+✅ **Correct:**
+```markdown
+- [x] Low Impact
+
+Reasoning:
+- lib/constructs/service/fargate-cpu.ts → src/config/types/fargate.types.ts
+- File relocation only, no value changes
+- Import paths updated, compiled output identical
+```
+
+**Example (Medium-High Confidence with Proper Analysis):**
 ```markdown
 ## Deployment Impact
-- [x] High Impact: ECS service redeployment needed
+- [x] Medium Impact
 
-**Reasoning:** Changes modify Task Definition CPU/memory in `lib/main-stack.ts:145`
-**Confidence:** ~75% (clear TaskDefinition change, but unsure of rollout strategy)
+**영향도 분석:**
+- Medium Impact: src/config/config.data.ts에서 desiredCount 4→2 변경 (fd282d1 커밋)
+  * Auto-scaling 조정, Task Definition은 변경 없음
+  * 기존 Task 유지, 점진적 스케일 다운
+- Low Impact: lib/constructs/service/fargate-cpu.ts → src/config/types/fargate.types.ts 이동 (e3bf8b3 커밋)
+  * 파일 구조 변경, 실제 값 변경 없음
+
+**Confidence:** 90% (git diff 확인 완료, 실제 값 변경 내역 확인)
 ```
 
 **Example (Medium-Low Confidence):**
