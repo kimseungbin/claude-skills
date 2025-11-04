@@ -65,6 +65,73 @@ Determine where this PR will merge to:
 - Check for environment-based branches (dev, staging, prod, etc.)
 - Ask user if unclear
 
+### 3.5. Determine PR Title and Type
+
+**CRITICAL: For environment promotion PRs (e.g., master → staging), analyze ALL commits to determine the correct type.**
+
+#### For Single-Feature PRs:
+Use the commit type directly:
+- `feat(scope): Add new feature`
+- `fix(scope): Fix bug in component`
+- `refactor(scope): Restructure module`
+
+#### For Environment Promotion PRs (Multiple Commits):
+
+**Step 1: Analyze All Commits**
+```bash
+git log <target-branch>..<source-branch> --oneline
+```
+
+**Step 2: Count Commit Types**
+Categorize commits by type:
+- feat: New features, major functionality
+- fix: Bug fixes
+- refactor: Code restructuring without behavior change
+- docs: Documentation only
+- chore: Maintenance (dependencies, config)
+- ci: CI/CD changes
+
+**Step 3: Select Dominant Type**
+
+**Decision Rules:**
+1. **If there's a major infrastructure change** (migration, architecture change):
+   - Use `feat(infra):` or `refactor(infra):`
+   - Example: `feat(infra): Migrate to ES Modules and add tooling improvements`
+
+2. **If mostly new features** (>50% feat commits):
+   - Use `feat:` or `feat(scope):`
+   - Example: `feat: Add authentication and user management features`
+
+3. **If mostly bug fixes** (>50% fix commits):
+   - Use `fix:` or `fix(scope):`
+   - Example: `fix: Resolve production issues and performance bugs`
+
+4. **If mixed with no clear dominant** (e.g., 40% feat, 35% fix, 25% docs):
+   - Use `feat:` as default for promotions
+   - Example: `feat: Promote DEV changes to STAGING`
+
+5. **NEVER use `chore:` for environment promotions**:
+   - `chore` = maintenance tasks (dependency updates, config tweaks)
+   - Promotions contain actual features/fixes that provide user value
+   - Exception: Only use `chore` if PR is truly just dependency updates
+
+**Examples:**
+
+**Good:**
+```
+feat(infra): Migrate to ES Modules and add tooling improvements
+feat(auth): Add OAuth2 and two-factor authentication
+fix: Resolve critical production bugs in payment flow
+refactor(api): Restructure API layer for better maintainability
+```
+
+**Bad:**
+```
+chore: Promote DEV to STAGING  ← TOO GENERIC, WRONG TYPE
+update: Add new features  ← "update" is not a conventional commit type
+feat: Changes  ← TOO VAGUE
+```
+
 ### 4. Fill Out PR Template Sections
 
 For each section in the PR template, follow this decision-making process:
@@ -422,18 +489,39 @@ User: "Create a PR for my authentication feature"
 User: "Create PR to promote master to staging"
 
 1. Read .github/pull_request_template.md
-2. Analyze: git diff stag...master
-3. Identify: Multiple commits, multiple services
-4. Fill template:
-   - Title: "chore: Promote DEV changes to STAGING"
-   - Type: chore
+2. Analyze: git diff stag...master and git log stag..master
+3. Identify: Multiple commits (23), multiple types
+   - Commits breakdown:
+     * 8 feat commits (ESM migration, Lambda@Edge, PR tools)
+     * 6 docs commits (CLAUDE.md, GIT_STRATEGY.md, etc.)
+     * 4 fix commits (Docker Server, CodeBuild)
+     * 3 chore commits (dependencies, config)
+     * 2 refactor commits (config restructuring)
+4. Determine dominant change type:
+   - Most significant: ESM migration (feat)
+   - New features: Lambda@Edge, PR tooling (feat)
+   - Decision: Use "feat" for title (most impactful changes)
+5. Fill template:
+   - Title: "feat(infra): Migrate to ES Modules and add tooling improvements"
+   - Type: feat, fix, refactor, chore, docs (multiple)
    - Target Environment: STAGING
    - Affected Services: (list all from commits)
-   - Deployment Impact: Varies per commit
-   - Confidence: High (90%)
-5. Generate summary from commit history
-6. Create PR: gh pr create --base stag --head master
-7. Note: Requires review approval for STAGING
+   - Deployment Impact: High (ESM migration affects build)
+   - Confidence: High (95%)
+6. Generate detailed summary from commit history
+7. Create PR: gh pr create --base stag --head master
+8. Note: Requires review approval for STAGING
+
+**Type Selection for Promotion PRs:**
+- Analyze commit types: feat, fix, refactor, chore, docs
+- Choose dominant/most significant type:
+  * If major infrastructure change → feat(infra) or refactor(infra)
+  * If mostly new features → feat
+  * If mostly bug fixes → fix
+  * If mixed with no clear dominant → feat (default for promotions)
+- NEVER use "chore" for environment promotions
+  * chore = maintenance tasks (deps, config tweaks)
+  * Promotions contain actual features/fixes
 ```
 
 ### Workflow 3: Low Confidence → Template Improvement
