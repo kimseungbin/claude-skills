@@ -1,0 +1,125 @@
+# Pull Request Management - Project Configuration Template
+#
+# Copy this file to .claude/config/pull-request-management.yaml in your project
+# and customize it for project-specific PR rules.
+
+# Project information
+project: my-project-name
+repository: org/repo-name
+
+# Branch strategy
+branches:
+  # Main development branch
+  development: main
+  # Staging/QA branch (optional)
+  staging: staging
+  # Production branch (optional)
+  production: prod
+
+# Auto-fill rules for PR template sections
+auto_fill:
+  # Deployment impact detection based on file patterns
+  deployment_impact:
+    # High impact: Requires service restart/redeployment
+    high:
+      - "**/task-definition.ts"
+      - "**/service/index.ts"
+      - "**/dockerfile"
+      - "**/k8s/**/*.yaml"
+      - "**/deployment.yaml"
+
+    # Medium impact: Updates without downtime
+    medium:
+      - "**/load-balancer.ts"
+      - "**/cloudfront.ts"
+      - "**/ingress.yaml"
+      - "**/configmap.yaml"
+
+    # Low impact: Metadata only
+    low:
+      - "**/*.md"
+      - "**/README*"
+      - "**/*.test.ts"
+      - "**/*.spec.ts"
+
+  # Service detection based on file paths
+  affected_services:
+    service-1: ["**/packages/service-1/**", "**/apps/service-1/**"]
+    service-2: ["**/packages/service-2/**", "**/apps/service-2/**"]
+    common: ["**/packages/common/**", "**/libs/**"]
+
+  # Breaking change detection patterns
+  breaking_changes:
+    # Files that often contain breaking changes
+    high_risk_files:
+      - "**/api/**/*.ts"
+      - "**/schema/**/*"
+      - "**/migrations/**/*"
+      - "**/proto/**/*.proto"
+
+    # Keywords in commit messages that indicate breaking changes
+    keywords:
+      - "BREAKING CHANGE"
+      - "breaking:"
+      - "!:"  # Conventional Commits breaking change marker
+
+# Confidence thresholds (0-100)
+confidence:
+  # >= high: Fill out section directly
+  high: 80
+  # >= medium: Fill with explanation of reasoning
+  medium: 60
+  # < medium: Suggest template update instead of guessing
+  low: 40
+
+# Required checks before PR creation
+pre_flight_checks:
+  # Linting
+  - npm run lint:check
+  # Type checking
+  - npm run type-check
+  # Build
+  - npm run build
+  # Tests (optional, uncomment if required)
+  # - npm test
+
+# Optional: Custom section handlers
+# Define custom logic for specific PR template sections
+custom_sections:
+  # Example: Security review required for certain file changes
+  security_review_required:
+    trigger_files:
+      - "**/auth/**/*"
+      - "**/security/**/*"
+      - "**/*-policy.ts"
+      - "**/iam/**/*"
+    message: "⚠️ Security review required - changes affect authentication/authorization"
+
+  # Example: Performance review for critical paths
+  performance_review_required:
+    trigger_files:
+      - "**/api/routes/**/*"
+      - "**/database/**/*"
+      - "**/cache/**/*"
+    message: "⚠️ Performance review recommended - changes affect critical path"
+
+# Link to additional PR guidelines (optional)
+guidelines:
+  deployment_impact: ".github/pr-guidelines/deployment-impact-guide.md"
+  security_checklist: ".github/pr-guidelines/security-checklist.md"
+  testing_guide: ".github/pr-guidelines/testing-guide.md"
+
+# Target audience for different PR types
+reviewers:
+  # Auto-assign reviewers based on affected files
+  infrastructure:
+    files: ["**/lib/**", "**/infra/**", "**/cdk/**"]
+    team: ["@infrastructure-team"]
+
+  frontend:
+    files: ["**/frontend/**", "**/ui/**", "**/*.svelte", "**/*.vue"]
+    team: ["@frontend-team"]
+
+  backend:
+    files: ["**/backend/**", "**/api/**", "**/services/**"]
+    team: ["@backend-team"]
