@@ -12,8 +12,10 @@ This skill generates commit messages following the [Conventional Commits](https:
 When the user requests to create a commit or generate a commit message:
 
 1. **Read the commit rules configuration**:
-   - Read `.claude/skills/conventional-commits/commit-rules.yaml`
+   - **First**, check if `.claude/config/conventional-commits.yaml` exists (project-specific rules)
+   - **If not found**, fall back to `.claude/skills/conventional-commits/commit-rules.yaml` (default rules)
    - Parse the rules including: types, scopes, format patterns, and conventions
+   - Project-specific rules take precedence and override default rules
 
 2. **Analyze the current changes**:
    - Run `git status` to see modified/added files
@@ -148,9 +150,18 @@ User: "Commit the changes"
 
 ## Rules File Location
 
-The rules are defined in: `.claude/skills/conventional-commits/commit-rules.yaml`
+**Priority order:**
+1. **Project-specific rules**: `.claude/config/conventional-commits.yaml` (checked first)
+2. **Default rules**: `.claude/skills/conventional-commits/commit-rules.yaml` (fallback)
 
-If the file doesn't exist, create it using the template in `commit-rules.template.yaml`.
+Project-specific rules allow customizing commit conventions per repository while keeping the skill generic and reusable across projects.
+
+**When to create project-specific rules:**
+- Repository has unique scope requirements (e.g., infrastructure-only repo needs construct-level scopes)
+- Project has different conventions than the default rules
+- Team wants custom types or scopes for their workflow
+
+If neither file exists, create `.claude/config/conventional-commits.yaml` for this project using examples from the skill.
 
 ## Interactive Commit Selection
 
