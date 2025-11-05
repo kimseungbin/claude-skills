@@ -51,13 +51,13 @@ src/
 ```typescript
 // channel-fact.repository.ts
 export abstract class ChannelFactRepository {
-    abstract getFacts(channelId: string): Promise<ChannelFact[]>
-    abstract addFact(channelId: string, fact: ChannelFact): Promise<void>
-    abstract updateFact(channelId: string, factContent: string, updates: Partial<ChannelFact>): Promise<void>
-    abstract deleteFact(channelId: string, factContent: string): Promise<void>
-    abstract clear(channelId: string): Promise<void>
-    abstract getChannelCount(): Promise<number>
-    abstract getTotalFactCount(): Promise<number>
+	abstract getFacts(channelId: string): Promise<ChannelFact[]>
+	abstract addFact(channelId: string, fact: ChannelFact): Promise<void>
+	abstract updateFact(channelId: string, factContent: string, updates: Partial<ChannelFact>): Promise<void>
+	abstract deleteFact(channelId: string, factContent: string): Promise<void>
+	abstract clear(channelId: string): Promise<void>
+	abstract getChannelCount(): Promise<number>
+	abstract getTotalFactCount(): Promise<number>
 }
 ```
 
@@ -67,22 +67,22 @@ export abstract class ChannelFactRepository {
 // in-memory-channel.repository.ts
 @Injectable()
 export class InMemoryChannelRepository extends ChannelFactRepository {
-    private readonly logger = new Logger(InMemoryChannelRepository.name)
-    private readonly memoryStore = new Map<string, ChannelFact[]>()
+	private readonly logger = new Logger(InMemoryChannelRepository.name)
+	private readonly memoryStore = new Map<string, ChannelFact[]>()
 
-    async getFacts(channelId: string): Promise<ChannelFact[]> {
-        return this.memoryStore.get(channelId) ?? []
-    }
+	async getFacts(channelId: string): Promise<ChannelFact[]> {
+		return this.memoryStore.get(channelId) ?? []
+	}
 
-    async addFact(channelId: string, fact: ChannelFact): Promise<void> {
-        const facts = this.memoryStore.get(channelId) ?? []
-        facts.push(fact)
-        this.memoryStore.set(channelId, facts)
+	async addFact(channelId: string, fact: ChannelFact): Promise<void> {
+		const facts = this.memoryStore.get(channelId) ?? []
+		facts.push(fact)
+		this.memoryStore.set(channelId, facts)
 
-        this.logger.log(`Added fact to channel ${channelId}`)
-    }
+		this.logger.log(`Added fact to channel ${channelId}`)
+	}
 
-    // ... other methods
+	// ... other methods
 }
 ```
 
@@ -92,19 +92,19 @@ export class InMemoryChannelRepository extends ChannelFactRepository {
 // channel-memory.service.ts
 @Injectable()
 export class ChannelMemoryService {
-    constructor(private readonly repository: ChannelFactRepository) {}
+	constructor(private readonly repository: ChannelFactRepository) {}
 
-    async getFacts(channelId: string): Promise<ChannelFact[]> {
-        const facts = await this.repository.getFacts(channelId)
-        // Business logic: Sort by most recent
-        return facts.sort((a, b) => b.lastConfirmed.getTime() - a.lastConfirmed.getTime())
-    }
+	async getFacts(channelId: string): Promise<ChannelFact[]> {
+		const facts = await this.repository.getFacts(channelId)
+		// Business logic: Sort by most recent
+		return facts.sort((a, b) => b.lastConfirmed.getTime() - a.lastConfirmed.getTime())
+	}
 
-    async addFact(channelId: string, fact: ChannelFact): Promise<void> {
-        // Business logic: Validate before adding
-        await this.repository.addFact(channelId, fact)
-        this.logger.log(`Added fact: "${fact.fact.substring(0, 50)}..."`)
-    }
+	async addFact(channelId: string, fact: ChannelFact): Promise<void> {
+		// Business logic: Validate before adding
+		await this.repository.addFact(channelId, fact)
+		this.logger.log(`Added fact: "${fact.fact.substring(0, 50)}..."`)
+	}
 }
 ```
 
@@ -115,15 +115,15 @@ export class ChannelMemoryService {
 ```typescript
 // context.module.ts
 @Module({
-    providers: [
-        {
-            provide: ChannelFactRepository,
-            useClass: InMemoryChannelRepository, // ← Swap to RedisChannelRepository later
-        },
-        ChannelMemoryService,
-        ContextManagerService,
-    ],
-    exports: [ContextManagerService, ChannelMemoryService],
+	providers: [
+		{
+			provide: ChannelFactRepository,
+			useClass: InMemoryChannelRepository, // ← Swap to RedisChannelRepository later
+		},
+		ChannelMemoryService,
+		ContextManagerService,
+	],
+	exports: [ContextManagerService, ChannelMemoryService],
 })
 export class ContextModule {}
 ```
@@ -192,25 +192,25 @@ getFacts(channelId: string): ChannelFact[] {
 ```typescript
 // config.service.ts
 export const DEFAULT_CONTEXT_LIMITS: ContextLimitsConfig = {
-    softContextLimit: 150000,
-    allocation: {
-        threadContextRatio: 0.7,
-        channelContextRatio: 0.3,
-    },
-    truncation: {
-        keepRecentThreadMessages: 50,
-        keepRecentChannelFacts: 20,
-    },
+	softContextLimit: 150000,
+	allocation: {
+		threadContextRatio: 0.7,
+		channelContextRatio: 0.3,
+	},
+	truncation: {
+		keepRecentThreadMessages: 50,
+		keepRecentChannelFacts: 20,
+	},
 }
 
 @Injectable()
 export class ConfigService {
-    getBedrockConfig() {
-        return {
-            contextLimits: DEFAULT_CONTEXT_LIMITS,
-            // ... other config
-        }
-    }
+	getBedrockConfig() {
+		return {
+			contextLimits: DEFAULT_CONTEXT_LIMITS,
+			// ... other config
+		}
+	}
 }
 ```
 
@@ -221,9 +221,9 @@ export class ConfigService {
 import { DEFAULT_CONTEXT_LIMITS } from '../config/config.service.js'
 
 const mockConfigService = {
-    getBedrockConfig: () => ({
-        contextLimits: DEFAULT_CONTEXT_LIMITS, // ← Import from source
-    }),
+	getBedrockConfig: () => ({
+		contextLimits: DEFAULT_CONTEXT_LIMITS, // ← Import from source
+	}),
 }
 ```
 
@@ -232,23 +232,23 @@ const mockConfigService = {
 ```typescript
 // ❌ Wrong: Duplicate configuration
 export interface AppConfig {
-    bedrock: {
-        softContextLimit: 150000,  // Duplicate!
-        contextLimits: {
-            softContextLimit: 150000,  // Duplicate!
-        }
-    }
+	bedrock: {
+		softContextLimit: 150000 // Duplicate!
+		contextLimits: {
+			softContextLimit: 150000 // Duplicate!
+		}
+	}
 }
 
 // ✅ Correct: Single source of truth
 export interface AppConfig {
-    bedrock: {
-        contextLimits: ContextLimitsConfig  // Only location
-    }
+	bedrock: {
+		contextLimits: ContextLimitsConfig // Only location
+	}
 }
 
 export const DEFAULT_CONTEXT_LIMITS: ContextLimitsConfig = {
-    softContextLimit: 150000,  // ✅ Single source
+	softContextLimit: 150000, // ✅ Single source
 }
 ```
 
@@ -261,54 +261,54 @@ export const DEFAULT_CONTEXT_LIMITS: ContextLimitsConfig = {
 ```typescript
 // in-memory-channel.repository.spec.ts
 describe('InMemoryChannelRepository', () => {
-    let repository: InMemoryChannelRepository
+	let repository: InMemoryChannelRepository
 
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [InMemoryChannelRepository],
-        }).compile()
+	beforeEach(async () => {
+		const module: TestingModule = await Test.createTestingModule({
+			providers: [InMemoryChannelRepository],
+		}).compile()
 
-        repository = module.get<InMemoryChannelRepository>(InMemoryChannelRepository)
-    })
+		repository = module.get<InMemoryChannelRepository>(InMemoryChannelRepository)
+	})
 
-    it('should store and retrieve a single fact', async () => {
-        const fact: ChannelFact = {
-            fact: 'Team standup is at 10am',
-            confidence: 0.9,
-            channels: ['C123'],
-            firstChannel: 'C123',
-            visibility: 'channel',
-            lastConfirmed: new Date('2025-01-01'),
-        }
+	it('should store and retrieve a single fact', async () => {
+		const fact: ChannelFact = {
+			fact: 'Team standup is at 10am',
+			confidence: 0.9,
+			channels: ['C123'],
+			firstChannel: 'C123',
+			visibility: 'channel',
+			lastConfirmed: new Date('2025-01-01'),
+		}
 
-        await repository.addFact('C123', fact)
-        const facts = await repository.getFacts('C123')
+		await repository.addFact('C123', fact)
+		const facts = await repository.getFacts('C123')
 
-        expect(facts).toHaveLength(1)
-        expect(facts[0]).toEqual(fact)
-    })
+		expect(facts).toHaveLength(1)
+		expect(facts[0]).toEqual(fact)
+	})
 
-    it('should enforce LRU eviction (50 facts max per channel)', async () => {
-        // Add 51 facts to trigger eviction
-        for (let i = 0; i < 51; i++) {
-            await repository.addFact('C123', {
-                fact: `Fact ${i}`,
-                confidence: 0.9,
-                channels: ['C123'],
-                firstChannel: 'C123',
-                visibility: 'channel',
-                lastConfirmed: new Date(2025, 0, i + 1),
-            })
-        }
+	it('should enforce LRU eviction (50 facts max per channel)', async () => {
+		// Add 51 facts to trigger eviction
+		for (let i = 0; i < 51; i++) {
+			await repository.addFact('C123', {
+				fact: `Fact ${i}`,
+				confidence: 0.9,
+				channels: ['C123'],
+				firstChannel: 'C123',
+				visibility: 'channel',
+				lastConfirmed: new Date(2025, 0, i + 1),
+			})
+		}
 
-        const facts = await repository.getFacts('C123')
-        expect(facts).toHaveLength(50)
+		const facts = await repository.getFacts('C123')
+		expect(facts).toHaveLength(50)
 
-        // Should evict oldest (Fact 0)
-        const factContents = facts.map(f => f.fact)
-        expect(factContents).not.toContain('Fact 0')
-        expect(factContents).toContain('Fact 50')
-    })
+		// Should evict oldest (Fact 0)
+		const factContents = facts.map(f => f.fact)
+		expect(factContents).not.toContain('Fact 0')
+		expect(factContents).toContain('Fact 50')
+	})
 })
 ```
 
@@ -319,44 +319,42 @@ describe('InMemoryChannelRepository', () => {
 ```typescript
 // channel-memory.service.spec.ts
 describe('ChannelMemoryService', () => {
-    let service: ChannelMemoryService
-    let mockRepository: jest.Mocked<ChannelFactRepository>
+	let service: ChannelMemoryService
+	let mockRepository: jest.Mocked<ChannelFactRepository>
 
-    beforeEach(async () => {
-        mockRepository = {
-            getFacts: jest.fn(),
-            addFact: jest.fn(),
-            updateFact: jest.fn(),
-            deleteFact: jest.fn(),
-            clear: jest.fn(),
-            getChannelCount: jest.fn(),
-            getTotalFactCount: jest.fn(),
-        }
+	beforeEach(async () => {
+		mockRepository = {
+			getFacts: jest.fn(),
+			addFact: jest.fn(),
+			updateFact: jest.fn(),
+			deleteFact: jest.fn(),
+			clear: jest.fn(),
+			getChannelCount: jest.fn(),
+			getTotalFactCount: jest.fn(),
+		}
 
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [
-                ChannelMemoryService,
-                {
-                    provide: ChannelFactRepository,
-                    useValue: mockRepository,
-                },
-            ],
-        }).compile()
+		const module: TestingModule = await Test.createTestingModule({
+			providers: [
+				ChannelMemoryService,
+				{
+					provide: ChannelFactRepository,
+					useValue: mockRepository,
+				},
+			],
+		}).compile()
 
-        service = module.get<ChannelMemoryService>(ChannelMemoryService)
-    })
+		service = module.get<ChannelMemoryService>(ChannelMemoryService)
+	})
 
-    it('should delegate to repository for data operations', async () => {
-        const facts: ChannelFact[] = [
-            { fact: 'Test', confidence: 0.9, /* ... */ },
-        ]
-        mockRepository.getFacts.mockResolvedValue(facts)
+	it('should delegate to repository for data operations', async () => {
+		const facts: ChannelFact[] = [{ fact: 'Test', confidence: 0.9 /* ... */ }]
+		mockRepository.getFacts.mockResolvedValue(facts)
 
-        const result = await service.getFacts('C123')
+		const result = await service.getFacts('C123')
 
-        expect(mockRepository.getFacts).toHaveBeenCalledWith('C123')
-        expect(result).toEqual(facts)
-    })
+		expect(mockRepository.getFacts).toHaveBeenCalledWith('C123')
+		expect(result).toEqual(facts)
+	})
 })
 ```
 
@@ -369,33 +367,33 @@ describe('ChannelMemoryService', () => {
 import { DEFAULT_CONTEXT_LIMITS } from '../config/config.service.js'
 
 describe('ContextManagerService', () => {
-    let service: ContextManagerService
-    let configService: ConfigService
+	let service: ContextManagerService
+	let configService: ConfigService
 
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [
-                ContextManagerService,
-                {
-                    provide: ConfigService,
-                    useValue: {
-                        getBedrockConfig: () => ({
-                            contextLimits: DEFAULT_CONTEXT_LIMITS,
-                        }),
-                    },
-                },
-            ],
-        }).compile()
+	beforeEach(async () => {
+		const module: TestingModule = await Test.createTestingModule({
+			providers: [
+				ContextManagerService,
+				{
+					provide: ConfigService,
+					useValue: {
+						getBedrockConfig: () => ({
+							contextLimits: DEFAULT_CONTEXT_LIMITS,
+						}),
+					},
+				},
+			],
+		}).compile()
 
-        service = module.get<ContextManagerService>(ContextManagerService)
-        configService = module.get<ConfigService>(ConfigService)
-    })
+		service = module.get<ContextManagerService>(ContextManagerService)
+		configService = module.get<ConfigService>(ConfigService)
+	})
 
-    it('should allocate 70% to thread and 30% to channel', () => {
-        const config = configService.getBedrockConfig().contextLimits
-        expect(config.allocation.threadContextRatio).toBe(0.7)
-        expect(config.allocation.channelContextRatio).toBe(0.3)
-    })
+	it('should allocate 70% to thread and 30% to channel', () => {
+		const config = configService.getBedrockConfig().contextLimits
+		expect(config.allocation.threadContextRatio).toBe(0.7)
+		expect(config.allocation.channelContextRatio).toBe(0.3)
+	})
 })
 ```
 
@@ -407,13 +405,13 @@ describe('ContextManagerService', () => {
 
 ```json
 {
-    "compilerOptions": {
-        "module": "ESNext",
-        "moduleResolution": "node",
-        "esModuleInterop": true,
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true
-    }
+	"compilerOptions": {
+		"module": "ESNext",
+		"moduleResolution": "node",
+		"esModuleInterop": true,
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true
+	}
 }
 ```
 
@@ -421,10 +419,10 @@ describe('ContextManagerService', () => {
 
 ```json
 {
-    "type": "module",
-    "scripts": {
-        "start:dev": "nest start --watch"
-    }
+	"type": "module",
+	"scripts": {
+		"start:dev": "nest start --watch"
+	}
 }
 ```
 
@@ -510,10 +508,10 @@ import { ChannelFactRepository } from './repositories/channel-fact.repository.js
 ```typescript
 // ❌ Same value in two places
 export const DEFAULT_CONFIG = {
-    softContextLimit: 150000,  // Duplicate 1
-    contextLimits: {
-        softContextLimit: 150000,  // Duplicate 2
-    }
+	softContextLimit: 150000, // Duplicate 1
+	contextLimits: {
+		softContextLimit: 150000, // Duplicate 2
+	},
 }
 ```
 
@@ -522,11 +520,11 @@ export const DEFAULT_CONFIG = {
 ```typescript
 // ✅ Single source of truth
 export const DEFAULT_CONTEXT_LIMITS = {
-    softContextLimit: 150000,
+	softContextLimit: 150000,
 }
 
 export const DEFAULT_CONFIG = {
-    contextLimits: DEFAULT_CONTEXT_LIMITS,  // Reference
+	contextLimits: DEFAULT_CONTEXT_LIMITS, // Reference
 }
 ```
 
@@ -536,15 +534,17 @@ export const DEFAULT_CONFIG = {
 
 ```typescript
 class InMemoryRepo extends ChannelFactRepository {
-    getFacts(channelId: string): ChannelFact[] {  // ❌ Sync
-        return this.memoryStore.get(channelId) ?? []
-    }
+	getFacts(channelId: string): ChannelFact[] {
+		// ❌ Sync
+		return this.memoryStore.get(channelId) ?? []
+	}
 }
 
 class RedisRepo extends ChannelFactRepository {
-    async getFacts(channelId: string): Promise<ChannelFact[]> {  // ✅ Async
-        return await this.redis.get(channelId)
-    }
+	async getFacts(channelId: string): Promise<ChannelFact[]> {
+		// ✅ Async
+		return await this.redis.get(channelId)
+	}
 }
 ```
 
@@ -554,9 +554,10 @@ class RedisRepo extends ChannelFactRepository {
 
 ```typescript
 class InMemoryRepo extends ChannelFactRepository {
-    async getFacts(channelId: string): Promise<ChannelFact[]> {  // ✅
-        return this.memoryStore.get(channelId) ?? []
-    }
+	async getFacts(channelId: string): Promise<ChannelFact[]> {
+		// ✅
+		return this.memoryStore.get(channelId) ?? []
+	}
 }
 ```
 
@@ -628,25 +629,25 @@ async getFacts(channelId: string): Promise<ChannelFact[]> {
 ```typescript
 @Injectable()
 export class RedisChannelRepository extends ChannelFactRepository {
-    constructor(private readonly redis: Redis) {}
+	constructor(private readonly redis: Redis) {}
 
-    async addFact(channelId: string, fact: ChannelFact): Promise<void> {
-        const key = `channel_facts:${channelId}`
-        await this.redis
-            .multi()
-            .lpush(key, JSON.stringify(fact))
-            .ltrim(key, 0, 49)  // Keep 50 most recent
-            .expire(key, 86400)  // 24h TTL
-            .exec()
-    }
+	async addFact(channelId: string, fact: ChannelFact): Promise<void> {
+		const key = `channel_facts:${channelId}`
+		await this.redis
+			.multi()
+			.lpush(key, JSON.stringify(fact))
+			.ltrim(key, 0, 49) // Keep 50 most recent
+			.expire(key, 86400) // 24h TTL
+			.exec()
+	}
 
-    async getFacts(channelId: string): Promise<ChannelFact[]> {
-        const key = `channel_facts:${channelId}`
-        const values = await this.redis.lrange(key, 0, -1)
-        return values.map(v => JSON.parse(v))
-    }
+	async getFacts(channelId: string): Promise<ChannelFact[]> {
+		const key = `channel_facts:${channelId}`
+		const values = await this.redis.lrange(key, 0, -1)
+		return values.map(v => JSON.parse(v))
+	}
 
-    // ... implement other abstract methods
+	// ... implement other abstract methods
 }
 ```
 

@@ -5,18 +5,23 @@ Use this decision tree to determine if and how to refactor CDK code.
 ## Question 1: Why do you want to refactor?
 
 ### A) "The constructor is too long / code is messy"
+
 → Go to [Question 2: Length vs Complexity](#question-2-length-vs-complexity)
 
 ### B) "I want to reuse this code elsewhere"
+
 → Go to [Question 3: Reuse Strategy](#question-3-reuse-strategy)
 
 ### C) "Testing is difficult"
+
 → Go to [Question 4: Testing Difficulties](#question-4-testing-difficulties)
 
 ### D) "Concerns are mixed (e.g., CloudFront + logging together)"
+
 → Go to [Question 5: Separation of Concerns](#question-5-separation-of-concerns)
 
 ### E) "I'm following a refactoring checklist / TODO"
+
 → **STOP**: Validate that the refactoring adds actual value first
 
 ---
@@ -26,22 +31,26 @@ Use this decision tree to determine if and how to refactor CDK code.
 **Your constructor is 100+ lines. Should you refactor?**
 
 ### A) Most lines are simple configuration (like Glue table columns)
+
 **Answer**: ❌ **No, don't refactor**
+
 - Long != complex
 - Extracting to a method doesn't add value
 - Keep it inline for clarity
 
 **Example:**
+
 ```typescript
 // ❌ Don't extract this
 const columns = [
-  { name: 'date', type: 'date' },
-  { name: 'time', type: 'string' },
-  // ... 30 more simple lines
+	{ name: 'date', type: 'date' },
+	{ name: 'time', type: 'string' },
+	// ... 30 more simple lines
 ]
 ```
 
 ### B) Lines contain complex logic (conditionals, loops, calculations)
+
 **Answer**: ✅ **Yes, extract complex logic**
 
 ```typescript
@@ -54,6 +63,7 @@ private calculateMemoryLimit(cpu: number, environment: string): number {
 ```
 
 ### C) Code is repeated in multiple places
+
 **Answer**: ✅ **Yes, extract to reusable method**
 → Go to [Question 3: Reuse Strategy](#question-3-reuse-strategy)
 
@@ -64,33 +74,39 @@ private calculateMemoryLimit(cpu: number, environment: string): number {
 **You want to reuse code. Where will it be used?**
 
 ### A) Within the same construct (multiple times)
+
 **Solution**: Extract to private method
 
 ```typescript
 export class MyConstruct extends Construct {
-  constructor(scope, id, props) {
-    super(scope, id)
-    this.logBucket = this.createBucket('Logs')
-    this.assetBucket = this.createBucket('Assets')  // Reused!
-  }
+	constructor(scope, id, props) {
+		super(scope, id)
+		this.logBucket = this.createBucket('Logs')
+		this.assetBucket = this.createBucket('Assets') // Reused!
+	}
 
-  private createBucket(name: string): Bucket {
-    return new Bucket(this, name, { /* common config */ })
-  }
+	private createBucket(name: string): Bucket {
+		return new Bucket(this, name, {
+			/* common config */
+		})
+	}
 }
 ```
 
 ### B) Across multiple constructs in same stack
+
 **Solution**: Extract to shared construct
 
 ```typescript
 export class SharedBucketConstruct extends Construct {
-  readonly bucket: Bucket
+	readonly bucket: Bucket
 
-  constructor(scope, id, props: { purpose: string }) {
-    super(scope, id)
-    this.bucket = new Bucket(this, 'Bucket', { /* config */ })
-  }
+	constructor(scope, id, props: { purpose: string }) {
+		super(scope, id)
+		this.bucket = new Bucket(this, 'Bucket', {
+			/* config */
+		})
+	}
 }
 
 // Usage in other constructs
@@ -98,21 +114,22 @@ const logBucket = new SharedBucketConstruct(this, 'Logs', { purpose: 'logs' })
 ```
 
 ### C) Across multiple projects
+
 **Solution**: Create L3 construct library
 
 ```typescript
 // In separate npm package
 export class StandardS3Bucket extends Construct {
-  readonly bucket: Bucket
+	readonly bucket: Bucket
 
-  constructor(scope, id, props?) {
-    super(scope, id)
-    this.bucket = new Bucket(this, 'Bucket', {
-      encryption: BucketEncryption.S3_MANAGED,
-      versioned: true,
-      lifecycleRules: [{ expiration: Duration.days(90) }]
-    })
-  }
+	constructor(scope, id, props?) {
+		super(scope, id)
+		this.bucket = new Bucket(this, 'Bucket', {
+			encryption: BucketEncryption.S3_MANAGED,
+			versioned: true,
+			lifecycleRules: [{ expiration: Duration.days(90) }],
+		})
+	}
 }
 ```
 
@@ -123,44 +140,49 @@ export class StandardS3Bucket extends Construct {
 **Why is testing difficult?**
 
 ### A) Too many dependencies required to instantiate construct
+
 **Solution**: Use dependency injection
 
 ```typescript
 // ❌ Hard to test: Requires entire Shared construct
 export class Service extends Construct {
-  constructor(scope, id, props: { shared: Shared }) {
-    const vpc = props.shared.vpc
-    const cluster = props.shared.cluster
-    // ...
-  }
+	constructor(scope, id, props: { shared: Shared }) {
+		const vpc = props.shared.vpc
+		const cluster = props.shared.cluster
+		// ...
+	}
 }
 
 // ✅ Easy to test: Only requires what you need
 export class Service extends Construct {
-  constructor(scope, id, props: { vpc: IVpc, cluster: ICluster }) {
-    // Now you can pass mocks in tests
-  }
+	constructor(scope, id, props: { vpc: IVpc; cluster: ICluster }) {
+		// Now you can pass mocks in tests
+	}
 }
 ```
 
 ### B) Construct does too many things (hard to test in isolation)
+
 **Solution**: Split construct responsibilities
 → Go to [Question 5: Separation of Concerns](#question-5-separation-of-concerns)
 
 ### C) Can't test without deploying to AWS
+
 **Solution**: Use CDK assertions library
 
 ```typescript
 import { Template } from 'aws-cdk-lib/assertions'
 
 it('creates encrypted bucket', () => {
-  const stack = new Stack()
-  new MyConstruct(stack, 'Test', {})
+	const stack = new Stack()
+	new MyConstruct(stack, 'Test', {})
 
-  const template = Template.fromStack(stack)
-  template.hasResourceProperties('AWS::S3::Bucket', {
-    BucketEncryption: { /* ... */ }
-  })
+	const template = Template.fromStack(stack)
+	template.hasResourceProperties('AWS::S3::Bucket', {
+		BucketEncryption: {
+			/* ... */
+		},
+	})
 })
 ```
 
@@ -173,12 +195,14 @@ it('creates encrypted bucket', () => {
 ### Identify the concerns:
 
 **Example 1: CloudFront + Log Analytics**
+
 - Concern A: CloudFront distribution (cache policy, functions)
 - Concern B: Log analytics (Glue, Athena)
 - **Relationship**: Logs come from CloudFront, but analytics is independent
 - **Decision**: ✅ Separate into two constructs
 
 **Example 2: ECS Service + Auto-scaling**
+
 - Concern A: ECS service definition
 - Concern B: Auto-scaling policies
 - **Relationship**: Tightly coupled (auto-scaling requires service)
@@ -198,6 +222,7 @@ Can concern A exist without concern B?
 ### How to separate:
 
 **Step 1: Check CloudFormation impact**
+
 ```bash
 # Before refactoring
 npm run cdk synth > before.json
@@ -211,18 +236,21 @@ diff <(grep -o '"[^"]*"' before.json | sort) \
 ```
 
 **Step 2: Determine replacement risk**
+
 - Safe to replace: Glue tables, Lambda functions, IAM roles
 - Unsafe to replace: S3 buckets, DynamoDB tables, RDS, ECR
 
 **Step 3: Choose approach**
 
 **Option A: Accept replacement (if safe)**
+
 ```typescript
 // Old construct gone, new construct created
 // CloudFormation will replace resources
 ```
 
 **Option B: Use overrideLogicalId() to prevent replacement**
+
 ```typescript
 export class NewConstruct extends Construct {
   constructor(scope, id, props) {
@@ -236,6 +264,7 @@ export class NewConstruct extends Construct {
 ```
 
 **Option C: Incremental migration**
+
 ```typescript
 // Phase 1: Keep old construct, add new construct (both exist)
 // Phase 2: Migrate resources gradually
@@ -289,8 +318,8 @@ private method2() { /* 15 lines */ }
 ```typescript
 // You write it once, no reuse yet
 export class AbstractBaseService extends Construct {
-  // 200 lines of generic code
-  // Trying to predict future needs
+	// 200 lines of generic code
+	// Trying to predict future needs
 }
 
 // Better: Wait until you have 2-3 concrete examples
@@ -312,6 +341,7 @@ export class AbstractBaseService extends Construct {
 ## When NOT to Refactor
 
 **Don't refactor if:**
+
 - ❌ Code works fine and has no clear issue
 - ❌ You're just "cleaning up" for aesthetics
 - ❌ No one else will maintain this code
@@ -320,6 +350,7 @@ export class AbstractBaseService extends Construct {
 - ❌ The refactoring doesn't solve a real problem
 
 **Wait until you have:**
+
 - ✅ A clear problem to solve
 - ✅ Evidence of duplication or complexity
 - ✅ Time to test thoroughly

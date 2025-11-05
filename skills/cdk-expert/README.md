@@ -18,6 +18,7 @@ This skill provides expert guidance on all aspects of AWS CDK development:
 ## When to Use
 
 Invoke this skill when:
+
 - Starting any new CDK project or construct
 - Refactoring existing CDK code
 - Deciding on naming strategy before promoting to STAGING/PROD
@@ -30,16 +31,19 @@ Invoke this skill when:
 ## Key Philosophy
 
 ### Refactoring
+
 - ❌ Don't extract methods unless they'll be reused (pointless busywork)
 - ✅ Do separate constructs when concerns need independent evolution
 - Always check `cdk diff` before refactoring
 
 ### Resource Naming
+
 - **DEV**: Dynamic names OK (fast iteration)
 - **STAGING/PROD**: Fixed names REQUIRED (predictability)
 - Always fix names before promoting from DEV
 
 ### CloudFormation Safety
+
 - Use `overrideLogicalId()` to avoid resource replacement when refactoring
 - Know which resources are safe vs unsafe to replace
 - Blue-green deployment for complex migrations (last resort)
@@ -58,16 +62,16 @@ Create `.claude/config/cdk-expert.yaml` in your project for custom settings:
 project: my-cdk-project
 
 naming:
-  pattern: "${service}-${environment}-${resource}"
-  environments: [dev, staging, prod]
+    pattern: '${service}-${environment}-${resource}'
+    environments: [dev, staging, prod]
 
 tags:
-  ManagedBy: CDK
-  Project: my-project
+    ManagedBy: CDK
+    Project: my-project
 
 security:
-  cdk_nag_enabled: true
-  nag_rule_pack: AwsSolutions
+    cdk_nag_enabled: true
+    nag_rule_pack: AwsSolutions
 ```
 
 ## Examples
@@ -77,13 +81,13 @@ security:
 ```typescript
 // DEV: Dynamic names (fast iteration)
 const bucket = new Bucket(this, 'Data', {
-  // No bucketName - CDK generates unique name
+	// No bucketName - CDK generates unique name
 })
 
 // STAGING/PROD: Fixed names (predictable)
 const naming = new ResourceNamingService(environment, serviceName)
 const bucket = new Bucket(this, 'Data', {
-  bucketName: naming.getBucketName('data')  // Fixed: myservice-data-prod-123456789012
+	bucketName: naming.getBucketName('data'), // Fixed: myservice-data-prod-123456789012
 })
 ```
 
@@ -131,6 +135,7 @@ export class NewConstruct extends Construct {
 ## Quick Reference
 
 ### Refactoring Checklist
+
 - [ ] Identify clear benefit (reuse, separation, testing)
 - [ ] Run `cdk diff` to check CloudFormation impact
 - [ ] Identify resources that will be replaced
@@ -139,6 +144,7 @@ export class NewConstruct extends Construct {
 - [ ] Test in DEV first
 
 ### Promotion Checklist (DEV → STAGING)
+
 - [ ] Add ResourceNamingService
 - [ ] Fix names for all stateful resources
 - [ ] Fix names for important stateless resources
@@ -147,6 +153,7 @@ export class NewConstruct extends Construct {
 - [ ] Verify resource names in AWS Console
 
 ### Blue-Green Migration
+
 - [ ] Try `overrideLogicalId()` first (safest)
 - [ ] If that fails, try import + manual migration
 - [ ] Only use blue-green if necessary
