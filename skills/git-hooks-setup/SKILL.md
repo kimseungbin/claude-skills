@@ -1,13 +1,14 @@
 ---
 name: git-hooks-setup
 description: |
-  Analyze projects and generate custom git hooks tailored to the codebase.
-  Use when user asks about git hooks, pre-commit checks, or hook configuration.
+    Analyze projects and generate custom git hooks tailored to the codebase.
+    Use when user asks about git hooks, pre-commit checks, or hook configuration.
 ---
 
 # Git Hooks Setup & Custom Generation
 
 **IMPORTANT: When setting up git hooks for the first time, ALWAYS:**
+
 1. Analyze the project (package.json scripts, tech stack, test setup)
 2. Generate custom hooks tailored to the project's needs
 3. Consider what's fast enough for pre-commit (<30s) vs pre-push
@@ -20,6 +21,7 @@ This skill provides instructions for configuring, managing, and troubleshooting 
 When analyzing a project to generate hooks, check these indicators:
 
 **Project Type Detection:**
+
 - AWS CDK: `aws-cdk-lib` in dependencies, `cdk.json` exists
 - Monorepo: `workspaces` in package.json, `pnpm-workspace.yaml`, or `lerna.json`
 - Frontend: React/Vue/Svelte/Angular in dependencies
@@ -27,6 +29,7 @@ When analyzing a project to generate hooks, check these indicators:
 - TypeScript: `tsconfig.json` exists, TypeScript in devDependencies
 
 **Available Tooling (check package.json scripts):**
+
 - Formatting: `format`, `format:check`, `prettier`
 - Linting: `lint`, `lint:check`, `eslint`
 - Type checking: `type-check`, `tsc`
@@ -35,6 +38,7 @@ When analyzing a project to generate hooks, check these indicators:
 - Style: `stylelint`
 
 **Template Selection Guide:**
+
 - Simple TS/JS project → `pre-commit-basic.sh`
 - AWS CDK project → `pre-commit-aws-cdk.sh`
 - Monorepo project → `pre-commit-monorepo.sh`
@@ -52,6 +56,7 @@ The project uses custom git hooks stored in `.githooks/` (instead of the default
 ### pre-commit
 
 Runs before each commit to validate:
+
 - **Code formatting** (Prettier)
 - **Linting** (ESLint)
 - **Build compilation** (all packages)
@@ -95,12 +100,14 @@ git commit -m "test"
 **Symptom**: Commits succeed without any hook output
 
 **Diagnosis**:
+
 ```bash
 # Check if hooks path is configured
 git config core.hooksPath
 ```
 
 **Solutions**:
+
 1. If output is empty or incorrect, run setup commands again
 2. Verify `.githooks/` directory exists in repository root
 3. Check hook files have executable permissions: `ls -l .githooks/`
@@ -110,6 +117,7 @@ git config core.hooksPath
 **Symptom**: `permission denied: .githooks/pre-commit`
 
 **Solution**:
+
 ```bash
 # Make hooks executable
 chmod +x .githooks/*
@@ -125,17 +133,19 @@ ls -l .githooks/
 **This is expected behavior!** The hook is working correctly.
 
 **Solutions**:
+
 1. **Fix the issues** (recommended):
-   ```bash
-   npm run format        # Auto-fix formatting
-   npm run lint          # Show linting errors
-   npm run build         # Verify build works
-   ```
+
+    ```bash
+    npm run format        # Auto-fix formatting
+    npm run lint          # Show linting errors
+    npm run build         # Verify build works
+    ```
 
 2. **Bypass temporarily** (use sparingly):
-   ```bash
-   git commit --no-verify -m "WIP: Your message"
-   ```
+    ```bash
+    git commit --no-verify -m "WIP: Your message"
+    ```
 
 **Warning**: Use `--no-verify` only for work-in-progress commits. Fix issues before final push.
 
@@ -146,6 +156,7 @@ ls -l .githooks/
 **Root Cause**: Hook script failed before cleanup step
 
 **Solution**:
+
 ```bash
 # Manually clean build artifacts
 npm run build           # Rebuild to ensure it works
@@ -157,6 +168,7 @@ rm -rf packages/*/dist  # Clean up artifacts
 ### When to Bypass
 
 Use `--no-verify` flag only for:
+
 - Work-in-progress commits (fix issues later)
 - Emergency hotfixes (fix quality issues immediately after)
 - Commits that intentionally break quality checks (rare, document why)
@@ -178,11 +190,13 @@ It's better to fix issues caught by hooks than to bypass them. Hooks save time b
 ## What Hooks Check
 
 ### Format Check (Prettier)
+
 ```bash
 npm run format:check
 ```
 
 Validates code formatting according to `.prettierrc.yaml`:
+
 - 120 character line width
 - Tabs (width: 4)
 - Single quotes
@@ -192,11 +206,13 @@ Validates code formatting according to `.prettierrc.yaml`:
 **Auto-fix**: `npm run format`
 
 ### Linting (ESLint)
+
 ```bash
 npm run lint
 ```
 
 Validates code quality and best practices:
+
 - Frontend: Svelte-specific rules
 - Backend: NestJS-specific rules
 - Infra: TypeScript-only rules
@@ -204,11 +220,13 @@ Validates code quality and best practices:
 **Configuration**: `.eslintrc.cjs` in each package
 
 ### Build Compilation
+
 ```bash
 npm run build
 ```
 
 Compiles all packages to verify no TypeScript errors:
+
 - Frontend: Vite build
 - Backend: NestJS build
 - Infra: CDK synth
@@ -230,6 +248,7 @@ Add one of these footers to your commit message:
 #### 1. `Snapshots: update` - UI appearance changed
 
 Use when changes affect visual appearance:
+
 - Styling changes (colors, spacing, fonts)
 - Layout modifications
 - New visual elements added
@@ -238,6 +257,7 @@ Use when changes affect visual appearance:
 **What happens**: CI will automatically update snapshot baselines after push and commit them back to the branch.
 
 **Example commit message**:
+
 ```
 feat(frontend): Redesign expense card layout
 
@@ -251,6 +271,7 @@ Snapshots: update
 #### 2. `Snapshots: skip` - UI files changed but appearance unchanged
 
 Use when changes don't affect visual output:
+
 - Internal refactoring
 - Prop renaming or restructuring
 - Type changes
@@ -260,6 +281,7 @@ Use when changes don't affect visual output:
 **What happens**: Hook allows commit without snapshot updates. You confirm no visual changes occurred.
 
 **Example commit message**:
+
 ```
 refactor(frontend): Extract validation logic from ExpenseForm
 
@@ -272,6 +294,7 @@ Snapshots: skip
 ### Why This Matters
 
 Visual regression tests compare current UI against baseline snapshots. When UI changes but snapshots aren't updated:
+
 - E2E tests fail with snapshot mismatches
 - CI pipeline blocks
 - Manual snapshot update workflow required
@@ -281,12 +304,14 @@ Explicit declaration prevents forgotten updates and CI failures.
 ### Decision Guide
 
 **Use `Snapshots: update` when**:
+
 - You modified CSS styling
 - You changed component layout/structure
 - You added/removed visual elements
 - You're unsure (safer to update than skip)
 
 **Use `Snapshots: skip` when**:
+
 - You only changed TypeScript/logic
 - You refactored props without visual impact
 - You verified no visual changes in browser
@@ -307,6 +332,7 @@ git commit --no-verify -m "WIP: Your message"
 **Problem**: Forgot to add snapshot footer, commit blocked
 
 **Solution**: Amend commit message:
+
 ```bash
 git commit --amend
 # Add "Snapshots: update" or "Snapshots: skip" footer
@@ -319,6 +345,7 @@ git commit --amend
 **Problem**: Not sure if visual changes occurred
 
 **Solution**:
+
 1. Run frontend locally: `npm run dev --workspace=frontend`
 2. Visually inspect changes in browser
 3. If any doubt, use `Snapshots: update` (safer)
@@ -328,11 +355,13 @@ git commit --amend
 E2E tests are **intentionally excluded** from pre-commit hooks due to execution time (2-5 minutes with Docker).
 
 **Run manually before pushing**:
+
 ```bash
 npm run test:e2e:docker
 ```
 
 **Why not in hooks?**
+
 - Too slow for fast commit workflow
 - Blocks developer productivity
 - Better suited for pre-push validation or CI/CD
@@ -346,6 +375,7 @@ Custom hooks live in `.githooks/` (version-controlled) instead of `.git/hooks/` 
 ### How It Works
 
 When you run `git config core.hooksPath .githooks`:
+
 1. Git reads hook scripts from `.githooks/` instead of `.git/hooks/`
 2. Hooks execute before git operations (commit, push, etc.)
 3. Non-zero exit code blocks the git operation
@@ -382,6 +412,7 @@ exit 0
 ### Updating Hooks
 
 When hook scripts are updated:
+
 1. Changes propagate via `git pull`
 2. No additional setup needed (hooks already configured)
 3. Permissions preserved if committed correctly

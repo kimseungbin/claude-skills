@@ -1,9 +1,9 @@
 ---
 name: Pull Request Management
 description: |
-  Guide for creating, reviewing, and managing pull requests across projects.
-  Helps fill out PR templates with proper validation and confidence checks.
-  Use when user requests to create a PR or needs help with PR description.
+    Guide for creating, reviewing, and managing pull requests across projects.
+    Helps fill out PR templates with proper validation and confidence checks.
+    Use when user requests to create a PR or needs help with PR description.
 ---
 
 # Pull Request Management
@@ -29,6 +29,7 @@ find .github -name "*pull_request*.md" -o -name "*PULL_REQUEST*.md"
 ```
 
 **Standard locations:**
+
 - `.github/pull_request_template.md` (primary)
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/PULL_REQUEST_TEMPLATE/` (multiple templates)
@@ -60,7 +61,7 @@ git diff --name-only origin/main..HEAD
 
 Determine where this PR will merge to:
 
-- Check branch naming conventions (feature/*, fix/*, hotfix/*)
+- Check branch naming conventions (feature/_, fix/_, hotfix/\*)
 - Review git workflow documentation (e.g., GIT_STRATEGY.md, CONTRIBUTING.md)
 - Check for environment-based branches (dev, staging, prod, etc.)
 - Ask user if unclear
@@ -70,7 +71,9 @@ Determine where this PR will merge to:
 **CRITICAL: For environment promotion PRs (e.g., master → staging), analyze ALL commits to determine the correct type.**
 
 #### For Single-Feature PRs:
+
 Use the commit type directly:
+
 - `feat(scope): Add new feature`
 - `fix(scope): Fix bug in component`
 - `refactor(scope): Restructure module`
@@ -78,12 +81,14 @@ Use the commit type directly:
 #### For Environment Promotion PRs (Multiple Commits):
 
 **Step 1: Analyze All Commits**
+
 ```bash
 git log <target-branch>..<source-branch> --oneline
 ```
 
 **Step 2: Count Commit Types**
 Categorize commits by type:
+
 - feat: New features, major functionality
 - fix: Bug fixes
 - refactor: Code restructuring without behavior change
@@ -94,30 +99,32 @@ Categorize commits by type:
 **Step 3: Select Dominant Type**
 
 **Decision Rules:**
+
 1. **If there's a major infrastructure change** (migration, architecture change):
-   - Use `feat(infra):` or `refactor(infra):`
-   - Example: `feat(infra): Migrate to ES Modules and add tooling improvements`
+    - Use `feat(infra):` or `refactor(infra):`
+    - Example: `feat(infra): Migrate to ES Modules and add tooling improvements`
 
 2. **If mostly new features** (>50% feat commits):
-   - Use `feat:` or `feat(scope):`
-   - Example: `feat: Add authentication and user management features`
+    - Use `feat:` or `feat(scope):`
+    - Example: `feat: Add authentication and user management features`
 
 3. **If mostly bug fixes** (>50% fix commits):
-   - Use `fix:` or `fix(scope):`
-   - Example: `fix: Resolve production issues and performance bugs`
+    - Use `fix:` or `fix(scope):`
+    - Example: `fix: Resolve production issues and performance bugs`
 
 4. **If mixed with no clear dominant** (e.g., 40% feat, 35% fix, 25% docs):
-   - Use `feat:` as default for promotions
-   - Example: `feat: Promote DEV changes to STAGING`
+    - Use `feat:` as default for promotions
+    - Example: `feat: Promote DEV changes to STAGING`
 
 5. **NEVER use `chore:` for environment promotions**:
-   - `chore` = maintenance tasks (dependency updates, config tweaks)
-   - Promotions contain actual features/fixes that provide user value
-   - Exception: Only use `chore` if PR is truly just dependency updates
+    - `chore` = maintenance tasks (dependency updates, config tweaks)
+    - Promotions contain actual features/fixes that provide user value
+    - Exception: Only use `chore` if PR is truly just dependency updates
 
 **Examples:**
 
 **Good:**
+
 ```
 feat(infra): Migrate to ES Modules and add tooling improvements
 feat(auth): Add OAuth2 and two-factor authentication
@@ -126,6 +133,7 @@ refactor(api): Restructure API layer for better maintainability
 ```
 
 **Bad:**
+
 ```
 chore: Promote DEV to STAGING  ← TOO GENERIC, WRONG TYPE
 update: Add new features  ← "update" is not a conventional commit type
@@ -141,6 +149,7 @@ For each section in the PR template, follow this decision-making process:
 Fill out directly if you have high confidence (>80%):
 
 **Can determine with high confidence:**
+
 - **Title/Summary**: Based on commit messages and diffs
 - **Change Type**: Based on commit prefixes (feat/fix/refactor/chore/docs/ci)
 - **Related Issues**: Extract from commit messages (Fixes #123, Closes #456)
@@ -148,11 +157,14 @@ Fill out directly if you have high confidence (>80%):
 - **Testing Instructions**: For straightforward changes
 
 **Example:**
+
 ```markdown
 ## Summary
+
 Add OAuth2 authentication to user login flow
 
 ## Change Type
+
 - [x] feat: New feature addition
 ```
 
@@ -161,6 +173,7 @@ Add OAuth2 authentication to user login flow
 For sections requiring domain knowledge or judgment (40-80% confidence):
 
 **Requires careful analysis:**
+
 - **Deployment Impact**: Requires understanding of infrastructure/service architecture
 - **Breaking Changes**: Requires API/contract knowledge
 - **Resource Impact**: Requires knowledge of infrastructure costs
@@ -168,6 +181,7 @@ For sections requiring domain knowledge or judgment (40-80% confidence):
 - **Affected Services**: Requires understanding of service dependencies
 
 **Decision process:**
+
 1. Analyze available information (code, docs, config)
 2. **Check actual diff content, not just file names**
 3. If confidence > 60%, make a selection and **ALWAYS explain reasoning with specific evidence**
@@ -178,11 +192,13 @@ For sections requiring domain knowledge or judgment (40-80% confidence):
 **ALWAYS provide detailed reasoning for deployment impact. Never just check a box.**
 
 **Step 1: Identify Changed Files**
+
 ```bash
 git diff <base>..<head> --name-only | grep -E "task-definition|config.data|fargate|service"
 ```
 
 **Step 2: Check ACTUAL Changes (Not Just File Names)**
+
 ```bash
 # Check if actual VALUES changed
 git diff <base>..<head> lib/constructs/service/task-definition.ts
@@ -192,6 +208,7 @@ git diff <base>..<head> src/config/config.data.ts | grep -E "cpu|memory|env|desi
 **Step 3: Categorize Based on ACTUAL Changes**
 
 **High Impact - Task Definition Changes:**
+
 ```bash
 # Look for actual VALUE changes in:
 - CPU: FargateCpu.CPU_256 → FargateCpu.CPU_512
@@ -202,6 +219,7 @@ git diff <base>..<head> src/config/config.data.ts | grep -E "cpu|memory|env|desi
 ```
 
 **Medium Impact - Scaling/Network Changes:**
+
 ```bash
 # Look for:
 - desiredCount: 4 → 2 (task count change, NOT task definition)
@@ -211,6 +229,7 @@ git diff <base>..<head> src/config/config.data.ts | grep -E "cpu|memory|env|desi
 ```
 
 **Low Impact - Code Refactoring:**
+
 ```bash
 # Look for:
 - Import path changes (same values, different location)
@@ -221,18 +240,22 @@ git diff <base>..<head> src/config/config.data.ts | grep -E "cpu|memory|env|desi
 **Common Mistakes to Avoid:**
 
 ❌ **Wrong:**
+
 ```markdown
 - [x] High Impact
 
 Reasoning: task-definition.ts file changed
 ```
+
 → Checking file name only, not actual diff content
 
 ✅ **Correct:**
+
 ```markdown
 - [x] Medium Impact
 
 Reasoning:
+
 - src/config/config.data.ts (fd282d1): desiredCount 4→2, minCapacity 4→2
 - This changes task COUNT, not task DEFINITION
 - ECS will scale down existing tasks, no new task deployment needed
@@ -241,41 +264,50 @@ Reasoning:
 ---
 
 ❌ **Wrong:**
+
 ```markdown
 - [x] High Impact
 
 Reasoning: Fargate CPU enum file modified
 ```
+
 → File moved, values unchanged
 
 ✅ **Correct:**
+
 ```markdown
 - [x] Low Impact
 
 Reasoning:
+
 - lib/constructs/service/fargate-cpu.ts → src/config/types/fargate.types.ts
 - File relocation only, no value changes
 - Import paths updated, compiled output identical
 ```
 
 **Example (Medium-High Confidence with Proper Analysis):**
+
 ```markdown
 ## Deployment Impact
+
 - [x] Medium Impact
 
 **영향도 분석:**
+
 - Medium Impact: src/config/config.data.ts에서 desiredCount 4→2 변경 (fd282d1 커밋)
-  * Auto-scaling 조정, Task Definition은 변경 없음
-  * 기존 Task 유지, 점진적 스케일 다운
+    - Auto-scaling 조정, Task Definition은 변경 없음
+    - 기존 Task 유지, 점진적 스케일 다운
 - Low Impact: lib/constructs/service/fargate-cpu.ts → src/config/types/fargate.types.ts 이동 (e3bf8b3 커밋)
-  * 파일 구조 변경, 실제 값 변경 없음
+    - 파일 구조 변경, 실제 값 변경 없음
 
 **Confidence:** 90% (git diff 확인 완료, 실제 값 변경 내역 확인)
 ```
 
 **Example (Medium-Low Confidence):**
+
 ```markdown
 ## Deployment Impact
+
 - [ ] High Impact
 - [ ] Medium Impact
 - [ ] Low Impact
@@ -299,14 +331,17 @@ template improvement.
 For sections requiring project-specific knowledge (<40% confidence):
 
 **NEVER guess. Instead:**
+
 1. Leave the section unfilled or mark as "To be determined"
 2. Suggest PR template improvement
 3. Ask the user for clarification
 4. Recommend adding documentation/decision trees to the template
 
 **Example (Low Confidence):**
-```markdown
+
+````markdown
 ## Resource Impact
+
 - [ ] To be determined
 
 **⚠️ Cannot determine without more context**
@@ -332,9 +367,11 @@ For sections requiring project-specific knowledge (<40% confidence):
 - Tags and labels
 - Documentation
 ```
+````
 
 Please manually fill this section or approve the template improvement.
-```
+
+````
 
 ### 5. When to Suggest PR Template Updates
 
@@ -374,9 +411,10 @@ and may confuse developers unfamiliar with the infrastructure.
 - [ ] High Impact
 - [ ] Medium Impact
 - [ ] Low Impact
-```
+````
 
 **Suggested Improvement:**
+
 ```markdown
 ## Deployment Impact
 
@@ -384,7 +422,9 @@ and may confuse developers unfamiliar with the infrastructure.
 <summary>📖 How to determine impact level (click to expand)</summary>
 
 ### High Impact - ECS Service Redeployment
+
 Changes that require rolling out new ECS tasks:
+
 - ✅ Task Definition: CPU, Memory, Environment Variables
 - ✅ Container image, port, volume settings
 - ✅ Task Role or Execution Role changes
@@ -392,7 +432,9 @@ Changes that require rolling out new ECS tasks:
 **Files to check:** `lib/**/task-definition.ts`, `lib/**/service/index.ts`
 
 ### Medium Impact - Resource Updates (No Downtime)
+
 Changes to resources without service restart:
+
 - ✅ ALB Listener/Target Group rules
 - ✅ CloudFront Distribution settings
 - ✅ Auto-scaling policies
@@ -401,7 +443,9 @@ Changes to resources without service restart:
 **Files to check:** `lib/**/load-balancer.ts`, `lib/**/cloudfront.ts`
 
 ### Low Impact - Metadata Only
+
 Infrastructure metadata without runtime impact:
+
 - ✅ ECR Repository creation
 - ✅ CloudWatch Log Group settings
 - ✅ Documentation and comments
@@ -412,19 +456,22 @@ Infrastructure metadata without runtime impact:
 </details>
 
 Impact Level:
+
 - [ ] High Impact: ECS service redeployment
 - [ ] Medium Impact: Resource updates, no downtime
 - [ ] Low Impact: Metadata only
 ```
 
 **Benefits:**
+
 - Provides clear decision criteria
 - Includes examples for each category
 - Shows which files to check
 - Reduces ambiguity and reviewer questions
 
 **Action:** Would you like me to update `.github/pull_request_template.md` with this improvement?
-```
+
+````
 
 ### 6. Create the Pull Request
 
@@ -447,7 +494,7 @@ cdk diff
 
 # For infrastructure changes
 terraform plan
-```
+````
 
 #### 6.2. Push and Create PR
 
@@ -494,6 +541,7 @@ Some projects may include supplementary guideline files:
 ```
 
 **When filling out PR templates:**
+
 1. Check for linked guideline files
 2. Read referenced documentation
 3. Follow project-specific decision trees
@@ -512,44 +560,45 @@ repository: wishket/fe-infra
 
 # Branch strategy
 branches:
-  development: master
-  staging: stag
-  production: prod
+    development: master
+    staging: stag
+    production: prod
 
 # Auto-fill rules
 auto_fill:
-  # Automatically detect deployment impact based on file patterns
-  deployment_impact:
-    high:
-      - "lib/**/task-definition.ts"
-      - "lib/**/service/index.ts"
-    medium:
-      - "lib/**/load-balancer.ts"
-      - "lib/**/cloudfront.ts"
-    low:
-      - "**/*.md"
-      - "**/README*"
+    # Automatically detect deployment impact based on file patterns
+    deployment_impact:
+        high:
+            - 'lib/**/task-definition.ts'
+            - 'lib/**/service/index.ts'
+        medium:
+            - 'lib/**/load-balancer.ts'
+            - 'lib/**/cloudfront.ts'
+        low:
+            - '**/*.md'
+            - '**/README*'
 
-  # Automatically detect affected services based on file paths
-  affected_services:
-    auth: ["**/auth/**", "**/account-service/**"]
-    yozm: ["**/yozm/**", "**/yozm-service/**"]
-    support: ["**/support/**"]
+    # Automatically detect affected services based on file paths
+    affected_services:
+        auth: ['**/auth/**', '**/account-service/**']
+        yozm: ['**/yozm/**', '**/yozm-service/**']
+        support: ['**/support/**']
 
 # Confidence thresholds
 confidence:
-  high: 80    # Fill out directly
-  medium: 60  # Fill with explanation
-  low: 40     # Suggest template update
+    high: 80 # Fill out directly
+    medium: 60 # Fill with explanation
+    low: 40 # Suggest template update
 
 # Required checks before PR creation
 pre_flight_checks:
-  - npm run lint:check
-  - npm run build
-  - npm run cdk synth
+    - npm run lint:check
+    - npm run build
+    - npm run cdk synth
 ```
 
 **When to create this config:**
+
 - User specifies project-specific PR rules
 - Repeated patterns emerge across multiple PRs
 - Template sections require custom logic
@@ -649,6 +698,7 @@ When suggesting PR template updates:
 ### Step 1: Identify the Gap
 
 Document:
+
 - Which section is problematic
 - Why it's difficult to determine
 - What information is missing
@@ -657,6 +707,7 @@ Document:
 ### Step 2: Research Best Practices
 
 Check:
+
 - Industry standard PR templates
 - Similar projects' approaches
 - Team documentation
@@ -665,6 +716,7 @@ Check:
 ### Step 3: Draft Improvement
 
 Create:
+
 - Clear decision criteria
 - Examples for each option
 - Links to documentation
@@ -673,6 +725,7 @@ Create:
 ### Step 4: Propose to User
 
 Present:
+
 - Current template section (problematic)
 - Proposed improvement
 - Benefits of the change
@@ -701,6 +754,7 @@ git commit -m "docs(github): Improve PR template with deployment impact guide"
 
 ```markdown
 ## Deployment Impact
+
 - [x] Medium Impact
 
 <!-- BAD: Only 30% confident, but selected anyway -->
@@ -710,6 +764,7 @@ git commit -m "docs(github): Improve PR template with deployment impact guide"
 
 ```markdown
 ## Deployment Impact
+
 - [ ] To be determined
 
 **Confidence: Low (30%)**

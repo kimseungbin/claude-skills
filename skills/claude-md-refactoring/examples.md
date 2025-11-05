@@ -18,6 +18,7 @@ This philosophy extends to accessibility, where we follow ARIA guidelines
 to ensure everyone can use our application regardless of their abilities.
 
 When implementing features, always ask yourself:
+
 - Would my grandmother be able to use this?
 - Does this delight the user or just solve a problem?
 - How does this make the user feel?
@@ -29,6 +30,7 @@ When implementing features, always ask yourself:
 ## User Experience Requirements
 
 All interactive features must be fully keyboard accessible:
+
 - Forms: Enter to submit, Escape to cancel/clear
 - Lists: Arrow key navigation where appropriate
 - Provide keyboard shortcuts for common actions
@@ -52,6 +54,7 @@ keyboard-first approach because many power users prefer keyboard navigation,
 and it naturally improves accessibility for everyone.
 
 When implementing features, always consider:
+
 - Would my grandmother be able to use this?
 - Does this delight the user or just solve a problem?
 - How does this make the user feel?
@@ -67,7 +70,7 @@ These questions guide our technical requirements documented in CLAUDE.md.
 
 ### Before (CLAUDE.md)
 
-```markdown
+````markdown
 ## AWS CDK Deployment
 
 ### First-Time Setup
@@ -77,14 +80,17 @@ for storing CloudFormation templates, an ECR repository for Docker images,
 and IAM roles for deployments.
 
 **Step 1: Install AWS CDK CLI**
+
 ```bash
 npm install -g aws-cdk
 ```
+````
 
 **Step 2: Configure AWS Credentials**
 Set up your AWS credentials using aws configure or environment variables...
 
 **Step 3: Bootstrap CDK**
+
 ```bash
 cdk bootstrap aws://ACCOUNT-ID/REGION
 ```
@@ -94,8 +100,10 @@ GitHub Actions needs an OIDC provider to authenticate without storing credential
 [20+ more lines of detailed steps]
 
 ### Deployment
+
 Once setup is complete, deploy using...
-```
+
+````
 
 ### After (CLAUDE.md)
 
@@ -110,8 +118,9 @@ Once setup is complete, deploy using...
 ```bash
 npm run diff --workspace=infra   # Preview changes
 npm run deploy --workspace=infra # Deploy
-```
-```
+````
+
+````
 
 ### Created Skill (`.claude/skills/cdk-setup/setup-guide.yaml`)
 
@@ -126,7 +135,7 @@ description: |
 # AWS CDK Setup Guide
 
 [Full detailed step-by-step instructions moved here with examples, troubleshooting, etc.]
-```
+````
 
 **Rationale**: The detailed how-to overwhelmed CLAUDE.md. The skill contains the full guide, while CLAUDE.md just references it and provides quick commands.
 
@@ -159,6 +168,7 @@ which is really helpful because it re-runs tests automatically when you change f
 **Run all tests**: `npm test` (root level)
 
 **Package-specific**:
+
 - Frontend unit: `npm run test --workspace=frontend`
 - Frontend E2E: `npm run test:e2e:docker --workspace=frontend` (Docker, recommended)
 - Backend: `npm run test --workspace=backend`
@@ -184,6 +194,7 @@ settlements. The goal is to make it easy for groups of friends to track
 shared expenses and calculate who owes whom at the end of a trip.
 
 The project uses npm workspaces to manage three main packages:
+
 - frontend: Svelte application
 - backend: NestJS API
 - infra: AWS CDK
@@ -198,6 +209,7 @@ the entire stack, and the monorepo structure keeps everything in sync.
 ## Project Structure
 
 TypeScript monorepo with npm workspaces:
+
 - `packages/frontend/`: Svelte + Vite + TypeScript
 - `packages/backend/`: NestJS + TypeORM + PostgreSQL
 - `packages/infra/`: AWS CDK
@@ -216,6 +228,7 @@ settlements at the end of a trip.
 ## Tech Stack
 
 Built as a TypeScript monorepo using:
+
 - **Frontend**: Svelte for reactive UI
 - **Backend**: NestJS for scalable API
 - **Infrastructure**: AWS CDK for infrastructure as code
@@ -251,6 +264,7 @@ Use the `tdd-workflow` skill for step-by-step guidance.
 ```
 
 **Rationale**:
+
 - Clearly references the skill location
 - Provides brief overview (phases)
 - Tells AI how to activate it
@@ -260,33 +274,36 @@ Use the `tdd-workflow` skill for step-by-step guidance.
 
 ## Pattern Summary
 
-| Content Type | Keep in CLAUDE.md | Move to README.md | Extract to Skill |
-|--------------|-------------------|-------------------|------------------|
-| Philosophy/Why | ❌ | ✅ | ❌ |
-| Commands | ✅ | ❌ | ❌ |
-| File paths | ✅ | ❌ | ❌ |
-| Step-by-step guides (>30 lines) | ❌ | ❌ | ✅ |
-| Technical constraints | ✅ | ❌ | ❌ |
-| Narrative explanations | ❌ | ✅ | ❌ |
-| Project motivation | ❌ | ✅ | ❌ |
-| Quick reference | ✅ | ✅ (detailed) | ❌ |
-| Examples/templates | ❌ | ❌ | ✅ |
+| Content Type                    | Keep in CLAUDE.md | Move to README.md | Extract to Skill |
+| ------------------------------- | ----------------- | ----------------- | ---------------- |
+| Philosophy/Why                  | ❌                | ✅                | ❌               |
+| Commands                        | ✅                | ❌                | ❌               |
+| File paths                      | ✅                | ❌                | ❌               |
+| Step-by-step guides (>30 lines) | ❌                | ❌                | ✅               |
+| Technical constraints           | ✅                | ❌                | ❌               |
+| Narrative explanations          | ❌                | ✅                | ❌               |
+| Project motivation              | ❌                | ✅                | ❌               |
+| Quick reference                 | ✅                | ✅ (detailed)     | ❌               |
+| Examples/templates              | ❌                | ❌                | ✅               |
 
 ## Tone Comparison
 
 ### Human-Oriented (README.md)
+
 - "We chose this because..."
 - "This helps us achieve..."
 - "You'll probably want to..."
 - Conversational, explanatory
 
 ### AI-Oriented (CLAUDE.md)
+
 - "Use X for Y"
 - "Run command Z"
 - "See skill ABC"
 - Imperative, directive
 
 ### Instructional (Skills)
+
 - "Step 1: Do X"
 - "If Y, then Z"
 - "Example: ..."

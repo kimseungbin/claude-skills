@@ -22,6 +22,7 @@ Simply ask Claude to commit your changes:
 ### Single Scope Changes
 
 Claude will:
+
 1. Analyze your staged/unstaged changes
 2. Determine the appropriate type and scope
 3. Generate a commit message following project conventions
@@ -30,6 +31,7 @@ Claude will:
 ### Multi-Scope Changes (New!)
 
 When changes span multiple areas (e.g., frontend + backend + CI), Claude will:
+
 1. Analyze all changes across different scopes
 2. Group them into logical commits
 3. **Present interactive checkboxes** to select which commits to create
@@ -87,10 +89,12 @@ refactor(config): Consolidate TypeScript configurations
 4. Commit the config file to your project repository
 
 **Rule priority:**
+
 - `.claude/config/conventional-commits.yaml` (project-specific, checked first)
 - `.claude/skills/conventional-commits/commit-rules.yaml` (default fallback, generic)
 
 **Customizable elements:**
+
 - Commit types (feat, fix, docs, etc.)
 - Scopes (areas of the codebase: frontend, backend, infra, etc.)
 - Message format patterns
@@ -116,12 +120,14 @@ refactor(config): Consolidate TypeScript configurations
 ## When Changes Are Split
 
 Changes are candidates for splitting when:
+
 - ✅ Multiple scopes affected (frontend + backend + tools)
 - ✅ Different change types mixed (feat + fix, feat + refactor)
 - ✅ Separable concerns (dependency updates + feature work)
 - ✅ Independent features that can be committed separately
 
 Changes stay together when:
+
 - ❌ Single feature with its tests (atomic unit)
 - ❌ Changes must be atomic (API change + frontend update)
 - ❌ Changes are too small to meaningfully separate

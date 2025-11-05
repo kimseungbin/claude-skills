@@ -115,6 +115,7 @@ cp .claude/submodules/claude-skills/commands/commit.md .claude/commands/
 ```
 
 **Why copy instead of symlink?**
+
 - Commands are not officially documented to support symlinks in Claude Code
 - Commands are typically small and project-specific
 - Copying allows easy customization per project
@@ -122,6 +123,7 @@ cp .claude/submodules/claude-skills/commands/commit.md .claude/commands/
 
 **Customizing commands:**
 After copying, edit the commands in `.claude/commands/` to:
+
 - Adjust `allowed-tools` to match your project's needs
 - Update skill references if you renamed or customized skills
 - Add project-specific instructions or constraints
@@ -137,6 +139,7 @@ Skills in this repository are designed to be generic and reusable. When you need
 Skills can optionally read from `.claude/config/<skill-name>.yaml` for project-specific settings. This keeps shared skills unchanged while allowing project customization.
 
 **Example Structure:**
+
 ```
 .claude/
 ├── skills/
@@ -156,6 +159,7 @@ Skills can optionally read from `.claude/config/<skill-name>.yaml` for project-s
 ### Example: Conventional Commits Skill
 
 **Generic skill (in submodule):**
+
 ```yaml
 # skills/conventional-commits/SKILL.md
 ---
@@ -178,24 +182,25 @@ If the config file doesn't exist, create it when the user specifies project rule
 ```
 
 **Project-specific config:**
+
 ```yaml
 # .claude/config/conventional-commits.yaml
 project: my-awesome-project
-ticket_format: "JIRA-{number}"
+ticket_format: 'JIRA-{number}'
 required_prefix: true
 custom_types:
-  - feat: New feature
-  - fix: Bug fix
-  - docs: Documentation only
-  - perf: Performance improvement
+    - feat: New feature
+    - fix: Bug fix
+    - docs: Documentation only
+    - perf: Performance improvement
 approvers:
-  - "@tech-lead"
+    - '@tech-lead'
 branch_rules:
-  main:
-    - Require ticket number
-    - Require approval
-  develop:
-    - Optional ticket number
+    main:
+        - Require ticket number
+        - Require approval
+    develop:
+        - Optional ticket number
 ```
 
 ### Creating Config Files
@@ -205,28 +210,29 @@ branch_rules:
 1. **User specifies project rules**: "For this project, all commits must include a ticket number in format PROJ-XXX"
 
 2. **Claude should**:
-   - Check if `.claude/config/<skill-name>.yaml` exists
-   - If not, create the config file with project-specific settings
-   - If exists, update with new rules
+    - Check if `.claude/config/<skill-name>.yaml` exists
+    - If not, create the config file with project-specific settings
+    - If exists, update with new rules
 
 3. **Example workflow**:
-   ```bash
-   # Claude creates the config directory if needed
-   mkdir -p .claude/config
 
-   # Claude creates/updates the config file
-   cat > .claude/config/conventional-commits.yaml <<EOF
-   project: my-project
-   ticket_format: "PROJ-{number}"
-   required_ticket: true
-   EOF
-   ```
+    ```bash
+    # Claude creates the config directory if needed
+    mkdir -p .claude/config
+
+    # Claude creates/updates the config file
+    cat > .claude/config/conventional-commits.yaml <<EOF
+    project: my-project
+    ticket_format: "PROJ-{number}"
+    required_ticket: true
+    EOF
+    ```
 
 4. **Commit the config file**:
-   ```bash
-   git add .claude/config/
-   git commit -m "Add project-specific commit rules"
-   ```
+    ```bash
+    git add .claude/config/
+    git commit -m "Add project-specific commit rules"
+    ```
 
 ### Benefits of This Approach
 
@@ -246,6 +252,7 @@ When creating skills in this repository, follow this pattern:
 4. **Auto-create config** - Instruct Claude to create config file when user provides project rules
 
 **Template for skill documentation:**
+
 ```markdown
 ## Project-Specific Configuration
 
@@ -257,7 +264,9 @@ This skill can be customized per-project using `.claude/config/<skill-name>.yaml
 
 **Example config:**
 \`\`\`yaml
+
 # Your example config structure
+
 \`\`\`
 ```
 
@@ -334,56 +343,59 @@ If you maintain this shared skills repository and want to add new skills:
 ### Adding a New Skill
 
 1. Create the skill directory and files:
-   ```bash
-   mkdir skills/my-new-skill
-   cd skills/my-new-skill
 
-   # Create SKILL.md with proper frontmatter
-   cat > SKILL.md <<EOF
-   ---
-   name: my-new-skill
-   description: |
-     Clear description of what this skill does and when Claude should use it.
-   ---
+    ```bash
+    mkdir skills/my-new-skill
+    cd skills/my-new-skill
 
-   # My New Skill
+    # Create SKILL.md with proper frontmatter
+    cat > SKILL.md <<EOF
+    ---
+    name: my-new-skill
+    description: |
+      Clear description of what this skill does and when Claude should use it.
+    ---
 
-   [Skill content here...]
-   EOF
-   ```
+    # My New Skill
+
+    [Skill content here...]
+    EOF
+    ```
 
 2. Add supporting files if needed:
-   ```bash
-   # Examples, templates, reference materials, etc.
-   touch examples.md
-   touch templates.md
-   ```
+
+    ```bash
+    # Examples, templates, reference materials, etc.
+    touch examples.md
+    touch templates.md
+    ```
 
 3. Commit and push:
-   ```bash
-   git add skills/my-new-skill
-   git commit -m "Add my-new-skill"
-   git push
-   ```
+    ```bash
+    git add skills/my-new-skill
+    git commit -m "Add my-new-skill"
+    git push
+    ```
 
 ### Using the New Skill in Projects
 
 In projects that use this submodule:
 
 1. Update the submodule:
-   ```bash
-   cd .claude/submodules/claude-skills
-   git pull origin main
-   cd ../..
-   ```
+
+    ```bash
+    cd .claude/submodules/claude-skills
+    git pull origin main
+    cd ../..
+    ```
 
 2. Create symlink:
-   ```bash
-   cd .claude/skills
-   ln -s ../submodules/claude-skills/skills/my-new-skill my-new-skill
-   git add my-new-skill
-   git commit -m "Add my-new-skill symlink"
-   ```
+    ```bash
+    cd .claude/skills
+    ln -s ../submodules/claude-skills/skills/my-new-skill my-new-skill
+    git add my-new-skill
+    git commit -m "Add my-new-skill symlink"
+    ```
 
 ## Advanced: Automated Symlink Creation
 
@@ -405,6 +417,7 @@ done
 ```
 
 Make it executable:
+
 ```bash
 chmod +x .git/hooks/post-checkout
 ```
@@ -442,6 +455,7 @@ claude-skills/
 ```
 
 **Note:** This repo uses symlinks for skills but **copied files** for commands in `.claude/` for testing purposes. When using this repo as a submodule in your projects:
+
 - **Skills**: Symlink them (officially supported)
 - **Commands**: Copy them (symlinks NOT supported by Claude Code)
 
@@ -450,12 +464,14 @@ claude-skills/
 ### Symlink Not Working
 
 **Check symlink path:**
+
 ```bash
 ls -la .claude/skills/
 readlink .claude/skills/skill-name
 ```
 
 **Verify submodule initialized:**
+
 ```bash
 git submodule status
 ```

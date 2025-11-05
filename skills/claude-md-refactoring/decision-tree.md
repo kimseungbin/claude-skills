@@ -32,6 +32,7 @@ Ask these questions in order:
 **Keywords**: "because", "philosophy", "we believe", "the reason is", "motivation", "rationale"
 
 **Examples**:
+
 - ✅ "We use TDD because it builds confidence" → README.md
 - ✅ "This project prioritizes UX because users matter" → README.md
 - ❌ "Run tests before committing" → Keep in CLAUDE.md
@@ -43,6 +44,7 @@ Ask these questions in order:
 ### 2. Is this a command, file path, or technical constraint?
 
 **Examples**:
+
 - ✅ `npm run test --workspace=frontend` → Keep
 - ✅ `packages/frontend/src/main.ts` → Keep
 - ✅ "Forms must support Enter to submit" → Keep
@@ -55,12 +57,14 @@ Ask these questions in order:
 ### 3. Is this >30 lines of step-by-step instructions?
 
 **Indicators**:
+
 - Multiple "Step 1", "Step 2", etc.
 - Lengthy how-to guide
 - Contains multiple code examples
 - Requires supporting reference materials
 
 **Examples**:
+
 - ✅ "First-time CDK setup guide" (45 lines) → Extract to skill
 - ✅ "TDD workflow with examples" (60 lines) → Extract to skill
 - ❌ "Run tests: npm test" (3 lines) → Keep
@@ -74,11 +78,13 @@ Ask these questions in order:
 **Keywords**: "you'll probably want to", "it's important to", "make sure you", "don't forget"
 
 **Examples**:
+
 - ✅ "You'll probably want to run tests frequently" → Condense or move
 - ✅ "It's important to understand our architecture" → README.md
 - ❌ "Run tests frequently" → Keep (concise directive)
 
 **Action**:
+
 - If philosophical → README.md
 - If instructional → Condense to imperative form in CLAUDE.md
 
@@ -87,11 +93,13 @@ Ask these questions in order:
 ### 5. Is this redundant with README.md?
 
 **Check**:
+
 - Does README.md already explain this?
 - Is this duplicated content?
 - Could a cross-reference suffice?
 
 **Examples**:
+
 - ✅ Project description appears in both → Remove from CLAUDE.md, reference README
 - ✅ Tech stack rationale in both → Remove from CLAUDE.md
 - ❌ Unique technical detail → Keep in CLAUDE.md
@@ -103,11 +111,13 @@ Ask these questions in order:
 ### 6. Default: Is it actionable for AI?
 
 If none of the above, ask:
+
 - Can Claude Code use this to complete a task?
 - Is it clear what action to take?
 - Is it in imperative form?
 
 **Examples**:
+
 - ✅ "Use Svelte 5 runes: $state, $derived, $props" → Keep
 - ✅ "Proxy API calls to /api" → Keep
 - ❌ "We like TypeScript's type safety" → README.md
@@ -119,6 +129,7 @@ If none of the above, ask:
 ### Case 1: Mixed Content (Philosophy + Instructions)
 
 **Example**:
+
 ```markdown
 We use pg-mem for in-memory PostgreSQL because it eliminates setup complexity.
 To use it, configure database.config.ts with the pg-mem factory...
@@ -126,6 +137,7 @@ To use it, configure database.config.ts with the pg-mem factory...
 ```
 
 **Action**:
+
 1. Split the content
 2. Philosophy → README.md ("We use pg-mem because...")
 3. Instructions → Keep concise in CLAUDE.md OR extract to skill if lengthy
@@ -137,6 +149,7 @@ To use it, configure database.config.ts with the pg-mem factory...
 **Example**: Git hooks section explains "why custom directory" to help Claude understand when users have hook issues.
 
 **Evaluation**:
+
 - Is this explaining system behavior Claude will encounter? → Keep
 - Is this explaining human workflow preferences? → README.md
 
@@ -147,6 +160,7 @@ To use it, configure database.config.ts with the pg-mem factory...
 ### Case 3: Commands with Narrative
 
 **Example**:
+
 ```markdown
 You can run tests in watch mode which is really helpful because it
 re-runs tests automatically when you change files:
@@ -154,6 +168,7 @@ npm run test:watch
 ```
 
 **Action**: Strip narrative, keep directive:
+
 ```markdown
 **Watch mode**: `npm run test:watch` (re-runs on file changes)
 ```
@@ -162,18 +177,18 @@ npm run test:watch
 
 ## Quick Reference Table
 
-| Content | Destination | Reason |
-|---------|-------------|--------|
-| "We believe..." | README.md | Philosophy |
-| `npm run X` | CLAUDE.md | Command |
-| "Step 1, Step 2... Step 10" (long) | Skill | Detailed how-to |
-| `packages/frontend/src/` | CLAUDE.md | File path |
-| "You'll want to..." | Condense → CLAUDE.md | Narrative tone |
-| Project motivation | README.md | Human context |
-| Technical constraint | CLAUDE.md | AI needs to follow |
-| Duplicated overview | Remove → reference README | Redundant |
-| Error troubleshooting (long) | Skill | Detailed reference |
-| Keyboard shortcut | CLAUDE.md | Technical requirement |
+| Content                            | Destination               | Reason                |
+| ---------------------------------- | ------------------------- | --------------------- |
+| "We believe..."                    | README.md                 | Philosophy            |
+| `npm run X`                        | CLAUDE.md                 | Command               |
+| "Step 1, Step 2... Step 10" (long) | Skill                     | Detailed how-to       |
+| `packages/frontend/src/`           | CLAUDE.md                 | File path             |
+| "You'll want to..."                | Condense → CLAUDE.md      | Narrative tone        |
+| Project motivation                 | README.md                 | Human context         |
+| Technical constraint               | CLAUDE.md                 | AI needs to follow    |
+| Duplicated overview                | Remove → reference README | Redundant             |
+| Error troubleshooting (long)       | Skill                     | Detailed reference    |
+| Keyboard shortcut                  | CLAUDE.md                 | Technical requirement |
 
 ---
 
@@ -184,22 +199,25 @@ npm run test:watch
 - **What** (facts, constraints) → CLAUDE.md
 - **Why** (philosophy, motivation) → README.md
 - **How** (detailed steps):
-  - Short (<30 lines) → CLAUDE.md
-  - Long (>30 lines) → Skill
+    - Short (<30 lines) → CLAUDE.md
+    - Long (>30 lines) → Skill
 
 ### Pattern: "Tone Check"
 
 **Conversational → README.md**:
+
 - "This helps us..."
 - "You'll probably..."
 - "It's important that..."
 
 **Imperative → CLAUDE.md**:
+
 - "Use X"
 - "Run Y"
 - "Follow Z"
 
 **Procedural → Skill**:
+
 - "Step 1: ..."
 - "If X, then Y"
 - "Example: ..."
@@ -207,6 +225,7 @@ npm run test:watch
 ### Pattern: "Audience Test"
 
 Read the content and ask:
+
 - "Does this help Claude Code execute a task?" → CLAUDE.md
 - "Does this help a developer understand the project?" → README.md
 - "Does this teach Claude a complex workflow?" → Skill
@@ -220,12 +239,14 @@ Read the content and ask:
 **Example**: "We require keyboard accessibility because many users prefer it. All interactive features must support keyboard navigation."
 
 **Solution**:
+
 - First sentence → README.md
 - Second sentence → CLAUDE.md (it's a technical requirement)
 
 ### Edge Case 2: Skill Reference with Context
 
 **Keep in CLAUDE.md**:
+
 ```markdown
 All features follow TDD workflow. See `.claude/skills/tdd-workflow/workflow.yaml`
 ```
@@ -237,6 +258,7 @@ All features follow TDD workflow. See `.claude/skills/tdd-workflow/workflow.yaml
 **Example**: TypeScript configuration settings
 
 **Solution**:
+
 - Settings themselves → Keep in CLAUDE.md
 - Why these settings were chosen → README.md (if important)
 - Detailed configuration guide → Skill (if complex)

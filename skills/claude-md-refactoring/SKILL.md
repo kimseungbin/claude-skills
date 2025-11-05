@@ -1,10 +1,10 @@
 ---
 name: claude-md-refactoring
 description: |
-  Use this skill when the user wants to refactor CLAUDE.md.
-  Helps identify human-oriented content to move to README.md,
-  lengthy sections to extract into skills, and keeps CLAUDE.md focused on AI instructions.
-  Guides one refactoring at a time to prevent overwhelming changes.
+    Use this skill when the user wants to refactor CLAUDE.md.
+    Helps identify human-oriented content to move to README.md,
+    lengthy sections to extract into skills, and keeps CLAUDE.md focused on AI instructions.
+    Guides one refactoring at a time to prevent overwhelming changes.
 ---
 
 # CLAUDE.md Refactoring Skill
@@ -14,42 +14,47 @@ You are helping refactor CLAUDE.md to make it focused and useful for Claude Code
 ## Core Principles
 
 ### Audience Separation
+
 - **CLAUDE.md**: Instructions for AI assistants (Claude Code)
-  - Commands, file paths, technical constraints
-  - Workflow steps, tool usage patterns
-  - What to do, where to find things
+    - Commands, file paths, technical constraints
+    - Workflow steps, tool usage patterns
+    - What to do, where to find things
 
 - **README.md**: Information for humans (developers, contributors)
-  - Philosophy, motivation, "why we do this"
-  - Project narratives, team guidelines
-  - Setup stories, architectural decisions
+    - Philosophy, motivation, "why we do this"
+    - Project narratives, team guidelines
+    - Setup stories, architectural decisions
 
 - **Skills**: Step-by-step guidance that's too detailed for CLAUDE.md
-  - Multi-step workflows (30+ lines)
-  - Complex how-to guides
-  - Reference materials with examples
+    - Multi-step workflows (30+ lines)
+    - Complex how-to guides
+    - Reference materials with examples
 
 ### Content Classification Rules
 
 **Move to README.md** if the content:
+
 - Explains "why" instead of "what" or "how"
 - Uses narrative/storytelling tone
 - Targets human understanding/motivation
 - Discusses team philosophy or culture
 
 **Extract to Skill** if the content:
+
 - Exceeds ~30 lines
 - Contains step-by-step instructions
 - Includes multiple examples/templates
 - Needs supporting reference files
 
 **Keep in CLAUDE.md** if the content:
+
 - Provides direct AI instructions
 - Lists commands/file locations
 - Defines technical constraints
 - References skills/commands to use
 
 **Remove entirely** if:
+
 - Duplicates README.md content
 - No longer relevant/accurate
 - Covered better elsewhere
@@ -77,6 +82,7 @@ Present your finding to the user:
 **Section**: [Section name or line range]
 
 **Issue Type**:
+
 - [ ] Human-oriented content (move to README.md)
 - [ ] Overly verbose (extract to skill)
 - [ ] Redundant (remove/condense)
@@ -84,7 +90,9 @@ Present your finding to the user:
 
 **Current Content** (preview):
 ```
+
 [Show 5-10 lines of problematic content]
+
 ```
 
 **Recommended Action**:
@@ -113,22 +121,28 @@ Once approved, execute based on the refactoring type:
 3. Adapt tone to be human-friendly (add context, explain "why")
 4. Add content to README.md
 5. Update CLAUDE.md:
-   - Remove human-oriented parts
-   - Keep brief AI instruction if needed
-   - Add cross-reference to README.md if helpful
+    - Remove human-oriented parts
+    - Keep brief AI instruction if needed
+    - Add cross-reference to README.md if helpful
 
 **Example transformation**:
+
 ```markdown
 # Before (CLAUDE.md)
+
 We use TDD because it helps us build confidence in our code and
 creates a safety net for refactoring. This philosophy ensures...
 
 # After (CLAUDE.md)
+
 All features must follow TDD workflow. See `.claude/skills/tdd-workflow/workflow.yaml`
 
 # Moved to README.md
+
 ## Development Philosophy
+
 ### Why Test-Driven Development?
+
 We adopted TDD because it provides confidence and safety when refactoring...
 ```
 
@@ -137,19 +151,20 @@ We adopted TDD because it provides confidence and safety when refactoring...
 1. Determine skill name (kebab-case, descriptive)
 2. Create `.claude/skills/[skill-name]/` directory
 3. Create `SKILL.md` with proper frontmatter:
-   ```yaml
-   ---
-   name: skill-name
-   description: |
-     Clear description of what this skill does and when Claude should use it.
-     Include trigger keywords.
-   ---
-   ```
+    ```yaml
+    ---
+    name: skill-name
+    description: |
+        Clear description of what this skill does and when Claude should use it.
+        Include trigger keywords.
+    ---
+    ```
 4. Move content to skill, organizing into sections
 5. Update CLAUDE.md to reference the skill with brief context
 6. Create supporting files if needed (examples, templates)
 
 **Skill naming conventions**:
+
 - Use kebab-case: `cdk-setup`, `tdd-workflow`, `playwright-testing`
 - Be specific and descriptive
 - Reflect the domain/task clearly
@@ -163,12 +178,15 @@ We adopted TDD because it provides confidence and safety when refactoring...
 5. Link to README.md or skills for details
 
 **Tone transformation**:
+
 ```markdown
 # Before (narrative)
+
 When you're working with tests, you'll want to make sure you run them
 before committing. This helps catch issues early.
 
 # After (imperative)
+
 Run tests before committing. Use `npm test` or package-specific commands.
 ```
 
@@ -196,9 +214,11 @@ Provide summary:
 ## ✅ Refactoring Complete
 
 **Changes Made**:
+
 - [Describe what was changed]
 
 **Files Modified**:
+
 - `CLAUDE.md`: [what changed - moved/removed/condensed]
 - `README.md`: [what was added, if applicable]
 - `.claude/skills/[name]/`: [if skill created]
@@ -207,6 +227,7 @@ Provide summary:
 [Show key before/after snippets if helpful]
 
 **Next Steps**:
+
 - Run `/refactor-claude-md` again to find next opportunity
 - Review changes and commit when satisfied
 - Continue until CLAUDE.md is fully optimized
@@ -227,6 +248,7 @@ Before completing any refactoring, verify:
 ## Reference Materials
 
 See companion files:
+
 - `examples.md`: Before/after refactoring examples
 - `decision-tree.md`: Flowchart for content classification
 

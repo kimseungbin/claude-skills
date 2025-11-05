@@ -44,6 +44,7 @@ claude-skills/
 ### If User Asks About Setup
 
 Direct them to README.md for complete setup instructions. Key steps:
+
 1. Add this repo as git submodule in target project
 2. Create symlinks from `.claude/skills/` to `skills/` directory
 3. Copy desired commands from `commands/` to `.claude/commands/` (don't symlink)
@@ -65,7 +66,7 @@ Each skill must have `SKILL.md` with frontmatter:
 ---
 name: skill-name
 description: |
-  Clear description of what this skill does and when to use it.
+    Clear description of what this skill does and when to use it.
 ---
 ```
 
@@ -93,6 +94,7 @@ ln -s ../../skills/skill-name skill-name
 Skills should be generic and reusable. For project-specific customizations, use external config files.
 
 **Pattern:**
+
 - Skills are symlinked from submodule (generic, shared)
 - Config files are real files in `.claude/config/` (project-specific)
 - Skills check for config files and use them if present
@@ -105,16 +107,17 @@ Skills should be generic and reusable. For project-specific customizations, use 
 
 1. Check if `.claude/config/<skill-name>.yaml` exists
 2. If not, create it:
-   ```bash
-   mkdir -p .claude/config
-   cat > .claude/config/<skill-name>.yaml <<EOF
-   # Project-specific config
-   EOF
-   ```
+    ```bash
+    mkdir -p .claude/config
+    cat > .claude/config/<skill-name>.yaml <<EOF
+    # Project-specific config
+    EOF
+    ```
 3. If exists, update it with new rules
 4. Commit the config file
 
 **Example:**
+
 ```bash
 # User says: "For this project, all commits must include PROJ-XXX ticket numbers"
 
@@ -144,13 +147,16 @@ This skill can be customized using `.claude/config/<skill-name>.yaml`.
 
 **Example config:**
 \`\`\`yaml
+
 # Example structure
+
 \`\`\`
 ```
 
 ## Key Commands
 
 **Create symlinks for all skills:**
+
 ```bash
 cd .claude/skills && for skill_dir in ../../skills/*/; do
   skill_name=$(basename "$skill_dir")
@@ -159,11 +165,13 @@ done
 ```
 
 **List available skills:**
+
 ```bash
 ls -la skills/
 ```
 
 **View skill structure:**
+
 ```bash
 tree skills/skill-name
 ```

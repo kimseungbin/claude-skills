@@ -7,8 +7,10 @@ Generalized git hook templates that can be adapted to different project types.
 ### Pre-commit Hooks
 
 #### `pre-commit-basic.sh`
+
 **For:** Simple TypeScript/JavaScript projects
 **Checks:**
+
 - Auto-fix formatting (Prettier)
 - Auto-fix linting (ESLint)
 - Type checking (TypeScript)
@@ -18,8 +20,10 @@ Generalized git hook templates that can be adapted to different project types.
 ---
 
 #### `pre-commit-aws-cdk.sh`
+
 **For:** AWS CDK infrastructure projects
 **Checks:**
+
 - Linting
 - CDK synthesis validation
 - Build artifact cleanup
@@ -29,8 +33,10 @@ Generalized git hook templates that can be adapted to different project types.
 ---
 
 #### `pre-commit-monorepo.sh`
+
 **For:** Monorepo projects (npm workspaces, pnpm, Lerna, Nx)
 **Checks:**
+
 - Auto-fix formatting
 - Auto-fix linting
 - Type checking (all workspaces)
@@ -44,8 +50,10 @@ Generalized git hook templates that can be adapted to different project types.
 ### Commit-msg Hooks
 
 #### `commit-msg-conventional.sh`
+
 **For:** Projects following Conventional Commits specification
 **Validates:**
+
 - Commit message format: `type(scope): subject`
 - Valid commit types (feat, fix, docs, etc.)
 
@@ -54,8 +62,10 @@ Generalized git hook templates that can be adapted to different project types.
 ---
 
 #### `commit-msg-snapshot.sh`
+
 **For:** Projects with visual regression testing
 **Validates:**
+
 - UI file changes require snapshot footer
 - Enforces `Snapshots: update` or `Snapshots: skip`
 
@@ -66,8 +76,10 @@ Generalized git hook templates that can be adapted to different project types.
 ### Helper Functions
 
 #### `helpers.sh`
+
 **Purpose:** Reusable functions for consistent hook output
 **Functions:**
+
 - `print_step()` - Step header
 - `print_success()` - Success message
 - `print_error()` - Error message with exit
@@ -75,6 +87,7 @@ Generalized git hook templates that can be adapted to different project types.
 - `print_footer()` - Hook footer
 
 **Usage:**
+
 ```bash
 #!/bin/sh
 . "$(dirname "$0")/helpers.sh"
@@ -89,13 +102,16 @@ print_footer
 ## How to Use Templates
 
 ### 1. Copy Template
+
 ```bash
 cp examples/templates/pre-commit-basic.sh .githooks/pre-commit
 chmod +x .githooks/pre-commit
 ```
 
 ### 2. Customize for Your Project
+
 Edit the hook file to match your package.json scripts:
+
 ```bash
 # Replace commands
 npm run format     → npm run prettier:fix
@@ -104,11 +120,13 @@ npm run type-check → tsc --noEmit
 ```
 
 ### 3. Configure Git
+
 ```bash
 git config core.hooksPath .githooks
 ```
 
 ### 4. Test Hook
+
 ```bash
 git add .
 git commit -m "test: Verify hook works"
@@ -117,7 +135,9 @@ git commit -m "test: Verify hook works"
 ## Customization Guide
 
 ### Adjusting Commands
+
 Replace npm commands with your actual package.json scripts:
+
 ```javascript
 // package.json
 {
@@ -130,7 +150,9 @@ Replace npm commands with your actual package.json scripts:
 ```
 
 ### Adding New Checks
+
 Insert between existing steps:
+
 ```bash
 # Add new check
 print_step "Running unit tests..."
@@ -142,7 +164,9 @@ fi
 ```
 
 ### Removing Checks
+
 Delete or comment out steps you don't need:
+
 ```bash
 # # 3. Type check (if TypeScript)
 # print_step "Type checking..."
@@ -154,11 +178,13 @@ Delete or comment out steps you don't need:
 ```
 
 ### Performance Tuning
+
 - **Too slow?** Remove expensive checks (build, tests)
 - **Too fast?** Add more thorough validation
 - **Target:** Pre-commit should complete in <30 seconds
 
 ### Workspace-Specific Checks (Monorepo)
+
 ```bash
 # Check only frontend
 npm run lint --workspace=frontend
@@ -173,6 +199,7 @@ done
 ## Best Practices
 
 ### ✅ Do
+
 - Auto-fix formatting and linting (fast, helpful)
 - Type check before commit (catches errors early)
 - Clean build artifacts (avoid committing generated files)
@@ -180,6 +207,7 @@ done
 - Keep pre-commit fast (<30 seconds)
 
 ### ❌ Don't
+
 - Run E2E tests in pre-commit (too slow)
 - Run integration tests (use pre-push or CI instead)
 - Block commits for warnings (only errors)
@@ -190,6 +218,7 @@ done
 You can combine multiple templates:
 
 ### Example: Monorepo + Conventional Commits + Snapshots
+
 ```bash
 # .githooks/pre-commit
 # Use pre-commit-monorepo.sh as base
@@ -210,6 +239,7 @@ exit 0
 ## Troubleshooting
 
 ### Hook not running
+
 ```bash
 # Check git config
 git config core.hooksPath
@@ -220,13 +250,16 @@ git config core.hooksPath .githooks
 ```
 
 ### Permission denied
+
 ```bash
 # Make hooks executable
 chmod +x .githooks/*
 ```
 
 ### Command not found
+
 Check that npm scripts exist in package.json:
+
 ```bash
 npm run format   # Should not error "missing script"
 npm run lint     # Should not error "missing script"
