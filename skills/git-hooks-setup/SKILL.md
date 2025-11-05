@@ -1,13 +1,19 @@
 ---
 name: git-hooks-setup
 description: |
-  Guide for setting up, verifying, and troubleshooting custom git hooks.
+  Analyze projects and generate custom git hooks tailored to the codebase.
   Use when user asks about git hooks, pre-commit checks, or hook configuration.
 ---
 
-# Git Hooks Setup & Troubleshooting
+# Git Hooks Setup & Custom Generation
 
-This skill provides step-by-step instructions for configuring and managing custom git hooks in the Trip Settle project.
+**IMPORTANT: When setting up git hooks for the first time, ALWAYS:**
+1. Analyze the project (package.json scripts, tech stack, test setup)
+2. Generate custom hooks tailored to the project's needs
+3. Consider what's fast enough for pre-commit (<30s) vs pre-push
+4. Use templates from `examples/` directory as reference
+
+This skill provides instructions for configuring, managing, and troubleshooting git hooks.
 
 ## Overview
 

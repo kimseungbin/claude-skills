@@ -1,0 +1,111 @@
+#!/bin/sh
+
+# Pre-commit hook for trip-settle
+# This hook runs quality checks before allowing a commit
+#
+# Checks performed:
+# 1. Code formatting (Prettier)
+# 2. Linting (ESLint)
+# 3. Type checking (TypeScript + Svelte)
+# 4. Build validation (all packages)
+#
+# Note: E2E tests are NOT run in pre-commit due to slow execution time.
+#       Run manually before pushing: npm run test:e2e:docker
+
+set -e  # Exit immediately if any command fails
+
+echo "=========================================="
+echo "🎣 Git Hook: Pre-commit"
+echo "=========================================="
+echo ""
+
+# Note: Snapshot validation has been moved to commit-msg hook
+# This allows proper access to the commit message during validation
+
+# Function to print step header
+print_step() {
+    echo "▶ $1"
+    echo "------------------------------------------"
+}
+
+# Function to print success
+print_success() {
+    echo "✅ $1"
+    echo ""
+}
+
+# Function to print error and exit
+print_error() {
+    echo ""
+    echo "❌ $1"
+    echo "=========================================="
+    echo "💡 Tip: Fix the issues above and try again"
+    echo "   Or use --no-verify to skip hooks (not recommended)"
+    echo "=========================================="
+    exit 1
+}
+
+# 1. Clean any existing build artifacts first
+print_step "Cleaning existing build artifacts..."
+find packages/infra -type f \( -name "*.js" -o -name "*.d.ts" -o -name "*.js.map" \) ! -name "jest.config.js" ! -name ".eslintrc.js" -delete 2>/dev/null || true
+print_success "Cleaned existing artifacts"
+
+# 2. Auto-fix code formatting
+print_step "Auto-fixing code formatting..."
+if npm run format; then
+    print_success "Code formatting fixed and staged"
+    # Stage any formatting changes
+    git add -u
+else
+    print_error "Code formatting failed. Check the errors above."
+fi
+
+# 3. Auto-fix linting issues
+print_step "Auto-fixing linting issues..."
+if npm run lint; then
+    print_success "Linting issues fixed and staged"
+    # Stage any lint fixes
+    git add -u
+else
+    print_error "Linting failed. Fix the issues above."
+fi
+
+# 4. Style linting (CSS hardcoded colors check)
+print_step "Checking CSS for hardcoded colors..."
+if npm run stylelint --workspace=frontend; then
+    print_success "Stylelint passed"
+else
+    print_error "Stylelint failed. Hardcoded colors detected. Use CSS custom properties (var(--color-*))."
+fi
+
+# 5. Type check all TypeScript files (including tests)
+print_step "Type checking TypeScript files..."
+if npm run type-check --workspace=frontend; then
+    print_success "Type checking passed"
+else
+    print_error "Type checking failed. Fix type errors above."
+fi
+
+# 6. Build all packages
+print_step "Building all packages..."
+if npm run build; then
+    print_success "Build successful"
+else
+    print_error "Build failed. Fix compilation errors above."
+fi
+
+# 7. Clean build artifacts after validation
+print_step "Cleaning build artifacts..."
+find packages/infra -type f \( -name "*.js" -o -name "*.d.ts" -o -name "*.js.map" \) ! -name "jest.config.js" ! -name ".eslintrc.js" -delete 2>/dev/null || true
+print_success "Build artifacts cleaned"
+
+# All checks passed!
+echo "=========================================="
+echo "✅ All pre-commit checks passed!"
+echo "=========================================="
+echo "💡 Remember to run E2E tests before pushing:"
+echo "   npm run test:e2e:docker"
+echo "=========================================="
+echo ""
+
+exit 0
