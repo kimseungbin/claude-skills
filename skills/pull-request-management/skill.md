@@ -96,27 +96,61 @@ Categorize commits by type:
 - chore: Maintenance (dependencies, config)
 - ci: CI/CD changes
 
-**Step 3: Select Dominant Type**
+**Step 3: Select Dominant Type and Prioritize Important Items**
+
+**CRITICAL: Prioritize Runtime Impact Over Documentation/Tooling**
+
+When analyzing commits for PR titles and summaries, prioritize by business impact:
+
+1. **Runtime/Service Changes** (HIGHEST PRIORITY)
+   - New services enabled
+   - Service configuration changes
+   - Infrastructure affecting running applications
+   - Database/API changes
+
+2. **Infrastructure/Architecture Changes** (HIGH PRIORITY)
+   - Migrations, major refactorings
+   - Build system changes
+   - Deployment strategy changes
+
+3. **Developer Tooling** (MEDIUM PRIORITY)
+   - CI/CD improvements
+   - Developer experience tools
+   - Build scripts
+
+4. **Documentation** (LOWEST PRIORITY)
+   - README, CLAUDE.md updates
+   - Comments, guides
+   - Refactoring plans
 
 **Decision Rules:**
 
-1. **If there's a major infrastructure change** (migration, architecture change):
+1. **If there are runtime/service changes** (new service, service config):
+    - **ALWAYS prioritize these in the title**
+    - Use `feat(service-name):` or `feat(infra):`
+    - Example: `feat(profile): Enable Profile service for Production`
+    - Example: `feat(auth): Add OAuth2 with additional tooling improvements`
+
+2. **If there's a major infrastructure change** (migration, architecture change):
     - Use `feat(infra):` or `refactor(infra):`
     - Example: `feat(infra): Migrate to ES Modules and add tooling improvements`
 
-2. **If mostly new features** (>50% feat commits):
+3. **If mostly new features** (>50% feat commits):
     - Use `feat:` or `feat(scope):`
+    - **Prioritize most impactful features first**
     - Example: `feat: Add authentication and user management features`
 
-3. **If mostly bug fixes** (>50% fix commits):
+4. **If mostly bug fixes** (>50% fix commits):
     - Use `fix:` or `fix(scope):`
     - Example: `fix: Resolve production issues and performance bugs`
 
-4. **If mixed with no clear dominant** (e.g., 40% feat, 35% fix, 25% docs):
-    - Use `feat:` as default for promotions
-    - Example: `feat: Promote DEV changes to STAGING`
+5. **If mixed with no clear dominant** (e.g., 40% feat, 35% fix, 25% docs):
+    - **Identify the most business-critical change**
+    - Lead with that in title, mention others secondarily
+    - Example: `feat(profile): Enable Production deployment with CDK tooling`
+    - NOT: `feat(tools): Add CDK expert skill and enable Profile service` (WRONG - tools less important)
 
-5. **NEVER use `chore:` for environment promotions**:
+6. **NEVER use `chore:` for environment promotions**:
     - `chore` = maintenance tasks (dependency updates, config tweaks)
     - Promotions contain actual features/fixes that provide user value
     - Exception: Only use `chore` if PR is truly just dependency updates
