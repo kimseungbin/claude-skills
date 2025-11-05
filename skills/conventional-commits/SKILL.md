@@ -150,18 +150,30 @@ User: "Commit the changes"
 
 ## Rules File Location
 
+⚠️ **CRITICAL: DO NOT MODIFY FILES IN THE SKILL DIRECTORY** ⚠️
+
+This skill is a **git submodule** shared across multiple projects. Files in `.claude/skills/conventional-commits/` must NEVER be modified directly.
+
 **Priority order:**
-1. **Project-specific rules**: `.claude/config/conventional-commits.yaml` (checked first)
-2. **Default rules**: `.claude/skills/conventional-commits/commit-rules.yaml` (fallback)
+1. **Project-specific rules** (ALWAYS CREATE THIS): `.claude/config/conventional-commits.yaml` (checked first)
+2. **Default rules** (READ-ONLY): `.claude/skills/conventional-commits/commit-rules.yaml` (fallback, generic defaults)
 
-Project-specific rules allow customizing commit conventions per repository while keeping the skill generic and reusable across projects.
+**Configuration Pattern:**
+- `.claude/skills/conventional-commits/` → Symlink to submodule (READ-ONLY, shared across projects)
+- `.claude/config/conventional-commits.yaml` → Real file in project repo (WRITABLE, project-specific)
 
-**When to create project-specific rules:**
-- Repository has unique scope requirements (e.g., infrastructure-only repo needs construct-level scopes)
-- Project has different conventions than the default rules
-- Team wants custom types or scopes for their workflow
+**When user requests project-specific commit rules:**
+1. Check if `.claude/config/conventional-commits.yaml` exists
+2. If NOT exists, create it with project-specific scopes, types, and conventions
+3. If EXISTS, update it with new rules
+4. NEVER modify `commit-rules.yaml` in the skill directory (it's a submodule!)
 
-If neither file exists, create `.claude/config/conventional-commits.yaml` for this project using examples from the skill.
+**Template for project-specific config:**
+Copy structure from `.claude/skills/conventional-commits/commit-rules.yaml` or `commit-rules.template.yaml` and customize for the project.
+
+**Example projects:**
+- See `commit-rules.example.yaml` for a Trip Settle monorepo example
+- Use `commit-rules.template.yaml` as a starting template
 
 ## Interactive Commit Selection
 

@@ -75,9 +75,24 @@ refactor(config): Consolidate TypeScript configurations
 
 ## Customization
 
-Edit `commit-rules.yaml` to customize:
-- Commit types
-- Scopes (areas of the codebase)
+⚠️ **IMPORTANT: This skill is designed to be used as a git submodule!**
+
+**DO NOT edit `commit-rules.yaml` directly!** This skill directory is a symlink to a shared submodule used across multiple projects.
+
+**To customize for your project:**
+
+1. Create a project-specific config file at `.claude/config/conventional-commits.yaml`
+2. Copy the structure from `commit-rules.template.yaml` or `commit-rules.example.yaml`
+3. Customize scopes, types, and conventions for your project
+4. Commit the config file to your project repository
+
+**Rule priority:**
+- `.claude/config/conventional-commits.yaml` (project-specific, checked first)
+- `.claude/skills/conventional-commits/commit-rules.yaml` (default fallback, generic)
+
+**Customizable elements:**
+- Commit types (feat, fix, docs, etc.)
+- Scopes (areas of the codebase: frontend, backend, infra, etc.)
 - Message format patterns
 - Subject line length limits
 - Conventions and special rules
@@ -85,11 +100,17 @@ Edit `commit-rules.yaml` to customize:
 ## File Structure
 
 ```
-.claude/skills/conventional-commits/
-├── SKILL.md                      # Skill instructions for Claude
-├── commit-rules.yaml             # Active rules configuration
-├── commit-rules.template.yaml    # Template with examples
-└── README.md                     # This file
+# In the skill submodule (READ-ONLY)
+.claude/skills/conventional-commits/          # Symlink to submodule
+├── SKILL.md                                   # Skill instructions for Claude
+├── commit-rules.yaml                          # Generic default rules (DO NOT EDIT)
+├── commit-rules.template.yaml                 # Starter template
+├── commit-rules.example.yaml                  # Example for Trip Settle project
+└── README.md                                  # This file
+
+# In your project repository (WRITABLE)
+.claude/config/
+└── conventional-commits.yaml                  # Your project-specific rules (CREATE THIS)
 ```
 
 ## When Changes Are Split

@@ -1,5 +1,6 @@
-# Trip Settle Commit Message Rules
-# These rules define the commit message format for the Trip Settle monorepo
+# Conventional Commits - Generic Default Rules
+# These are generic, project-agnostic commit message rules
+# For project-specific customization, create `.claude/config/conventional-commits.yaml`
 
 format:
   pattern: "{type}({scope}): {subject}"
@@ -30,22 +31,33 @@ types:
 
 scopes:
   frontend:
-    description: "Changes to packages/frontend (Svelte app)"
+    description: "Changes to frontend code"
     patterns:
       - "packages/frontend/**"
+      - "apps/frontend/**"
+      - "src/frontend/**"
+      - "client/**"
+      - "ui/**"
 
   backend:
-    description: "Changes to packages/backend (NestJS API)"
+    description: "Changes to backend code"
     patterns:
       - "packages/backend/**"
+      - "apps/backend/**"
+      - "src/backend/**"
+      - "server/**"
+      - "api/**"
 
   infra:
-    description: "Changes to packages/infra (AWS CDK)"
+    description: "Changes to infrastructure code"
     patterns:
       - "packages/infra/**"
+      - "infrastructure/**"
+      - "terraform/**"
+      - "cdk/**"
 
   config:
-    description: "Configuration changes (TypeScript configs, environment configs)"
+    description: "Configuration changes"
     patterns:
       - "config/**"
       - "*.config.*"
@@ -56,6 +68,8 @@ scopes:
     patterns:
       - "package.json"
       - "packages/*/package.json"
+      - "lerna.json"
+      - "nx.json"
 
   tools:
     description: "Developer tooling (git hooks, scripts, linters, CI/CD)"
@@ -63,98 +77,103 @@ scopes:
       - ".githooks/**"
       - "scripts/**"
       - ".eslintrc*"
+      - "eslint.config.*"
       - ".prettierrc*"
       - ".github/workflows/**"
       - ".github/actions/**"
+      - "Dockerfile"
+      - "docker-compose*.yml"
+
+  docs:
+    description: "Documentation files"
+    patterns:
+      - "docs/**"
+      - "*.md"
+
+  project:
+    description: "Project-level changes"
+    patterns:
+      - "CLAUDE.md"
+      - ".claude/**"
+      - ".gitignore"
+      - ".editorconfig"
 
 scope_selection_guide:
   description: "How to choose the correct scope based on file patterns"
   important: "Scope is determined by WHICH FILES are changed, not the type of change"
 
   mapping:
+    frontend_files:
+      pattern: "packages/frontend/**, client/**, ui/**"
+      scope: "frontend"
+      examples:
+        - "feat(frontend): Add user login form"
+        - "fix(frontend): Correct form validation"
+      rationale: "Frontend code uses 'frontend' scope"
+
+    backend_files:
+      pattern: "packages/backend/**, server/**, api/**"
+      scope: "backend"
+      examples:
+        - "feat(backend): Add user authentication API"
+        - "fix(backend): Handle null user ID"
+      rationale: "Backend code uses 'backend' scope"
+
+    infrastructure_files:
+      pattern: "packages/infra/**, infrastructure/**, terraform/**, cdk/**"
+      scope: "infra"
+      examples:
+        - "feat(infra): Add CloudFront CDN"
+        - "fix(infra): Correct security group rules"
+      rationale: "Infrastructure code uses 'infra' scope"
+
     ci_cd_files:
       pattern: ".github/workflows/**"
       scope: "tools"
       examples:
-        - "ci(tools): Add E2E test job to workflow"
-        - "fix(tools): Remove redundant npm install in CI"
-        - "refactor(tools): Simplify GitHub Actions matrix strategy"
-      rationale: "CI/CD config files are developer tools, so use 'tools' scope"
+        - "ci(tools): Add deployment workflow"
+        - "fix(tools): Correct workflow syntax"
+      rationale: "CI/CD config is developer tooling"
 
-    git_hooks:
-      pattern: ".githooks/**"
+    docker_files:
+      pattern: "Dockerfile, docker-compose*.yml"
       scope: "tools"
       examples:
-        - "feat(tools): Add pre-push hook for E2E tests"
-        - "fix(tools): Correct pre-commit hook exit code"
-      rationale: "Git hooks are developer tooling"
+        - "build(tools): Update Dockerfile base image"
+        - "fix(tools): Add health check to compose"
+      rationale: "Docker is developer tooling"
 
-    linter_config:
-      pattern: ".eslintrc*, .prettierrc*"
-      scope: "tools"
+    config_files:
+      pattern: "config/**, *.config.*, tsconfig*.json"
+      scope: "config"
       examples:
-        - "style(tools): Update Prettier line width to 120"
-        - "chore(tools): Add ESLint rule for unused imports"
-      rationale: "Linter configs are developer tools"
+        - "chore(config): Update TypeScript target"
+        - "refactor(config): Standardize environment variables"
+      rationale: "Configuration files use 'config' scope"
 
     root_package_json:
       pattern: "package.json (root)"
       scope: "monorepo"
       examples:
-        - "build(monorepo): Add concurrently for parallel dev servers"
+        - "build(monorepo): Add workspace for shared types"
         - "chore(monorepo): Update workspace configuration"
-      rationale: "Root package.json affects the entire workspace"
-
-    frontend_files:
-      pattern: "packages/frontend/**"
-      scope: "frontend"
-      examples:
-        - "feat(frontend): Add expense filtering by date"
-        - "fix(frontend): Correct currency conversion calculation"
-        - "test(frontend): Add Playwright E2E tests for login"
-      rationale: "Frontend package changes use 'frontend' scope"
-
-    backend_files:
-      pattern: "packages/backend/**"
-      scope: "backend"
-      examples:
-        - "feat(backend): Implement trip settlement API"
-        - "fix(backend): Handle null user ID in auth middleware"
-        - "perf(backend): Add database index for expense queries"
-      rationale: "Backend package changes use 'backend' scope"
-
-    infra_files:
-      pattern: "packages/infra/**"
-      scope: "infra"
-      examples:
-        - "feat(infra): Add CloudFront CDN for frontend"
-        - "fix(infra): Correct RDS security group rules"
-      rationale: "Infrastructure code uses 'infra' scope"
-
-    config_files:
-      pattern: "config/**, tsconfig*.json, *.config.*"
-      scope: "config OR package scope depending on purpose"
-      examples:
-        - "chore(config): Update TypeScript target to ES2022"
-        - "refactor(config): Standardize environment variable naming"
-        - "fix(frontend): Fix Vite host validation for Docker E2E tests"
-      rationale: "Configuration files use 'config' scope for general config changes, but use package scope (frontend/backend/infra) when the change is specific to that package's functionality or testing"
-
-      disambiguation:
-        - question: "Does the config change affect how the package works or is tested?"
-          answer_yes: "Use package scope (frontend/backend/infra)"
-          answer_no: "Use config scope"
-        - question: "Is this a build/test infrastructure change?"
-          answer_yes: "Consider if it's test-specific (use package scope) or affects multiple packages (use tools/monorepo)"
-          answer_no: "Use config scope"
+      rationale: "Root package.json affects entire workspace"
 
     multi_package:
       pattern: "Changes in 2+ packages"
       scope: "monorepo"
       examples:
-        - "refactor(monorepo): Standardize error handling across packages"
-        - "feat(monorepo): Add shared types package"
+        - "refactor(monorepo): Standardize error handling"
+        - "feat(monorepo): Add shared utilities package"
       rationale: "Multi-package changes use 'monorepo' scope"
+
+    documentation:
+      pattern: "docs/**, *.md"
+      scope: "docs"
+      examples:
+        - "docs(project): Add deployment guide"
+        - "docs(project): Update README with setup instructions"
+      rationale: "Documentation changes"
 
   common_mistakes:
     - mistake: "Using type name as scope (e.g., ci(ci):, test(test):)"
@@ -195,32 +214,30 @@ special_cases:
     footer_format: "BREAKING CHANGE: <description>"
 
 examples:
-  feature_with_tests:
-    description: "New feature with comprehensive test coverage"
+  feature:
     type: "feat"
-    scope: "frontend"
-    subject: "Add expense edit functionality"
+    scope: "backend"
+    subject: "Add user authentication"
     body: |
-      - Add edit button to expense items
-      - Create inline edit form with keyboard support
-      - Add Playwright E2E tests for edit workflow
-      - Ensure Escape cancels edit, Enter saves
-    rationale: "Body uses bullet points to list specific changes, includes test additions, mentions keyboard accessibility"
+      Implement JWT-based authentication for API endpoints.
+
+      - Add login endpoint
+      - Add token validation middleware
+      - Add password hashing with bcrypt
+    rationale: "Backend feature with implementation details"
 
   bug_fix:
-    description: "Simple bug fix"
     type: "fix"
-    scope: "backend"
-    subject: "Prevent duplicate expense creation"
+    scope: "frontend"
+    subject: "Prevent duplicate form submissions"
     body: |
-      Add transaction-level uniqueness constraint to prevent race condition
-      when multiple requests create the same expense simultaneously.
+      Disable submit button after first click to prevent
+      race conditions when creating resources.
 
-      Refs #42
-    rationale: "Body explains the 'why' (race condition), includes issue reference"
+      Closes #42
+    rationale: "Bug fix with issue reference"
 
-  refactor_multi_package:
-    description: "Refactoring across multiple packages"
+  refactor:
     type: "refactor"
     scope: "monorepo"
     subject: "Standardize error handling across packages"
@@ -228,90 +245,46 @@ examples:
       - Implement unified error response format
       - Update frontend error display
       - Update backend error middleware
-      - Add integration tests for error flows
-    rationale: "Uses 'monorepo' scope when changes affect multiple packages"
+    rationale: "Multi-package refactoring"
 
   documentation:
-    description: "Documentation update"
     type: "docs"
     scope: "project"
-    subject: "Add Docker-based E2E testing guide"
+    subject: "Add deployment guide"
     body: |
-      Document the Docker-first approach for E2E tests with comparison
-      to local testing. Includes troubleshooting section.
-    rationale: "No tests needed for docs-only changes (TDD workflow exception)"
-
-  breaking_change:
-    description: "Breaking change with footer"
-    type: "feat"
-    scope: "backend"
-    subject: "Change expense API response format"
-    body: |
-      Restructure expense response to include currency metadata and
-      localized formatting hints for frontend consumption.
-
-      BREAKING CHANGE: Response structure changed from flat to nested.
-      Frontend must update ExpenseList component to access `expense.data`
-      instead of top-level fields.
-    rationale: "Breaking changes must include footer explaining migration path"
+      Document the deployment process including Docker build,
+      environment configuration, and troubleshooting steps.
+    rationale: "Documentation update"
 
   build_dependency:
-    description: "Dependency update"
     type: "build"
     scope: "frontend"
-    subject: "Update Playwright to v1.56.1"
+    subject: "Update React to v18"
     body: |
-      Update to latest Playwright version for improved stability.
-      Update Docker image in Dockerfile.e2e accordingly.
-    rationale: "Use 'build' type for dependency changes, mention impact on other files"
+      Update to React 18 for improved performance.
+      Update related dependencies accordingly.
+    rationale: "Dependency update for specific package"
+
+  ci_workflow:
+    type: "ci"
+    scope: "tools"
+    subject: "Add automated deployment workflow"
+    body: |
+      Configure GitHub Actions to automatically deploy
+      to production on main branch push.
+    rationale: "CI/CD configuration is tooling"
 
 workflow_integration:
-  description: "How to use this skill during TDD workflow commit phase"
+  description: "How to use conventional commits skill during development"
   steps:
-    - "After tests pass and code is formatted/linted"
-    - "Stage your changes: git add ."
-    - "Review changed files to determine scope (frontend/backend/monorepo/etc)"
-    - "Choose appropriate type (feat/fix/refactor/test/docs/etc)"
-    - "Write subject in imperative mood, be specific"
-    - "Add body with bullet points for multi-change commits"
-    - "Reference examples above for similar scenarios"
+    - "After completing a feature/fix and tests pass"
+    - "Stage changes: git add ."
+    - "Invoke /commit command or ask Claude to commit"
+    - "Skill analyzes changed files and suggests type/scope"
+    - "Review and approve generated commit message"
 
-  command_template: |
-    git commit -m "type(scope): Subject line under 72 chars
-
-    - Bullet point explaining what changed
-    - Another change or context
-    - Mention tests added or updated
-
-    Refs #issue_number (if applicable)"
-
-special_commit_triggers:
-  description: "Special keywords in commit messages that trigger automated workflows"
-
-  update_snapshots:
-    keyword: "[update-snapshots]"
-    workflow: "Update Visual Snapshots"
-    usage: "Include keyword ANYWHERE in commit message (subject or body)"
-    purpose: "Triggers automatic visual regression snapshot updates in CI"
-    when_to_use:
-      - "After UI changes that legitimately change appearance"
-      - "When visual regression tests fail with expected changes"
-      - "To update baseline screenshots after intentional design updates"
-    example: |
-      feat(frontend): Redesign expense card layout [update-snapshots]
-
-      - Increase card padding for better readability
-      - Add subtle shadow for depth
-      - Update typography hierarchy
-
-      Visual changes are intentional. Snapshots need updating.
-
-    alternatives:
-      - "Manual workflow dispatch via GitHub Actions UI"
-      - "PR comment: /update-snapshots"
-
-    important_notes:
-      - "Visual snapshots are ONLY updated in remote CI, never locally"
-      - "Workflow automatically commits updated snapshots back to branch"
-      - "Review snapshot changes before merging to ensure they're correct"
-      - "See CLAUDE.md section 'Visual Snapshot Management' for details"
+notes:
+  - "This is a GENERIC default configuration"
+  - "Create `.claude/config/conventional-commits.yaml` for project-specific rules"
+  - "See `commit-rules.template.yaml` for a starter template"
+  - "See `commit-rules.example.yaml` for a complete example"
