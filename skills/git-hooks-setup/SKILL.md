@@ -15,6 +15,34 @@ description: |
 
 This skill provides instructions for configuring, managing, and troubleshooting git hooks.
 
+## Project Detection Quick Reference
+
+When analyzing a project to generate hooks, check these indicators:
+
+**Project Type Detection:**
+- AWS CDK: `aws-cdk-lib` in dependencies, `cdk.json` exists
+- Monorepo: `workspaces` in package.json, `pnpm-workspace.yaml`, or `lerna.json`
+- Frontend: React/Vue/Svelte/Angular in dependencies
+- Backend: NestJS/Express/Fastify in dependencies
+- TypeScript: `tsconfig.json` exists, TypeScript in devDependencies
+
+**Available Tooling (check package.json scripts):**
+- Formatting: `format`, `format:check`, `prettier`
+- Linting: `lint`, `lint:check`, `eslint`
+- Type checking: `type-check`, `tsc`
+- Building: `build`, `compile`
+- Testing: `test`, `test:unit`, `test:e2e`
+- Style: `stylelint`
+
+**Template Selection Guide:**
+- Simple TS/JS project → `pre-commit-basic.sh`
+- AWS CDK project → `pre-commit-aws-cdk.sh`
+- Monorepo project → `pre-commit-monorepo.sh`
+- Need commit format validation → `commit-msg-conventional.sh`
+- Have visual regression tests → `commit-msg-snapshot.sh`
+
+See `examples/templates/README.md` for detailed customization instructions.
+
 ## Overview
 
 The project uses custom git hooks stored in `.githooks/` (instead of the default `.git/hooks/`) to ensure code quality before commits. These hooks are version-controlled and shared across the team.
