@@ -7,435 +7,228 @@ description: |
 
 # Git Hooks Setup & Custom Generation
 
-**IMPORTANT: When setting up git hooks for the first time, ALWAYS:**
+Generate custom git hooks tailored to your project's needs.
 
-1. Analyze the project (package.json scripts, tech stack, test setup)
-2. Generate custom hooks tailored to the project's needs
-3. Consider what's fast enough for pre-commit (<30s) vs pre-push
-4. Use templates from `examples/` directory as reference
+## When to Use This Skill
 
-This skill provides instructions for configuring, managing, and troubleshooting git hooks.
+-   User asks about git hooks, pre-commit checks, or hook configuration
+-   Setting up quality gates for a new project
+-   Adding validation to existing projects
+-   Troubleshooting hook issues
 
-## Project Detection Quick Reference
+## Quick Start Workflow
 
-When analyzing a project to generate hooks, check these indicators:
+### 1. Analyze Project
 
-**Project Type Detection:**
+Read `package.json` to identify:
 
-- AWS CDK: `aws-cdk-lib` in dependencies, `cdk.json` exists
-- Monorepo: `workspaces` in package.json, `pnpm-workspace.yaml`, or `lerna.json`
-- Frontend: React/Vue/Svelte/Angular in dependencies
-- Backend: NestJS/Express/Fastify in dependencies
-- TypeScript: `tsconfig.json` exists, TypeScript in devDependencies
+-   **Project type**: Monorepo? AWS CDK? Frontend? Backend?
+-   **Available scripts**: format, lint, type-check, build, test
+-   **Tech stack**: TypeScript? Testing framework?
 
-**Available Tooling (check package.json scripts):**
+**See**: [guides/project-detection.md](guides/project-detection.md) for detailed analysis steps
 
-- Formatting: `format`, `format:check`, `prettier`
-- Linting: `lint`, `lint:check`, `eslint`
-- Type checking: `type-check`, `tsc`
-- Building: `build`, `compile`
-- Testing: `test`, `test:unit`, `test:e2e`
-- Style: `stylelint`
+### 2. Select Template
 
-**Template Selection Guide:**
+Based on project type:
 
-- Simple TS/JS project → `pre-commit-basic.sh`
-- AWS CDK project → `pre-commit-aws-cdk.sh`
-- Monorepo project → `pre-commit-monorepo.sh`
-- Need commit format validation → `commit-msg-conventional.sh`
-- Have visual regression tests → `commit-msg-snapshot.sh`
+-   **Monorepo** → `examples/templates/pre-commit-monorepo.sh`
+-   **AWS CDK** → `examples/templates/pre-commit-aws-cdk.sh`
+-   **Simple TS/JS** → `examples/templates/pre-commit-basic.sh`
 
-See `examples/templates/README.md` for detailed customization instructions.
+**See**: [decision-tree.md](decision-tree.md) for visual selection guide
 
-## Overview
+### 3. Customize Hook
 
-The project uses custom git hooks stored in `.githooks/` (instead of the default `.git/hooks/`) to ensure code quality before commits. These hooks are version-controlled and shared across the team.
-
-## Available Hooks
-
-### pre-commit
-
-Runs before each commit to validate:
-
-- **Code formatting** (Prettier)
-- **Linting** (ESLint)
-- **Build compilation** (all packages)
-- **Cleans build artifacts** after validation
-
-**Important**: E2E tests are NOT run in pre-commit hooks due to slow execution time (several minutes with Docker). Run E2E tests manually before pushing.
-
-## Setup Instructions
-
-### Initial Configuration (One-Time Setup)
-
-After cloning the repository, enable custom hooks:
+Adapt template to project's scripts:
 
 ```bash
-# Configure git to use the .githooks directory
+# Include fast checks in pre-commit (<30s):
+- Prettier (auto-fix, always)
+- ESLint (auto-fix, usually)
+- TypeScript type-check (blocking)
+
+# Move slow checks to pre-push (>30s):
+- Full test suite
+- E2E tests
+- Build validation
+- Docker builds
+```
+
+**See**: [hooks/pre-commit-patterns.md](hooks/pre-commit-patterns.md) for common patterns
+
+### 4. Handle Existing Issues
+
+If project has many linting errors, make checks **non-blocking initially**:
+
+```bash
+if npm run lint:fix; then
+    success
+else
+    warn "⚠️ Linting issues (non-blocking for now)"
+    # TODO: Make blocking after refactoring
+fi
+```
+
+**See**: [hooks/pre-commit-patterns.md#pattern-2-non-blocking-checks](hooks/pre-commit-patterns.md#pattern-2-non-blocking-checks-progressive-adoption)
+
+### 5. Setup & Test
+
+```bash
+# Create hooks directory
+mkdir -p .githooks
+
+# Write hook script
+cat > .githooks/pre-commit << 'EOF'
+# ... hook content ...
+EOF
+
+# Make executable
+chmod +x .githooks/pre-commit
+
+# Configure git
 git config core.hooksPath .githooks
 
-# Make all hooks executable (required on Unix-based systems)
-chmod +x .githooks/*
+# Test
+git commit --allow-empty -m "test: Verify hooks"
+git reset HEAD~1
 ```
 
-### Verification
+**See**: [guides/setup-guide.md](guides/setup-guide.md) for complete setup
 
-Verify the hooks are configured correctly:
+**See**: [guides/testing-hooks.md](guides/testing-hooks.md) for testing strategies
+
+### 6. Document Choices
+
+Add to project's `docs/ROADMAP.md` or `DEVELOPMENT.md`:
+
+```markdown
+## Git Hooks
+
+### Pre-commit ✅
+
+-   Auto-fix formatting (Prettier)
+-   Auto-fix linting (ESLint, non-blocking)
+-   Type checking (TypeScript)
+
+### Future Enhancements
+
+-   [ ] Make linting blocking after refactoring
+-   [ ] Add commit-msg validation
+-   [ ] Add pre-push hook (tests, build)
+```
+
+## Quick Reference
+
+### Project Type Detection
+
+-   **Monorepo**: `workspaces` in package.json, `lerna.json`, `pnpm-workspace.yaml`
+-   **AWS CDK**: `aws-cdk-lib` in dependencies, `cdk.json` exists
+-   **TypeScript**: `tsconfig.json` exists, `typescript` in devDependencies
+-   **Frontend**: React/Vue/Svelte/Angular in dependencies
+-   **Backend**: NestJS/Express/Fastify in dependencies
+
+### Available Tooling (Check package.json scripts)
+
+-   **Formatting**: `format`, `format:check`, `prettier`
+-   **Linting**: `lint`, `lint:fix`, `eslint`
+-   **Type checking**: `type-check`, `tsc`
+-   **Building**: `build`, `compile`
+-   **Testing**: `test`, `test:unit`, `test:e2e`
+
+### Performance Rules
+
+-   **< 5s**: Always include in pre-commit
+-   **5-30s**: Include if important
+-   **> 30s**: Move to pre-push or CI
+
+## Detailed Guides
+
+-   **Setup & Verification**: [guides/setup-guide.md](guides/setup-guide.md)
+-   **Project Analysis**: [guides/project-detection.md](guides/project-detection.md)
+-   **Hook Selection**: [decision-tree.md](decision-tree.md)
+-   **Common Patterns**: [hooks/pre-commit-patterns.md](hooks/pre-commit-patterns.md)
+-   **Testing Hooks**: [guides/testing-hooks.md](guides/testing-hooks.md)
+-   **Troubleshooting**: [guides/troubleshooting.md](guides/troubleshooting.md)
+
+## Examples
+
+-   **Templates**: [examples/templates/](examples/templates/)
+    -   `pre-commit-basic.sh` - Simple TypeScript/JavaScript project
+    -   `pre-commit-monorepo.sh` - Multi-package workspace
+    -   `pre-commit-aws-cdk.sh` - AWS CDK infrastructure
+    -   `commit-msg-conventional.sh` - Conventional commits validation
+    -   `commit-msg-snapshot.sh` - Visual regression test validation
+-   **Real Implementations**: [examples/implementations/](examples/implementations/)
+    -   `monorepo-nestjs-cdk/` - Chatbot project with NestJS + CDK
+
+## Key Principles
+
+1. **Analyze first**: Understand project structure and available tooling
+2. **Keep it fast**: Pre-commit should complete in <30 seconds
+3. **Auto-fix when possible**: Prettier, ESLint --fix
+4. **Progressive adoption**: Make checks non-blocking if needed, document improvement plan
+5. **Test thoroughly**: Test hooks before sharing with team
+6. **Document decisions**: Add git hooks section to project roadmap
+
+## Common Patterns
+
+### Auto-fix and Stage
 
 ```bash
-# Check git configuration
-git config core.hooksPath
-# Should output: .githooks
-
-# Test hook execution
-git add .
-git commit -m "test"
-# You should see pre-commit hook output (formatting, linting, build)
+npm run format
+git add -u  # Stage auto-fixed changes
 ```
+
+### Non-blocking Checks
+
+```bash
+if npm run lint:fix; then
+    success
+else
+    warn "Issues detected (non-blocking)"
+fi
+```
+
+### Strict Validation
+
+```bash
+npm run type-check || exit 1
+```
+
+See [hooks/pre-commit-patterns.md](hooks/pre-commit-patterns.md) for complete pattern library.
+
+## Project-Specific Configuration
+
+For project-specific requirements, create `.claude/config/git-hooks.yaml`:
+
+```yaml
+pre_commit:
+    blocking:
+        - format
+        - type-check
+    non_blocking:
+        - lint # TODO: Make blocking after refactoring
+
+    skip:
+        - build # Too slow
+
+commit_msg:
+    require_conventional: true
+
+pre_push:
+    - test:e2e
+    - docker:build
+```
+
+The skill will read this config and generate appropriate hooks.
 
 ## Troubleshooting
 
-### Hook Not Running
-
-**Symptom**: Commits succeed without any hook output
-
-**Diagnosis**:
-
-```bash
-# Check if hooks path is configured
-git config core.hooksPath
-```
-
-**Solutions**:
-
-1. If output is empty or incorrect, run setup commands again
-2. Verify `.githooks/` directory exists in repository root
-3. Check hook files have executable permissions: `ls -l .githooks/`
-
-### Permission Denied Errors
-
-**Symptom**: `permission denied: .githooks/pre-commit`
-
-**Solution**:
-
-```bash
-# Make hooks executable
-chmod +x .githooks/*
-
-# Verify permissions (should show -rwxr-xr-x)
-ls -l .githooks/
-```
-
-### Hook Fails on Build/Lint Errors
-
-**Symptom**: Commit blocked with error messages
-
-**This is expected behavior!** The hook is working correctly.
-
-**Solutions**:
-
-1. **Fix the issues** (recommended):
-
-    ```bash
-    npm run format        # Auto-fix formatting
-    npm run lint          # Show linting errors
-    npm run build         # Verify build works
-    ```
-
-2. **Bypass temporarily** (use sparingly):
-    ```bash
-    git commit --no-verify -m "WIP: Your message"
-    ```
-
-**Warning**: Use `--no-verify` only for work-in-progress commits. Fix issues before final push.
-
-### Build Artifacts Left Behind
-
-**Symptom**: `dist/` or `build/` directories created after commit
-
-**Root Cause**: Hook script failed before cleanup step
-
-**Solution**:
-
-```bash
-# Manually clean build artifacts
-npm run build           # Rebuild to ensure it works
-rm -rf packages/*/dist  # Clean up artifacts
-```
-
-## Bypassing Hooks
-
-### When to Bypass
-
-Use `--no-verify` flag only for:
-
-- Work-in-progress commits (fix issues later)
-- Emergency hotfixes (fix quality issues immediately after)
-- Commits that intentionally break quality checks (rare, document why)
-
-### How to Bypass
-
-```bash
-# Skip pre-commit hook for this commit only
-git commit --no-verify -m "WIP: Your message"
-
-# Or use shorthand
-git commit -n -m "WIP: Your message"
-```
-
-### Best Practice
-
-It's better to fix issues caught by hooks than to bypass them. Hooks save time by catching problems before they reach CI/CD.
-
-## What Hooks Check
-
-### Format Check (Prettier)
-
-```bash
-npm run format:check
-```
-
-Validates code formatting according to `.prettierrc.yaml`:
-
-- 120 character line width
-- Tabs (width: 4)
-- Single quotes
-- No semicolons
-- ES5 trailing commas
-
-**Auto-fix**: `npm run format`
-
-### Linting (ESLint)
-
-```bash
-npm run lint
-```
-
-Validates code quality and best practices:
-
-- Frontend: Svelte-specific rules
-- Backend: NestJS-specific rules
-- Infra: TypeScript-only rules
-
-**Configuration**: `.eslintrc.cjs` in each package
-
-### Build Compilation
-
-```bash
-npm run build
-```
-
-Compiles all packages to verify no TypeScript errors:
-
-- Frontend: Vite build
-- Backend: NestJS build
-- Infra: CDK synth
-
-**Note**: Build artifacts are cleaned after validation to avoid committing generated files.
-
-## Snapshot Handling Enforcement
-
-### Overview
-
-When committing changes to `.svelte` or `.css` files, the pre-commit hook **requires** explicit snapshot handling declaration in the commit message footer.
-
-This ensures visual regression test snapshots are kept in sync with UI changes.
-
-### Required Commit Message Footer
-
-Add one of these footers to your commit message:
-
-#### 1. `Snapshots: update` - UI appearance changed
-
-Use when changes affect visual appearance:
-
-- Styling changes (colors, spacing, fonts)
-- Layout modifications
-- New visual elements added
-- Component visual restructuring
-
-**What happens**: CI will automatically update snapshot baselines after push and commit them back to the branch.
-
-**Example commit message**:
-
-```
-feat(frontend): Redesign expense card layout
-
-- Increase card padding for better readability
-- Add subtle shadow for depth
-- Update typography hierarchy
-
-Snapshots: update
-```
-
-#### 2. `Snapshots: skip` - UI files changed but appearance unchanged
-
-Use when changes don't affect visual output:
-
-- Internal refactoring
-- Prop renaming or restructuring
-- Type changes
-- Logic extraction
-- Performance optimizations
-
-**What happens**: Hook allows commit without snapshot updates. You confirm no visual changes occurred.
-
-**Example commit message**:
-
-```
-refactor(frontend): Extract validation logic from ExpenseForm
-
-Moves validation logic to separate function for reusability.
-No visual changes to component appearance.
-
-Snapshots: skip
-```
-
-### Why This Matters
-
-Visual regression tests compare current UI against baseline snapshots. When UI changes but snapshots aren't updated:
-
-- E2E tests fail with snapshot mismatches
-- CI pipeline blocks
-- Manual snapshot update workflow required
-
-Explicit declaration prevents forgotten updates and CI failures.
-
-### Decision Guide
-
-**Use `Snapshots: update` when**:
-
-- You modified CSS styling
-- You changed component layout/structure
-- You added/removed visual elements
-- You're unsure (safer to update than skip)
-
-**Use `Snapshots: skip` when**:
-
-- You only changed TypeScript/logic
-- You refactored props without visual impact
-- You verified no visual changes in browser
-- Changes are internal implementation only
-
-### Bypassing Snapshot Enforcement
-
-If you need to commit without the snapshot footer (not recommended):
-
-```bash
-git commit --no-verify -m "WIP: Your message"
-```
-
-**Use sparingly**: This bypasses all pre-commit checks including snapshot validation.
-
-### Troubleshooting
-
-**Problem**: Forgot to add snapshot footer, commit blocked
-
-**Solution**: Amend commit message:
-
-```bash
-git commit --amend
-# Add "Snapshots: update" or "Snapshots: skip" footer
-```
-
-**Problem**: Added "Snapshots: update" but snapshots not updated in CI
-
-**Solution**: Check GitHub Actions workflow logs. Ensure snapshot update workflow triggered and completed successfully.
-
-**Problem**: Not sure if visual changes occurred
-
-**Solution**:
-
-1. Run frontend locally: `npm run dev --workspace=frontend`
-2. Visually inspect changes in browser
-3. If any doubt, use `Snapshots: update` (safer)
-
-## E2E Tests (Not in Hooks)
-
-E2E tests are **intentionally excluded** from pre-commit hooks due to execution time (2-5 minutes with Docker).
-
-**Run manually before pushing**:
-
-```bash
-npm run test:e2e:docker
-```
-
-**Why not in hooks?**
-
-- Too slow for fast commit workflow
-- Blocks developer productivity
-- Better suited for pre-push validation or CI/CD
-
-## Hook Internals
-
-### Hook Location
-
-Custom hooks live in `.githooks/` (version-controlled) instead of `.git/hooks/` (ignored by git).
-
-### How It Works
-
-When you run `git config core.hooksPath .githooks`:
-
-1. Git reads hook scripts from `.githooks/` instead of `.git/hooks/`
-2. Hooks execute before git operations (commit, push, etc.)
-3. Non-zero exit code blocks the git operation
-4. Zero exit code allows operation to proceed
-
-### Hook Script Structure
-
-```bash
-#!/bin/bash
-# Pre-commit hook structure
-
-# 1. Run checks
-npm run format:check || exit 1
-npm run lint || exit 1
-npm run build || exit 1
-
-# 2. Clean up artifacts
-npm run clean
-
-# 3. Exit successfully
-exit 0
-```
-
-## Team Workflow
-
-### New Team Member Setup
-
-1. Clone repository
-2. Run `npm install`
-3. Run hook setup commands (see Setup Instructions)
-4. Verify with test commit
-5. Start development
-
-### Updating Hooks
-
-When hook scripts are updated:
-
-1. Changes propagate via `git pull`
-2. No additional setup needed (hooks already configured)
-3. Permissions preserved if committed correctly
-
-### Sharing Hook Changes
-
-```bash
-# 1. Modify hook script
-vim .githooks/pre-commit
-
-# 2. Ensure executable
-chmod +x .githooks/pre-commit
-
-# 3. Commit and push
-git add .githooks/pre-commit
-git commit -m "chore: Update pre-commit hook to check X"
-git push
-
-# 4. Team members get changes automatically on next pull
-```
-
-## Related Documentation
-
-- **Why custom hooks?**: See README.md "Development Workflow → Why Custom Git Hooks?"
-- **CI/CD pipeline**: See README.md "Continuous Integration (CI/CD)"
-- **TDD workflow**: See `.claude/skills/tdd-workflow/workflow.yaml`
+See [guides/troubleshooting.md](guides/troubleshooting.md) for common issues:
+
+-   Hook not running
+-   Permission denied errors
+-   Hook too slow
+-   Build artifacts left behind
+-   Windows-specific issues

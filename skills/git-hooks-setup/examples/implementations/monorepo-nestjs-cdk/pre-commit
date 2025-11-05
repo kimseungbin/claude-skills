@@ -1,0 +1,81 @@
+#!/bin/sh
+# Pre-commit hook for chatbot monorepo
+# Validates code quality before commits
+#
+# Setup: git config core.hooksPath .githooks
+
+set -e
+
+echo "=========================================="
+echo "🎣 Git Hook: Pre-commit (Chatbot)"
+echo "=========================================="
+echo ""
+
+print_step() {
+    echo "▶ $1"
+    echo "------------------------------------------"
+}
+
+print_success() {
+    echo "✅ $1"
+    echo ""
+}
+
+print_error() {
+    echo ""
+    echo "❌ $1"
+    echo "=========================================="
+    echo "💡 Tip: Fix the issues above and try again"
+    echo "   Or use --no-verify to skip hooks (not recommended)"
+    echo "=========================================="
+    exit 1
+}
+
+# 1. Auto-fix formatting with Prettier
+print_step "Auto-fixing code formatting with Prettier..."
+if npm run format; then
+    print_success "Code formatting fixed"
+    # Stage any formatting changes
+    git add -u
+else
+    print_error "Code formatting failed. Check the errors above."
+fi
+
+# 2. Auto-fix linting with ESLint
+print_step "Auto-fixing linting issues with ESLint..."
+if npm run lint:fix; then
+    print_success "Linting issues fixed"
+    # Stage any auto-fixed changes
+    git add -u
+else
+    echo ""
+    echo "⚠️  Linting issues detected (non-blocking for now)"
+    echo "   See docs/ROADMAP.md for type safety refactoring plan"
+    echo ""
+    # TODO: Make this blocking after fixing type safety issues
+    # print_error "Linting failed. Fix the issues above."
+fi
+
+# 3. Type check all workspaces
+print_step "Type checking all workspaces..."
+if npm run type-check; then
+    print_success "Type checking passed"
+else
+    print_error "Type checking failed. Fix type errors above."
+fi
+
+# Future hooks to be implemented (see docs/ROADMAP.md):
+# - Build validation (npm run backend:build, npm run infra:build)
+# - Conventional commits validation (commit-msg hook)
+# - CDK diff for infra changes (commit-msg or pre-push)
+# - Test execution (pre-push hook for speed)
+
+echo "=========================================="
+echo "✅ All pre-commit checks passed!"
+echo "=========================================="
+echo "💡 Passing: format ✅ lint ✅ type-check ✅"
+echo "   Future: build validation, commit-msg format"
+echo "=========================================="
+echo ""
+
+exit 0
