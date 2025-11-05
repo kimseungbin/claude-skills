@@ -154,18 +154,18 @@ This project uses custom git hooks to ensure code quality. After cloning:
 1. Configure git to use custom hooks:
    \`\`\`bash
    git config core.hooksPath .githooks
-   chmod +x .githooks/*
+   chmod +x .githooks/\*
    \`\`\`
 
 2. Verify setup:
    \`\`\`bash
-   git config core.hooksPath  # Should output: .githooks
+   git config core.hooksPath # Should output: .githooks
    \`\`\`
 
 3. Test with a commit:
    \`\`\`bash
    git commit --allow-empty -m "test: Verify hooks work"
-   git reset HEAD~1  # Undo test commit
+   git reset HEAD~1 # Undo test commit
    \`\`\`
 
 See `.githooks/` directory for hook scripts and [HOOKS.md](docs/HOOKS.md) for details.

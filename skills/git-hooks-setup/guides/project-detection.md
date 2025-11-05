@@ -17,18 +17,18 @@ Before generating hooks, analyze the project to understand:
 
 **Indicators**:
 
--   `workspaces` field in root `package.json`
--   `lerna.json` exists (Lerna)
--   `pnpm-workspace.yaml` exists (pnpm)
--   `nx.json` exists (Nx)
--   Multiple `packages/*/package.json` files
+- `workspaces` field in root `package.json`
+- `lerna.json` exists (Lerna)
+- `pnpm-workspace.yaml` exists (pnpm)
+- `nx.json` exists (Nx)
+- Multiple `packages/*/package.json` files
 
 **Example**:
 
 ```json
 // package.json
 {
-    "workspaces": ["packages/*", "apps/*"]
+	"workspaces": ["packages/*", "apps/*"]
 }
 ```
 
@@ -38,19 +38,19 @@ Before generating hooks, analyze the project to understand:
 
 **Indicators**:
 
--   `aws-cdk-lib` in dependencies
--   `cdk.json` exists
--   `bin/` and `lib/` directories with CDK stacks
+- `aws-cdk-lib` in dependencies
+- `cdk.json` exists
+- `bin/` and `lib/` directories with CDK stacks
 
 **Example**:
 
 ```json
 // package.json
 {
-    "dependencies": {
-        "aws-cdk-lib": "^2.174.0",
-        "constructs": "^10.0.0"
-    }
+	"dependencies": {
+		"aws-cdk-lib": "^2.174.0",
+		"constructs": "^10.0.0"
+	}
 }
 ```
 
@@ -60,11 +60,11 @@ Before generating hooks, analyze the project to understand:
 
 **Indicators**:
 
--   React: `react`, `react-dom` in dependencies
--   Vue: `vue` in dependencies
--   Svelte: `svelte` in dependencies
--   Angular: `@angular/core` in dependencies
--   Vite/Webpack config files
+- React: `react`, `react-dom` in dependencies
+- Vue: `vue` in dependencies
+- Svelte: `svelte` in dependencies
+- Angular: `@angular/core` in dependencies
+- Vite/Webpack config files
 
 **Hook template**: `pre-commit-basic.sh` (may add visual regression checks)
 
@@ -72,10 +72,10 @@ Before generating hooks, analyze the project to understand:
 
 **Indicators**:
 
--   NestJS: `@nestjs/core` in dependencies
--   Express: `express` in dependencies
--   Fastify: `fastify` in dependencies
--   Koa: `koa` in dependencies
+- NestJS: `@nestjs/core` in dependencies
+- Express: `express` in dependencies
+- Fastify: `fastify` in dependencies
+- Koa: `koa` in dependencies
 
 **Hook template**: `pre-commit-basic.sh`
 
@@ -83,9 +83,9 @@ Before generating hooks, analyze the project to understand:
 
 **Indicators**:
 
--   `tsconfig.json` exists
--   `typescript` in devDependencies
--   `.ts` or `.tsx` files
+- `tsconfig.json` exists
+- `typescript` in devDependencies
+- `.ts` or `.tsx` files
 
 **Hook additions**: Add `type-check` to pre-commit
 
@@ -95,17 +95,17 @@ Read `package.json` scripts to see what commands are available:
 
 ```json
 {
-    "scripts": {
-        "format": "prettier --write .",
-        "format:check": "prettier --check .",
-        "lint": "eslint .",
-        "lint:fix": "eslint . --fix",
-        "type-check": "tsc --noEmit",
-        "build": "tsc",
-        "test": "vitest",
-        "test:unit": "vitest run",
-        "test:e2e": "playwright test"
-    }
+	"scripts": {
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
+		"type-check": "tsc --noEmit",
+		"build": "tsc",
+		"test": "vitest",
+		"test:unit": "vitest run",
+		"test:e2e": "playwright test"
+	}
 }
 ```
 
@@ -113,9 +113,9 @@ Read `package.json` scripts to see what commands are available:
 
 **Look for**:
 
--   `format`, `format:check` - Project has Prettier setup
--   `prettier` - Direct Prettier command
--   `fmt` - Alternative formatting command
+- `format`, `format:check` - Project has Prettier setup
+- `prettier` - Direct Prettier command
+- `fmt` - Alternative formatting command
 
 **Action**: Always include formatting in pre-commit (auto-fix)
 
@@ -123,9 +123,9 @@ Read `package.json` scripts to see what commands are available:
 
 **Look for**:
 
--   `lint`, `lint:check` - Linting available
--   `lint:fix` - Auto-fix available
--   `eslint` - ESLint direct command
+- `lint`, `lint:check` - Linting available
+- `lint:fix` - Auto-fix available
+- `eslint` - ESLint direct command
 
 **Action**: Include linting in pre-commit with auto-fix
 
@@ -133,9 +133,9 @@ Read `package.json` scripts to see what commands are available:
 
 **Look for**:
 
--   `type-check` - Dedicated type-check script
--   `tsc --noEmit` - TypeScript check without output
--   `typecheck` (alternative spelling)
+- `type-check` - Dedicated type-check script
+- `tsc --noEmit` - TypeScript check without output
+- `typecheck` (alternative spelling)
 
 **Action**: Include type-check in pre-commit (blocking)
 
@@ -143,9 +143,9 @@ Read `package.json` scripts to see what commands are available:
 
 **Look for**:
 
--   `build` - Project has build step
--   `compile` - Alternative build command
--   `tsc` - TypeScript compilation
+- `build` - Project has build step
+- `compile` - Alternative build command
+- `tsc` - TypeScript compilation
 
 **Action**: Consider for pre-commit if fast (<10s), otherwise move to pre-push
 
@@ -153,16 +153,16 @@ Read `package.json` scripts to see what commands are available:
 
 **Look for**:
 
--   `test` - Test command
--   `test:unit` - Unit tests only (usually fast)
--   `test:integration` - Integration tests (usually slow)
--   `test:e2e` - End-to-end tests (always slow)
+- `test` - Test command
+- `test:unit` - Unit tests only (usually fast)
+- `test:integration` - Integration tests (usually slow)
+- `test:e2e` - End-to-end tests (always slow)
 
 **Action**:
 
--   Unit tests for changed files → Consider for pre-commit
--   Integration/E2E tests → Move to pre-push
--   Full test suite → Move to pre-push or CI
+- Unit tests for changed files → Consider for pre-commit
+- Integration/E2E tests → Move to pre-push
+- Full test suite → Move to pre-push or CI
 
 ## Step 3: Performance Testing
 
@@ -187,9 +187,9 @@ time npm run test
 
 **Rules**:
 
--   **< 5s** → Always include in pre-commit
--   **5-30s** → Include in pre-commit if important
--   **> 30s** → Move to pre-push or CI
+- **< 5s** → Always include in pre-commit
+- **5-30s** → Include in pre-commit if important
+- **> 30s** → Move to pre-push or CI
 
 ## Step 4: Check Testing Frameworks
 
@@ -200,9 +200,9 @@ time npm run test
 ```json
 // package.json
 {
-    "devDependencies": {
-        "jest": "^29.0.0"
-    }
+	"devDependencies": {
+		"jest": "^29.0.0"
+	}
 }
 ```
 
@@ -210,9 +210,9 @@ time npm run test
 
 ```json
 {
-    "devDependencies": {
-        "vitest": "^3.0.0"
-    }
+	"devDependencies": {
+		"vitest": "^3.0.0"
+	}
 }
 ```
 
@@ -232,9 +232,9 @@ vitest related $(git diff --cached --name-only)
 
 ```json
 {
-    "devDependencies": {
-        "@playwright/test": "^1.0.0"
-    }
+	"devDependencies": {
+		"@playwright/test": "^1.0.0"
+	}
 }
 ```
 
@@ -242,9 +242,9 @@ vitest related $(git diff --cached --name-only)
 
 ```json
 {
-    "devDependencies": {
-        "cypress": "^13.0.0"
-    }
+	"devDependencies": {
+		"cypress": "^13.0.0"
+	}
 }
 ```
 
@@ -316,10 +316,7 @@ function analyzeProject(): ProjectAnalysis {
 	const pkg = readPackageJson()
 
 	// Detect monorepo
-	const isMonorepo =
-		pkg.workspaces ||
-		fs.existsSync('lerna.json') ||
-		fs.existsSync('pnpm-workspace.yaml')
+	const isMonorepo = pkg.workspaces || fs.existsSync('lerna.json') || fs.existsSync('pnpm-workspace.yaml')
 
 	// Detect CDK
 	const isCDK = pkg.dependencies?.['aws-cdk-lib'] || fs.existsSync('cdk.json')

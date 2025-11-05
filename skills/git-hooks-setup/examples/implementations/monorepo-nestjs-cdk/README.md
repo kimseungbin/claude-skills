@@ -4,13 +4,13 @@ Real-world git hooks implementation from the Slack + Bedrock chatbot project.
 
 ## Project Overview
 
--   **Type**: npm workspaces monorepo
--   **Packages**:
-    -   `packages/backend` - NestJS application (Slack bot + Bedrock AI)
-    -   `packages/infra` - AWS CDK infrastructure (ECS, VPC, OpenSearch, Redis)
--   **Tech Stack**: TypeScript, NestJS, AWS CDK, ESLint 9, Prettier, Vitest
--   **Team Size**: Individual developer (extendable to team)
--   **Phase**: Week 3 of 24 (early development)
+- **Type**: npm workspaces monorepo
+- **Packages**:
+    - `packages/backend` - NestJS application (Slack bot + Bedrock AI)
+    - `packages/infra` - AWS CDK infrastructure (ECS, VPC, OpenSearch, Redis)
+- **Tech Stack**: TypeScript, NestJS, AWS CDK, ESLint 9, Prettier, Vitest
+- **Team Size**: Individual developer (extendable to team)
+- **Phase**: Week 3 of 24 (early development)
 
 ## Hook Configuration
 
@@ -38,8 +38,8 @@ Real-world git hooks implementation from the Slack + Bedrock chatbot project.
 
 ### Future Hooks (Documented)
 
--   **Commit-msg**: Conventional commits validation (using `conventional-commits` skill)
--   **Pre-push**: Full test suite, build validation, CDK diff for infra changes
+- **Commit-msg**: Conventional commits validation (using `conventional-commits` skill)
+- **Pre-push**: Full test suite, build validation, CDK diff for infra changes
 
 See project's `docs/ROADMAP.md` for detailed plans.
 
@@ -49,10 +49,10 @@ See project's `docs/ROADMAP.md` for detailed plans.
 
 **Problem**: Existing codebase had 50 linting errors:
 
--   Unsafe `any` usage in AWS SDK and Slack Bolt.js types
--   Prefer `??` over `||` (nullish coalescing)
--   Floating promises in `main.ts`
--   Missing error type assertions
+- Unsafe `any` usage in AWS SDK and Slack Bolt.js types
+- Prefer `??` over `||` (nullish coalescing)
+- Floating promises in `main.ts`
+- Missing error type assertions
 
 **Solution**: Made linting non-blocking initially to:
 
@@ -104,13 +104,13 @@ fi
 
 ```json
 {
-    "scripts": {
-        "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
-        "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
-        "lint": "eslint .",
-        "lint:fix": "eslint . --fix",
-        "type-check": "tsc --noEmit"
-    }
+	"scripts": {
+		"format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+		"format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
+		"type-check": "tsc --noEmit"
+	}
 }
 ```
 
@@ -118,11 +118,11 @@ fi
 
 ```json
 {
-    "scripts": {
-        "build": "nest build",
-        "start:dev": "nest start --watch",
-        "test": "vitest"
-    }
+	"scripts": {
+		"build": "nest build",
+		"start:dev": "nest start --watch",
+		"test": "vitest"
+	}
 }
 ```
 
@@ -130,12 +130,12 @@ fi
 
 ```json
 {
-    "scripts": {
-        "build": "tsc",
-        "synth": "cdk synth",
-        "deploy": "cdk deploy --all",
-        "diff": "cdk diff"
-    }
+	"scripts": {
+		"build": "tsc",
+		"synth": "cdk synth",
+		"deploy": "cdk deploy --all",
+		"diff": "cdk diff"
+	}
 }
 ```
 
@@ -159,6 +159,7 @@ fi
     ```
 
 4. Verify setup:
+
     ```bash
     git config core.hooksPath  # Should output: .githooks
     ```
@@ -267,20 +268,20 @@ chatbot/
 
 **Manual testing performed**:
 
--   ✅ Normal commits with various file types
--   ✅ Commits with formatting errors (auto-fixed)
--   ✅ Commits with type errors (blocked)
--   ✅ Hook bypass with `--no-verify`
--   ✅ Performance measurement (~15-22s)
+- ✅ Normal commits with various file types
+- ✅ Commits with formatting errors (auto-fixed)
+- ✅ Commits with type errors (blocked)
+- ✅ Hook bypass with `--no-verify`
+- ✅ Performance measurement (~15-22s)
 
 **No automated tests yet** (planned for future).
 
 ## References
 
--   **Project**: Slack + Bedrock chatbot (self-updating knowledge bot)
--   **Roadmap**: `docs/ROADMAP.md` in project root
--   **Commit rules**: `.claude/config/conventional-commits.yaml`
--   **Hook source**: This implementation was created in November 2025 during Phase 1 Week 3
+- **Project**: Slack + Bedrock chatbot (self-updating knowledge bot)
+- **Roadmap**: `docs/ROADMAP.md` in project root
+- **Commit rules**: `.claude/config/conventional-commits.yaml`
+- **Hook source**: This implementation was created in November 2025 during Phase 1 Week 3
 
 ## Applying to Your Project
 
@@ -294,14 +295,14 @@ chatbot/
 
 **If your project differs**:
 
--   Use this as a reference for progressive adoption pattern
--   See `../templates/` for other project types
--   Read `../../decision-tree.md` for selection logic
+- Use this as a reference for progressive adoption pattern
+- See `../templates/` for other project types
+- Read `../../decision-tree.md` for selection logic
 
 ## Next Steps
 
--   Implement commit-msg hook for conventional commits
--   Add pre-push hook with tests and build validation
--   Make linting blocking after Phase 2 refactoring
--   Add automated hook testing
--   Consider parallel execution for performance
+- Implement commit-msg hook for conventional commits
+- Add pre-push hook with tests and build validation
+- Make linting blocking after Phase 2 refactoring
+- Add automated hook testing
+- Consider parallel execution for performance

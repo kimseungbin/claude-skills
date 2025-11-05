@@ -45,22 +45,22 @@ fi
 
 **Why**:
 
--   Allows development to continue
--   Establishes baseline for gradual improvement
--   Creates backlog of technical debt
--   Prevents new violations from being introduced
+- Allows development to continue
+- Establishes baseline for gradual improvement
+- Creates backlog of technical debt
+- Prevents new violations from being introduced
 
 **When to use**:
 
--   Existing codebase with many lint errors
--   Team is addressing tech debt incrementally
--   Need to ship features while improving quality
+- Existing codebase with many lint errors
+- Team is addressing tech debt incrementally
+- Need to ship features while improving quality
 
 **When to make blocking**:
 
--   After tech debt addressed
--   Before production deployment
--   Team consensus reached
+- After tech debt addressed
+- Before production deployment
+- Team consensus reached
 
 **Example from this session**:
 
@@ -84,9 +84,9 @@ fi
 
 **Use for**:
 
--   TypeScript type-check
--   Syntax validation
--   Critical security checks
+- TypeScript type-check
+- Syntax validation
+- Critical security checks
 
 ### Pattern 4: Conditional Checks
 
@@ -266,10 +266,10 @@ exit 0
 
 **Key features**:
 
--   Helpful output with emojis and separators
--   Clear distinction between blocking and non-blocking
--   Guidance in error messages
--   Plans for future enhancements documented in output
+- Helpful output with emojis and separators
+- Clear distinction between blocking and non-blocking
+- Guidance in error messages
+- Plans for future enhancements documented in output
 
 ### Example 4: AWS CDK Project
 
@@ -411,10 +411,10 @@ time ./.githooks/pre-commit
 
 **Targets**:
 
--   Formatting: < 5s
--   Linting: < 10s
--   Type-check: < 10s
--   **Total**: < 30s
+- Formatting: < 5s
+- Linting: < 10s
+- Type-check: < 10s
+- **Total**: < 30s
 
 ## Common Mistakes to Avoid
 
@@ -483,14 +483,14 @@ fi
 
 See `../examples/templates/` for complete hook templates:
 
--   `pre-commit-basic.sh` - Simple TypeScript/JavaScript project
--   `pre-commit-monorepo.sh` - Multi-package workspace
--   `pre-commit-aws-cdk.sh` - AWS CDK infrastructure
--   `helpers.sh` - Shared helper functions
+- `pre-commit-basic.sh` - Simple TypeScript/JavaScript project
+- `pre-commit-monorepo.sh` - Multi-package workspace
+- `pre-commit-aws-cdk.sh` - AWS CDK infrastructure
+- `helpers.sh` - Shared helper functions
 
 ## Next Steps
 
--   Apply pattern to your project
--   Test performance with `time ./.githooks/pre-commit`
--   Document choices in project roadmap
--   See [../decision-tree.md](../decision-tree.md) for selection logic
+- Apply pattern to your project
+- Test performance with `time ./.githooks/pre-commit`
+- Document choices in project roadmap
+- See [../decision-tree.md](../decision-tree.md) for selection logic

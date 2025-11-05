@@ -4,10 +4,10 @@ How to test git hooks effectively before deploying them to your team.
 
 ## Why Test Hooks?
 
--   **Avoid blocking the team**: Broken hooks prevent everyone from committing
--   **Catch edge cases**: Unusual file types, empty commits, merge commits
--   **Verify performance**: Ensure hooks are fast enough (<30s)
--   **Test bypass behavior**: Confirm `--no-verify` works as expected
+- **Avoid blocking the team**: Broken hooks prevent everyone from committing
+- **Catch edge cases**: Unusual file types, empty commits, merge commits
+- **Verify performance**: Ensure hooks are fast enough (<30s)
+- **Test bypass behavior**: Confirm `--no-verify` works as expected
 
 ## Testing Workflow
 
@@ -25,10 +25,10 @@ chmod +x .githooks/pre-commit
 
 **Check for**:
 
--   Syntax errors
--   Missing commands (`command not found`)
--   Correct output messages
--   Proper exit codes
+- Syntax errors
+- Missing commands (`command not found`)
+- Correct output messages
+- Proper exit codes
 
 ### Step 2: Test with Dummy Commit
 
@@ -51,9 +51,9 @@ git restore README.md
 
 **Verify**:
 
--   Hook output appears
--   Hook completes successfully
--   Commit is created (or blocked, if expected)
+- Hook output appears
+- Hook completes successfully
+- Commit is created (or blocked, if expected)
 
 ### Step 3: Test Error Conditions
 
@@ -176,9 +176,9 @@ git reset HEAD~1
 
 **Targets**:
 
--   **Pre-commit**: < 30 seconds
--   **Commit-msg**: < 1 second
--   **Pre-push**: < 2 minutes
+- **Pre-commit**: < 30 seconds
+- **Commit-msg**: < 1 second
+- **Pre-push**: < 2 minutes
 
 ### Identify Slow Commands
 
@@ -200,10 +200,10 @@ time npm run type-check
 
 **Optimize if needed**:
 
--   Move slow checks to pre-push
--   Check only staged files
--   Use parallel execution
--   Enable caching
+- Move slow checks to pre-push
+- Check only staged files
+- Use parallel execution
+- Enable caching
 
 ## Testing Different Scenarios
 
@@ -380,9 +380,9 @@ chmod +x .githooks/*
 
 ### 2. Test on Different Systems
 
--   **macOS**: Developer machines
--   **Linux**: CI/CD environment
--   **Windows**: Git Bash / WSL
+- **macOS**: Developer machines
+- **Linux**: CI/CD environment
+- **Windows**: Git Bash / WSL
 
 ### 3. Test with Different Shells
 
@@ -406,25 +406,25 @@ Create `HOOKS.md` in your project:
 
 ### Performance
 
--   Format: 3s
--   Lint: 5s
--   Type-check: 7s
--   **Total**: 15s ✅
+- Format: 3s
+- Lint: 5s
+- Type-check: 7s
+- **Total**: 15s ✅
 
 ### Compatibility
 
--   ✅ macOS 14 (Sonoma)
--   ✅ Ubuntu 22.04
--   ✅ Windows 11 (Git Bash)
+- ✅ macOS 14 (Sonoma)
+- ✅ Ubuntu 22.04
+- ✅ Windows 11 (Git Bash)
 
 ### Test Scenarios
 
--   ✅ Normal commits
--   ✅ Empty commits
--   ✅ Merge commits
--   ✅ Large commits (100+ files)
--   ✅ Binary files
--   ✅ Bypass with --no-verify
+- ✅ Normal commits
+- ✅ Empty commits
+- ✅ Merge commits
+- ✅ Large commits (100+ files)
+- ✅ Binary files
+- ✅ Bypass with --no-verify
 ```
 
 ## Continuous Testing
@@ -509,8 +509,8 @@ echo "Type-check exit code: $?"
 
 ## Next Steps
 
--   Create automated test script
--   Run tests before hook updates
--   Document performance benchmarks
--   Share results with team
--   See [troubleshooting.md](troubleshooting.md) if issues occur
+- Create automated test script
+- Run tests before hook updates
+- Document performance benchmarks
+- Share results with team
+- See [troubleshooting.md](troubleshooting.md) if issues occur

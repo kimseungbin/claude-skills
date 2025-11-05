@@ -50,9 +50,9 @@ git config core.hooksPath  # Should output: .githooks
 
 **If hooks still don't run**:
 
--   Check git version: `git --version` (need 2.9+)
--   Try running hook manually: `.githooks/pre-commit`
--   Check for shell errors in hook script
+- Check git version: `git --version` (need 2.9+)
+- Try running hook manually: `.githooks/pre-commit`
+- Check for shell errors in hook script
 
 ## Permission Denied Errors
 
@@ -141,9 +141,9 @@ git commit -n -m "WIP: Your message"
 
 **Warning**: Only use `--no-verify` when:
 
--   Committing work-in-progress (fix later)
--   Emergency hotfix (fix issues immediately after)
--   You understand the consequences
+- Committing work-in-progress (fix later)
+- Emergency hotfix (fix issues immediately after)
+- You understand the consequences
 
 **Best practice**: Fix issues instead of bypassing. Hooks catch problems before CI/CD.
 
@@ -171,16 +171,16 @@ Move expensive checks (>10s) to pre-push:
 
 **Slow checks to move**:
 
--   Full test suite → pre-push
--   E2E tests → pre-push
--   Docker build → pre-push or CI
--   CDK synth/deploy → pre-push or CI
+- Full test suite → pre-push
+- E2E tests → pre-push
+- Docker build → pre-push or CI
+- CDK synth/deploy → pre-push or CI
 
 **Keep in pre-commit** (fast checks):
 
--   Prettier (< 5s)
--   ESLint auto-fix (< 10s)
--   TypeScript type-check (< 10s)
+- Prettier (< 5s)
+- ESLint auto-fix (< 10s)
+- TypeScript type-check (< 10s)
 
 #### Solution 2: Run Tests for Changed Files Only
 
@@ -196,9 +196,9 @@ jest
 
 #### Solution 3: Optimize Build
 
--   Use incremental builds
--   Cache dependencies
--   Skip source maps in hooks
+- Use incremental builds
+- Cache dependencies
+- Skip source maps in hooks
 
 ## Build Artifacts Left Behind
 
@@ -266,9 +266,9 @@ npm run test
 
 #### Match environments
 
--   Use same Node version locally and in CI
--   Run `npm ci` (clean install) before testing
--   Check `.nvmrc` or `.node-version` files
+- Use same Node version locally and in CI
+- Run `npm ci` (clean install) before testing
+- Check `.nvmrc` or `.node-version` files
 
 ## Hook Runs on Wrong Files
 
@@ -408,6 +408,6 @@ git config core.fileMode false
 
 ## Next Steps
 
--   Review [setup-guide.md](setup-guide.md) for initial setup
--   See [testing-hooks.md](testing-hooks.md) for testing strategies
--   Check [../decision-tree.md](../decision-tree.md) for hook selection logic
+- Review [setup-guide.md](setup-guide.md) for initial setup
+- See [testing-hooks.md](testing-hooks.md) for testing strategies
+- Check [../decision-tree.md](../decision-tree.md) for hook selection logic

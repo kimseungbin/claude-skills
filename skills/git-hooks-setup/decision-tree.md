@@ -32,29 +32,29 @@ Is it a monorepo (workspaces, lerna, nx)?
 ### Always Include (Fast)
 
 - ✅ **Prettier** (auto-fix, always fast)
-  - `npm run format` or `prettier --write`
-  - Auto-stage fixed files with `git add -u`
+    - `npm run format` or `prettier --write`
+    - Auto-stage fixed files with `git add -u`
 
 ### Usually Include (Fast)
 
 - ✅ **ESLint** (auto-fix, usually fast)
-  - `npm run lint:fix` or `eslint . --fix`
-  - Auto-stage fixed files
-  - **Pattern**: Make non-blocking if many existing errors
+    - `npm run lint:fix` or `eslint . --fix`
+    - Auto-stage fixed files
+    - **Pattern**: Make non-blocking if many existing errors
 
 - ✅ **TypeScript type-check** (fast, no output)
-  - `npm run type-check` or `tsc --noEmit`
-  - Blocking (catches type errors)
+    - `npm run type-check` or `tsc --noEmit`
+    - Blocking (catches type errors)
 
 ### Consider (Depends on Size)
 
 - ⚠️ **Unit tests for changed files**
-  - Fast: `jest --findRelatedTests --bail`
-  - Skip if test suite is slow (>10s)
+    - Fast: `jest --findRelatedTests --bail`
+    - Skip if test suite is slow (>10s)
 
 - ⚠️ **Build validation**
-  - Fast for small projects
-  - Skip for large monorepos (move to pre-push)
+    - Fast for small projects
+    - Skip for large monorepos (move to pre-push)
 
 ### Never Include (Slow)
 
@@ -110,27 +110,27 @@ Do you need commit message validation?
 ### Common Pre-push Checks
 
 - ✅ **Full test suite**
-  - `npm test` or `npm run test:ci`
-  - All unit + integration tests
+    - `npm test` or `npm run test:ci`
+    - All unit + integration tests
 
 - ✅ **E2E tests** (if applicable)
-  - `npm run test:e2e`
-  - Docker-based tests
-  - Visual regression tests
+    - `npm run test:e2e`
+    - Docker-based tests
+    - Visual regression tests
 
 - ✅ **Build validation**
-  - `npm run build` (all packages)
-  - Ensures production build works
+    - `npm run build` (all packages)
+    - Ensures production build works
 
 - ✅ **CDK diff** (for infrastructure changes)
-  - `cd packages/infra && npm run diff`
-  - Warns about infrastructure changes
-  - Prevents accidental deployments
+    - `cd packages/infra && npm run diff`
+    - Warns about infrastructure changes
+    - Prevents accidental deployments
 
 - ✅ **Security checks**
-  - Check for sensitive data (API keys, secrets)
-  - `npm audit` for vulnerabilities
-  - Git history scanning
+    - Check for sensitive data (API keys, secrets)
+    - `npm audit` for vulnerabilities
+    - Git history scanning
 
 ## Step 6: Document Your Choices
 
@@ -140,11 +140,13 @@ Add to project's `docs/ROADMAP.md` or `DEVELOPMENT.md`:
 ## Git Hooks
 
 ### Pre-commit ✅
+
 - Auto-fix formatting (Prettier)
 - Auto-fix linting (ESLint, non-blocking)
 - Type checking (TypeScript)
 
 ### Future Enhancements
+
 - [ ] Make linting blocking after refactoring
 - [ ] Add commit-msg validation
 - [ ] Add pre-push hook (tests, build)
@@ -152,13 +154,13 @@ Add to project's `docs/ROADMAP.md` or `DEVELOPMENT.md`:
 
 ## Quick Decision Matrix
 
-| Project Type          | Pre-commit Template       | Typical Checks                  | Commit-msg      |
-| --------------------- | ------------------------- | ------------------------------- | --------------- |
-| Simple TS/JS          | pre-commit-basic.sh       | format, lint, type-check        | Optional        |
-| Monorepo              | pre-commit-monorepo.sh    | format, lint, type-check        | Recommended     |
-| AWS CDK               | pre-commit-aws-cdk.sh     | format, lint, type-check, synth | Recommended     |
-| Frontend (React/Vue)  | pre-commit-basic.sh       | format, lint, type-check, test  | snapshot.sh     |
-| Backend (Node/NestJS) | pre-commit-basic.sh       | format, lint, type-check, test  | conventional.sh |
+| Project Type          | Pre-commit Template    | Typical Checks                  | Commit-msg      |
+| --------------------- | ---------------------- | ------------------------------- | --------------- |
+| Simple TS/JS          | pre-commit-basic.sh    | format, lint, type-check        | Optional        |
+| Monorepo              | pre-commit-monorepo.sh | format, lint, type-check        | Recommended     |
+| AWS CDK               | pre-commit-aws-cdk.sh  | format, lint, type-check, synth | Recommended     |
+| Frontend (React/Vue)  | pre-commit-basic.sh    | format, lint, type-check, test  | snapshot.sh     |
+| Backend (Node/NestJS) | pre-commit-basic.sh    | format, lint, type-check, test  | conventional.sh |
 
 ## Common Patterns
 

@@ -11,10 +11,10 @@ Generate custom git hooks tailored to your project's needs.
 
 ## When to Use This Skill
 
--   User asks about git hooks, pre-commit checks, or hook configuration
--   Setting up quality gates for a new project
--   Adding validation to existing projects
--   Troubleshooting hook issues
+- User asks about git hooks, pre-commit checks, or hook configuration
+- Setting up quality gates for a new project
+- Adding validation to existing projects
+- Troubleshooting hook issues
 
 ## Quick Start Workflow
 
@@ -22,9 +22,9 @@ Generate custom git hooks tailored to your project's needs.
 
 Read `package.json` to identify:
 
--   **Project type**: Monorepo? AWS CDK? Frontend? Backend?
--   **Available scripts**: format, lint, type-check, build, test
--   **Tech stack**: TypeScript? Testing framework?
+- **Project type**: Monorepo? AWS CDK? Frontend? Backend?
+- **Available scripts**: format, lint, type-check, build, test
+- **Tech stack**: TypeScript? Testing framework?
 
 **See**: [guides/project-detection.md](guides/project-detection.md) for detailed analysis steps
 
@@ -32,9 +32,9 @@ Read `package.json` to identify:
 
 Based on project type:
 
--   **Monorepo** → `examples/templates/pre-commit-monorepo.sh`
--   **AWS CDK** → `examples/templates/pre-commit-aws-cdk.sh`
--   **Simple TS/JS** → `examples/templates/pre-commit-basic.sh`
+- **Monorepo** → `examples/templates/pre-commit-monorepo.sh`
+- **AWS CDK** → `examples/templates/pre-commit-aws-cdk.sh`
+- **Simple TS/JS** → `examples/templates/pre-commit-basic.sh`
 
 **See**: [decision-tree.md](decision-tree.md) for visual selection guide
 
@@ -107,60 +107,60 @@ Add to project's `docs/ROADMAP.md` or `DEVELOPMENT.md`:
 
 ### Pre-commit ✅
 
--   Auto-fix formatting (Prettier)
--   Auto-fix linting (ESLint, non-blocking)
--   Type checking (TypeScript)
+- Auto-fix formatting (Prettier)
+- Auto-fix linting (ESLint, non-blocking)
+- Type checking (TypeScript)
 
 ### Future Enhancements
 
--   [ ] Make linting blocking after refactoring
--   [ ] Add commit-msg validation
--   [ ] Add pre-push hook (tests, build)
+- [ ] Make linting blocking after refactoring
+- [ ] Add commit-msg validation
+- [ ] Add pre-push hook (tests, build)
 ```
 
 ## Quick Reference
 
 ### Project Type Detection
 
--   **Monorepo**: `workspaces` in package.json, `lerna.json`, `pnpm-workspace.yaml`
--   **AWS CDK**: `aws-cdk-lib` in dependencies, `cdk.json` exists
--   **TypeScript**: `tsconfig.json` exists, `typescript` in devDependencies
--   **Frontend**: React/Vue/Svelte/Angular in dependencies
--   **Backend**: NestJS/Express/Fastify in dependencies
+- **Monorepo**: `workspaces` in package.json, `lerna.json`, `pnpm-workspace.yaml`
+- **AWS CDK**: `aws-cdk-lib` in dependencies, `cdk.json` exists
+- **TypeScript**: `tsconfig.json` exists, `typescript` in devDependencies
+- **Frontend**: React/Vue/Svelte/Angular in dependencies
+- **Backend**: NestJS/Express/Fastify in dependencies
 
 ### Available Tooling (Check package.json scripts)
 
--   **Formatting**: `format`, `format:check`, `prettier`
--   **Linting**: `lint`, `lint:fix`, `eslint`
--   **Type checking**: `type-check`, `tsc`
--   **Building**: `build`, `compile`
--   **Testing**: `test`, `test:unit`, `test:e2e`
+- **Formatting**: `format`, `format:check`, `prettier`
+- **Linting**: `lint`, `lint:fix`, `eslint`
+- **Type checking**: `type-check`, `tsc`
+- **Building**: `build`, `compile`
+- **Testing**: `test`, `test:unit`, `test:e2e`
 
 ### Performance Rules
 
--   **< 5s**: Always include in pre-commit
--   **5-30s**: Include if important
--   **> 30s**: Move to pre-push or CI
+- **< 5s**: Always include in pre-commit
+- **5-30s**: Include if important
+- **> 30s**: Move to pre-push or CI
 
 ## Detailed Guides
 
--   **Setup & Verification**: [guides/setup-guide.md](guides/setup-guide.md)
--   **Project Analysis**: [guides/project-detection.md](guides/project-detection.md)
--   **Hook Selection**: [decision-tree.md](decision-tree.md)
--   **Common Patterns**: [hooks/pre-commit-patterns.md](hooks/pre-commit-patterns.md)
--   **Testing Hooks**: [guides/testing-hooks.md](guides/testing-hooks.md)
--   **Troubleshooting**: [guides/troubleshooting.md](guides/troubleshooting.md)
+- **Setup & Verification**: [guides/setup-guide.md](guides/setup-guide.md)
+- **Project Analysis**: [guides/project-detection.md](guides/project-detection.md)
+- **Hook Selection**: [decision-tree.md](decision-tree.md)
+- **Common Patterns**: [hooks/pre-commit-patterns.md](hooks/pre-commit-patterns.md)
+- **Testing Hooks**: [guides/testing-hooks.md](guides/testing-hooks.md)
+- **Troubleshooting**: [guides/troubleshooting.md](guides/troubleshooting.md)
 
 ## Examples
 
--   **Templates**: [examples/templates/](examples/templates/)
-    -   `pre-commit-basic.sh` - Simple TypeScript/JavaScript project
-    -   `pre-commit-monorepo.sh` - Multi-package workspace
-    -   `pre-commit-aws-cdk.sh` - AWS CDK infrastructure
-    -   `commit-msg-conventional.sh` - Conventional commits validation
-    -   `commit-msg-snapshot.sh` - Visual regression test validation
--   **Real Implementations**: [examples/implementations/](examples/implementations/)
-    -   `monorepo-nestjs-cdk/` - Chatbot project with NestJS + CDK
+- **Templates**: [examples/templates/](examples/templates/)
+    - `pre-commit-basic.sh` - Simple TypeScript/JavaScript project
+    - `pre-commit-monorepo.sh` - Multi-package workspace
+    - `pre-commit-aws-cdk.sh` - AWS CDK infrastructure
+    - `commit-msg-conventional.sh` - Conventional commits validation
+    - `commit-msg-snapshot.sh` - Visual regression test validation
+- **Real Implementations**: [examples/implementations/](examples/implementations/)
+    - `monorepo-nestjs-cdk/` - Chatbot project with NestJS + CDK
 
 ## Key Principles
 
@@ -227,8 +227,8 @@ The skill will read this config and generate appropriate hooks.
 
 See [guides/troubleshooting.md](guides/troubleshooting.md) for common issues:
 
--   Hook not running
--   Permission denied errors
--   Hook too slow
--   Build artifacts left behind
--   Windows-specific issues
+- Hook not running
+- Permission denied errors
+- Hook too slow
+- Build artifacts left behind
+- Windows-specific issues
