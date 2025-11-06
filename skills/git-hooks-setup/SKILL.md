@@ -158,6 +158,7 @@ Add to project's `docs/ROADMAP.md` or `DEVELOPMENT.md`:
     - `pre-commit-monorepo.sh` - Multi-package workspace
     - `pre-commit-aws-cdk.sh` - AWS CDK infrastructure
     - `commit-msg-conventional.sh` - Conventional commits validation
+    - `commit-msg-skill-enforcement.sh` - Enforce conventional-commits skill usage via footer tag
     - `commit-msg-snapshot.sh` - Visual regression test validation
 - **Real Implementations**: [examples/implementations/](examples/implementations/)
     - `monorepo-nestjs-cdk/` - Chatbot project with NestJS + CDK

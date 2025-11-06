@@ -195,6 +195,93 @@ When changes span multiple scopes or types, this skill uses **interactive select
 
 This provides fine-grained control over commit granularity while maintaining standardized commit messages.
 
+## Enforcing Skill Usage with Git Hooks
+
+Projects can enforce that all commits are created using this skill (instead of direct `git commit` commands) by adding a footer tag and validating it with a git hook.
+
+### Footer Tag Pattern
+
+Add to your project's `.claude/config/conventional-commits.yaml`:
+
+```yaml
+conventions:
+  footer:
+    - "REQUIRED: Always add 'Skill: conventional-commits' to mark skill usage"
+    - "This footer tag is validated by commit-msg hook"
+```
+
+Update all examples to include the footer:
+
+```yaml
+examples:
+  example_commit:
+    message: "feat(scope): Add feature"
+    body: |
+      Feature description.
+
+      - Change 1
+      - Change 2
+
+      Skill: conventional-commits  # Footer tag
+```
+
+### Git Hook Validation
+
+Create `.git/hooks/commit-msg` to validate the footer tag:
+
+```bash
+#!/bin/bash
+
+# Commit-msg hook - Enforce conventional-commits skill usage
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+if ! echo "$COMMIT_MSG" | grep -q "Skill: conventional-commits"; then
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "❌ COMMIT BLOCKED"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "This commit was not created using the conventional-commits skill."
+    echo ""
+    echo "Required footer tag missing: 'Skill: conventional-commits'"
+    echo ""
+    echo "┌─────────────────────────────────────────────────────┐"
+    echo "│  HOW TO FIX:                                        │"
+    echo "├─────────────────────────────────────────────────────┤"
+    echo "│  ✅ Use: Skill(conventional-commits)                │"
+    echo "│  ✅ Use: SlashCommand(/commit)                      │"
+    echo "│  ❌ DO NOT use: git commit directly                 │"
+    echo "└─────────────────────────────────────────────────────┘"
+    echo ""
+    exit 1
+fi
+
+exit 0
+```
+
+Make it executable:
+
+```bash
+chmod +x .git/hooks/commit-msg
+```
+
+### Benefits
+
+- **Consistency:** All commits follow the skill's workflow and format
+- **Quality:** Prevents accidental direct commits bypassing skill validation
+- **Team Alignment:** Everyone uses the same commit creation process
+- **Automation:** CI/CD can rely on consistent commit format
+
+### Bypassing (Emergency Only)
+
+```bash
+# Emergency hotfix - skip hook validation
+git commit --no-verify -m "emergency: Critical fix"
+```
+
+Document why bypass was necessary in the commit message.
+
 ## Notes
 
 - Always respect the project's existing commit history style
