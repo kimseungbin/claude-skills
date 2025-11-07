@@ -39,6 +39,8 @@ If no template exists, ask the user if they want to create one.
 
 ### 2. Analyze Current Changes
 
+**CRITICAL: Always use remote branches for comparison, not local branches.**
+
 Gather context about the changes being proposed:
 
 ```bash
@@ -46,15 +48,32 @@ Gather context about the changes being proposed:
 git branch --show-current
 git status
 
-# View staged and unstaged changes
-git diff --staged
-git diff
+# List all remote branches
+git branch -r
 
-# Check recent commits on current branch
-git log origin/main..HEAD --oneline  # or origin/master, origin/develop
+# Fetch latest remote state (if needed)
+git fetch origin
 
-# Check which files changed
-git diff --name-only origin/main..HEAD
+# ALWAYS compare remote branches for PR analysis
+git log origin/<target-branch>..origin/<source-branch> --oneline
+git diff origin/<target-branch>..origin/<source-branch> --name-only
+
+# Example: For master → staging PR
+git log origin/staging..origin/master --oneline
+git diff origin/staging..origin/master --name-only
+```
+
+**Why remote branches?**
+- Local branches may be out of sync with remote
+- User may have unpushed commits that shouldn't be in PR
+- Remote branches reflect what will actually be merged
+- Prevents including unintended local work-in-progress commits
+
+**Anti-pattern:**
+```bash
+# ❌ DON'T: Compare local branches
+git log staging..master  # May include unpushed local commits
+git diff HEAD..master    # Compares local state, not remote
 ```
 
 ### 3. Identify Target Branch
@@ -173,6 +192,115 @@ chore: Promote DEV to STAGING  ← TOO GENERIC, WRONG TYPE
 update: Add new features  ← "update" is not a conventional commit type
 feat: Changes  ← TOO VAGUE
 ```
+
+#### PR Title Specificity
+
+**CRITICAL: PR titles must be specific and actionable, not generic.**
+
+❌ **Generic titles (avoid):**
+```
+docs(project): Improve documentation
+docs: Update documentation and add backlog
+docs: Documentation improvements
+chore: Maintenance tasks
+```
+
+**Why generic titles are bad:**
+- "Improve documentation" - doesn't tell what was improved
+- "Add backlog" - in an infrastructure repo, backlog IS infrastructure (redundant)
+- Reviewer can't understand changes without reading the full description
+
+✅ **Specific titles (use):**
+```
+docs(project): Mark Slack integration complete and add 9 features to backlog
+docs(deployment): Add pipeline notification architecture comments
+docs(lambda-edge): Translate Korean comments and add JSDoc
+docs(project): Extract feature flags documentation to dedicated file
+```
+
+**Why specific titles are good:**
+- States concrete milestone: "Slack integration complete"
+- Quantifies changes: "9 features"
+- Identifies specific component: "pipeline notification"
+- Avoids redundancy: no "infrastructure backlog" in infra repo
+
+**Guidelines:**
+1. **Include concrete details**: Mention specific milestones, numbers, or components
+2. **Avoid redundant terms**: Don't say "infrastructure" in an infrastructure repository
+3. **Be actionable**: Reader should understand the change from the title alone
+4. **Use verbs**: "Mark", "Add", "Extract", "Translate" (not "Improvement", "Update")
+
+### 3.6. Format PR Summary
+
+**Use nested bullet points to group related changes.**
+
+When there are multiple documentation changes or multiple features, group them under category headers:
+
+❌ **Flat list (hard to scan):**
+```markdown
+## Summary
+
+- Pipeline notification architecture comments
+- Lambda workspace architecture moved to README
+- Notification implementation guide removed
+- Slack integration marked complete
+- 9 new features added to backlog
+- ECS cost optimization docs improved
+- claude-skills submodule updated
+```
+
+✅ **Nested structure (easy to scan):**
+```markdown
+## Summary
+
+- **Documentation structure improvements**
+  - Pipeline notification architecture comments added
+  - Lambda workspace architecture moved from CLAUDE.md to README
+  - Completed notification implementation guide removed
+
+- **Backlog updates**
+  - Slack integration marked complete (TODO-01)
+  - 9 new features added to backlog (testing, security, cost optimization)
+  - ECS cost optimization documentation improved (FEATURE-07)
+
+- **Maintenance**
+  - claude-skills submodule updated
+```
+
+**Benefits of nesting:**
+- Logical grouping visible at a glance
+- Easier to understand the scope of changes
+- Shows relationship between related changes
+- Reduces cognitive load for reviewers
+
+**Grouping guidelines:**
+1. Group by change category (docs, features, fixes, refactoring)
+2. Use bold headers for categories
+3. Limit to 2-4 top-level groups
+4. Keep nested items concise (one line each)
+5. Order by importance (most impactful first)
+
+### 3.7. Remove Redundant Headings
+
+**DO NOT include redundant "# Pull Request" heading in PR description.**
+
+Everyone knows it's a PR from the GitHub context. Start directly with the first section.
+
+❌ **With redundant heading:**
+```markdown
+# Pull Request
+
+## Summary
+...
+```
+
+✅ **Without redundant heading:**
+```markdown
+## Summary
+...
+```
+
+This applies to PR descriptions only. Markdown files in the repository may still use H1 headings as appropriate.
 
 ### 4. Fill Out PR Template Sections
 
