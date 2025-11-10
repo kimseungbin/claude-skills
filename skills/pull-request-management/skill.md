@@ -452,18 +452,23 @@ Reasoning:
 ```markdown
 ## Deployment Impact
 
-- [x] Medium Impact
+🟡 **Medium Impact**
 
 **영향도 분석:**
 
-- Medium Impact: src/config/config.data.ts에서 desiredCount 4→2 변경 (fd282d1 커밋)
+- 🟡 Medium Impact: src/config/config.data.ts에서 desiredCount 4→2 변경 (fd282d1)
     - Auto-scaling 조정, Task Definition은 변경 없음
     - 기존 Task 유지, 점진적 스케일 다운
-- Low Impact: lib/constructs/service/fargate-cpu.ts → src/config/types/fargate.types.ts 이동 (e3bf8b3 커밋)
+- 🟢 Low Impact: lib/constructs/service/fargate-cpu.ts → src/config/types/fargate.types.ts 이동 (e3bf8b3)
     - 파일 구조 변경, 실제 값 변경 없음
 
 **Confidence:** 90% (git diff 확인 완료, 실제 값 변경 내역 확인)
 ```
+
+**Emoji Guide for Deployment Impact:**
+- 🔴 High Impact: ECS service redeployment required
+- 🟡 Medium Impact: Resource updates, no downtime
+- 🟢 Low Impact: Metadata only
 
 **Example (Medium-Low Confidence):**
 
@@ -664,8 +669,8 @@ terraform plan
 # Ensure branch is pushed
 git push origin <branch-name>
 
-# Create PR using GitHub CLI
-gh pr create --title "<title>" --body "<body>"
+# Create PR using GitHub CLI with self-assignment
+gh pr create --title "<title>" --body "<body>" --assignee @me
 
 # Or create using web URL
 gh pr create --web
@@ -676,7 +681,7 @@ gh pr create --web
 - Link to related issues/tickets
 - Reference related PRs
 - Link to design docs or RFCs
-- Add labels and assignees
+- Add labels (assignee is auto-set with --assignee @me)
 
 ### 7. Post-PR Creation
 
