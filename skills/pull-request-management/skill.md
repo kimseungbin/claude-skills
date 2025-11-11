@@ -327,7 +327,7 @@ Add OAuth2 authentication to user login flow
 
 ## Change Type
 
-- [x] feat: New feature addition
+🎉 feat: New feature addition
 ```
 
 #### 4.2. Medium Confidence Sections
