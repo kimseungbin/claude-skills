@@ -17,13 +17,24 @@ When the user requests to create a commit or generate a commit message:
     - Parse the rules including: types, scopes, format patterns, and conventions
     - Project-specific rules take precedence and override default rules
 
-2. **Analyze the current changes**:
+2. **Load implementation guide** (if specified):
+    - Check if config has `implementation` field (e.g., `implementation: infrastructure`)
+    - If present, read `.claude/skills/conventional-commits/{implementation}.md`
+    - Available implementations:
+        - `infrastructure.md` - CDK, Terraform, Pulumi, IaC projects
+        - `frontend.md` - React, Vue, Angular, Svelte projects (TODO: not yet implemented)
+        - `backend.md` - Express, NestJS, FastAPI, Django projects (TODO: not yet implemented)
+        - `fullstack.md` - Next.js, Nuxt, SvelteKit projects (TODO: not yet implemented)
+    - Use the guide's decision trees, anti-patterns, and examples throughout the workflow
+    - If no implementation specified or file doesn't exist, use generic workflow from this file
+
+3. **Analyze the current changes**:
     - Run `git status` to see modified/added files
     - Run `git diff --staged` to see staged changes (if any)
     - Run `git diff` to see unstaged changes
     - Identify ALL the changes (which packages, modules, or areas are affected)
 
-3. **Determine if changes should be split into multiple commits**:
+4. **Determine if changes should be split into multiple commits**:
     - Analyze if changes span multiple scopes (e.g., frontend + backend + tools)
     - Check if there are different types of changes (e.g., feat + fix, or feat + test)
     - Consider logical separation (e.g., dependency updates separate from feature work)
@@ -42,7 +53,7 @@ When the user requests to create a commit or generate a commit message:
     - Changes are too small to meaningfully separate
     - User explicitly wants a single commit
 
-4. **Prompt user to select commits** (if splitting is recommended):
+5. **Prompt user to select commits** (if splitting is recommended):
     - Group changes by scope and/or type
     - For each potential commit, describe:
         - The type and scope: e.g., "feat(frontend)"
@@ -71,7 +82,7 @@ When the user requests to create a commit or generate a commit message:
       - .github/workflows/test.yml
     ```
 
-5. **Determine commit type and scope for each selected commit** (IMPORTANT: type ≠ scope):
+6. **Determine commit type and scope for each selected commit** (IMPORTANT: type ≠ scope):
     - **TYPE** (what kind of change): Choose from the `types` section in commit-rules.yaml
         - Examples: feat, fix, refactor, test, docs, style, build, ci, chore
         - Type describes the NATURE of the change (feature? bugfix? documentation?)
@@ -82,14 +93,14 @@ When the user requests to create a commit or generate a commit message:
     - Format: `{type}({scope}): {subject}` — e.g., `ci(tools): Fix workflow syntax`
     - Consider the monorepo structure: packages/frontend, packages/backend, packages/infra
 
-6. **Generate the commit message(s)**:
+7. **Generate the commit message(s)**:
     - Follow the format pattern specified in the YAML rules
     - Use the type and scope identified
     - Write a clear, concise description (present tense, imperative mood)
     - Add body and footer if needed (breaking changes, references, etc.)
     - Respect line length limits from the rules
 
-7. **Generate and execute the commit(s)**:
+8. **Generate and execute the commit(s)**:
     - For each selected commit:
         - Show the generated commit message with explanation of type and scope
         - Stage only the files relevant to that commit using `git add <specific-files>`
@@ -97,7 +108,7 @@ When the user requests to create a commit or generate a commit message:
         - Show the commit hash and confirmation
     - Process commits in a logical order (dependencies first, tests last)
 
-8. **Evaluate rule coverage** (optional):
+9. **Evaluate rule coverage** (optional):
     - If the commit doesn't fit well into existing types or scopes
     - If you notice patterns that aren't covered by current rules
     - Provide feedback to the user suggesting updates to `commit-rules.yaml`
