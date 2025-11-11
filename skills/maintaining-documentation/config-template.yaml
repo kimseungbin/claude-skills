@@ -1,0 +1,59 @@
+# Configuration for maintaining-documentation skill
+# Copy this file to .claude/config/maintaining-documentation.yaml in your project
+
+# Implementation guide to use (required)
+# Available: cdk-infrastructure, react-frontend, python-backend
+implementation: cdk-infrastructure
+
+# Project-specific category names (optional override)
+# If not specified, uses defaults from implementation guide
+categories:
+  iac_code_structure: "IaC Code Structure"
+  service_infrastructure: "Service Infrastructure"
+  pipeline_infrastructure: "CDK Pipeline Infrastructure"
+  patterns_conventions: "Patterns and Conventions"
+
+# CLAUDE.md section mappings (optional override)
+# Maps categories to specific sections in your CLAUDE.md
+section_mappings:
+  iac_code_structure:
+    - "Architecture Overview"
+    - "Key Directories"
+    - "/lib/constructs section"
+
+  service_infrastructure:
+    - "Services Managed"
+    - "Architecture Overview"
+    - "Important Implementation Details"
+
+  pipeline_infrastructure:
+    - "Deployment Flow"
+    - ".github/workflows section"
+    - "Important Patterns and Conventions"
+
+  patterns_conventions:
+    - "Important Patterns and Conventions"
+    - "Development Workflow"
+    - "Key Documentation Files"
+
+# File paths (optional override)
+# Where to find key documentation files in your project
+paths:
+  claude_md: "CLAUDE.md"
+  readme: "README.md"
+  docs_dir: "docs/"
+  config_dir: "src/config/"
+
+# Language preferences (optional)
+# Specify languages for different documentation files
+languages:
+  claude_md: "en"
+  readme: "ko"      # Korean
+  docs: "ko"        # Korean
+
+# Project-specific notes (optional)
+# Any special considerations for this project
+notes: |
+  This project uses environment-based branching (master → staging → prod).
+  Always update documentation in the same commit as code changes.
+  Configuration values live in src/config/config.data.ts, not in CLAUDE.md.
