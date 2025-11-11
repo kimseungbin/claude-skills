@@ -10,6 +10,9 @@ Claude Code skills are specialized prompt templates that extend Claude's capabil
 
 - **conventional-commits** - Create commits following Conventional Commits specification with intelligent multi-commit splitting
 - **claude-md-refactoring** - Helps refactor CLAUDE.md files to separate AI instructions from human documentation
+- **maintaining-documentation** - Maintain documentation system (CLAUDE.md, README.md, docs/) synchronized with code changes. Supports multiple project types (CDK, React, Python) via implementation guides
+- **skill-creator** - Create new Claude Code skills following best practices and standardized structure
+- **git-strategy** - Manage git workflow for environment-based infrastructure deployments with rollback capabilities
 - **test-symlink-skill** - Test skill for verifying symlink functionality
 
 ## Available Commands

@@ -247,6 +247,178 @@ Part of the claude-skills collection.
 
 [Template file for project-specific configuration]
 
+### Step 5: Create Implementation Guides (Hybrid Pattern - Optional)
+
+**When to use the Hybrid Pattern:**
+
+Use implementation guides when your skill needs different workflows or patterns for different project types (e.g., CDK vs React vs Python projects).
+
+**Structure:**
+
+```
+skills/<skill-name>/
+├── SKILL.md                      # Generic workflow (applies to all project types)
+├── README.md                     # Human-oriented documentation
+├── config-template.yaml          # Template for project-specific configs
+├── cdk-infrastructure.md         # CDK-specific implementation guide
+├── react-frontend.md             # React-specific implementation guide
+└── python-backend.md             # Python-specific implementation guide
+```
+
+**Implementation Guide Template:**
+
+**File:** `skills/<skill-name>/<project-type>.md`
+
+```markdown
+---
+implementation: <project-type>
+project_types:
+  - [Primary project type]
+  - [Related project types]
+---
+
+# [Project Type] [Skill Purpose] Guide
+
+This guide provides [project-type]-specific patterns for [skill purpose].
+
+## [Project Type] Categories
+
+[Define categories specific to this project type]
+
+### 1. [Category 1]
+**Definition:** [What this category covers]
+
+**Examples:**
+- [Example 1]
+- [Example 2]
+
+**Sections to Update:**
+- [Section 1]
+- [Section 2]
+
+### 2. [Category 2]
+**Definition:** [What this category covers]
+
+[Continue for all categories...]
+
+## Decision Tree
+
+Use this decision tree to determine [key decisions]:
+
+\```
+[ASCII decision tree diagram]
+\```
+
+## Key Principles
+
+### Principle 1
+[Explanation with examples]
+
+### Principle 2
+[Explanation with examples]
+
+## Example Scenarios
+
+### Scenario 1: [Title]
+
+**Code Changes:**
+- [Change 1]
+- [Change 2]
+
+**[Action] Steps:**
+1. [Step 1]
+2. [Step 2]
+
+**Result:**
+\```
+[Expected outcome]
+\```
+
+## Common Mistakes
+
+### ❌ [Mistake 1]
+[Description of mistake]
+
+**Solution:** [How to fix]
+
+### ❌ [Mistake 2]
+[Description of mistake]
+
+**Solution:** [How to fix]
+```
+
+**Configuration Template (config-template.yaml):**
+
+```yaml
+# Configuration for <skill-name> skill
+# Copy this file to .claude/config/<skill-name>.yaml in your project
+
+# Implementation guide to use (required)
+# Available: cdk-infrastructure, react-frontend, python-backend
+implementation: <project-type>
+
+# Project-specific category names (optional override)
+categories:
+  category1: "Display Name 1"
+  category2: "Display Name 2"
+
+# File paths (optional override)
+paths:
+  primary_file: "path/to/file"
+  secondary_file: "path/to/other/file"
+
+# Language preferences (optional)
+languages:
+  file1: "en"
+  file2: "ko"
+
+# Project-specific notes (optional)
+notes: |
+  Any special considerations for this project.
+```
+
+**SKILL.md Integration:**
+
+In your generic SKILL.md, add logic to load the implementation guide:
+
+```markdown
+## Instructions
+
+When the user requests [trigger conditions]:
+
+1. **Load project configuration**:
+    - Check `.claude/config/<skill-name>.yaml` for `implementation` field
+    - Load corresponding implementation guide (e.g., `cdk-infrastructure.md`)
+    - Use guide-specific categories, decision trees, and examples
+
+2. **Follow implementation-specific workflow**:
+    - Use decision tree from implementation guide
+    - Apply project-type-specific patterns
+    - Reference implementation guide examples
+```
+
+**Example: maintaining-documentation Skill**
+
+The `maintaining-documentation` skill uses this hybrid pattern:
+
+- **SKILL.md**: Generic documentation maintenance workflow
+- **cdk-infrastructure.md**: CDK-specific implementation (infrastructure categories, decision tree)
+- **config-template.yaml**: Template for project configs
+- **fe-infra project config**: `.claude/config/maintaining-documentation.yaml` with CDK implementation + custom category names in Korean
+
+**Benefits:**
+
+1. **Centralized updates**: Implementation guides live in submodule, shared across projects
+2. **Project flexibility**: YAML configs allow project-specific overrides (category names, file paths, languages)
+3. **Type-specific patterns**: Each project type gets specialized decision trees and examples
+4. **Reusability**: New projects copy config template and customize minimally
+
+**When NOT to use Hybrid Pattern:**
+
+- Skill is simple and generic (no project-type variations)
+- All logic can be in SKILL.md
+- Configuration needs are minimal (simple YAML with 2-3 fields)
+
 4. **Commit the skill to submodule**:
 
 ```bash

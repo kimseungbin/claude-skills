@@ -19,6 +19,9 @@ claude-skills/
 ├── skills/                         # Shared skills directory
 │   ├── conventional-commits/
 │   ├── claude-md-refactoring/
+│   ├── maintaining-documentation/
+│   ├── skill-creator/
+│   ├── git-strategy/
 │   └── test-symlink-skill/
 ├── CLAUDE.md                       # This file
 └── README.md                       # Setup instructions for humans
@@ -30,6 +33,9 @@ claude-skills/
 
 - **conventional-commits**: Create commits following Conventional Commits specification with intelligent multi-commit splitting
 - **claude-md-refactoring**: Refactor CLAUDE.md files to separate AI instructions from human documentation
+- **maintaining-documentation**: Maintain documentation system (CLAUDE.md, README.md, docs/) synchronized with code changes. Supports multiple project types (CDK, React, Python) via implementation guides
+- **skill-creator**: Create new Claude Code skills following best practices and standardized structure. Supports hybrid pattern with implementation guides
+- **git-strategy**: Manage git workflow for environment-based infrastructure deployments with rollback capabilities
 - **test-symlink-skill**: Test skill for verifying symlink functionality
 
 ## Available Commands
