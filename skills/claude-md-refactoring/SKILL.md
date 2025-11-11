@@ -20,31 +20,50 @@ You are helping refactor CLAUDE.md to make it focused and useful for Claude Code
     - Workflow steps, tool usage patterns
     - What to do, where to find things
 
-- **README.md**: Information for humans (developers, contributors)
-    - Philosophy, motivation, "why we do this"
-    - Project narratives, team guidelines
-    - Setup stories, architectural decisions
+- **README.md**: Brief information for humans (quick start)
+    - High-level project overview (1-2 paragraphs)
+    - Quick start guide
+    - Key features summary
+    - Links to detailed documentation in docs/
 
-- **Skills**: Step-by-step guidance that's too detailed for CLAUDE.md
-    - Multi-step workflows (30+ lines)
-    - Complex how-to guides
-    - Reference materials with examples
+- **docs/**: Detailed documentation for humans (comprehensive guides)
+    - Multi-page how-to guides (e.g., ADDING_NEW_ENVIRONMENT.md)
+    - Comprehensive architectural documentation
+    - Planning documents (backlogs, roadmaps, feature specs)
+    - Reference materials organized by topic
+    - Use subdirectories for categorization (docs/features/, docs/refactoring/)
+
+- **Skills**: Step-by-step guidance for AI execution
+    - Multi-step workflows (30+ lines) that Claude executes
+    - Complex how-to guides for Claude Code to follow
+    - Reference materials with examples for tool usage
 
 ### Content Classification Rules
 
 **Move to README.md** if the content:
 
-- Explains "why" instead of "what" or "how"
-- Uses narrative/storytelling tone
-- Targets human understanding/motivation
-- Discusses team philosophy or culture
+- Explains "why" instead of "what" or "how" (brief version)
+- Is a brief project overview or quick start guide
+- Targets human understanding/motivation (high-level)
+- Discusses team philosophy or culture (summary)
+- Is brief enough to keep README.md scannable (< 50 lines per section)
+
+**Move to docs/** if the content:
+
+- Is a comprehensive guide (>100 lines, multi-page documentation)
+- Contains detailed step-by-step procedures for humans (not Claude)
+- Would make README.md too long or cluttered
+- Needs to be organized into subcategories (docs/features/, docs/guides/)
+- Is planning/backlog documentation (roadmaps, task lists)
+- Is detailed reference material (not a quick overview)
+- Benefits from subdirectory organization
 
 **Extract to Skill** if the content:
 
-- Exceeds ~30 lines
-- Contains step-by-step instructions
-- Includes multiple examples/templates
-- Needs supporting reference files
+- Exceeds ~30 lines AND is an executable workflow for Claude
+- Contains step-by-step instructions for Claude Code to follow
+- Includes multiple examples/templates for Claude's use
+- Needs supporting reference files for Claude's execution
 
 **Keep in CLAUDE.md** if the content:
 
@@ -52,10 +71,11 @@ You are helping refactor CLAUDE.md to make it focused and useful for Claude Code
 - Lists commands/file locations
 - Defines technical constraints
 - References skills/commands to use
+- Is concise actionable guidance for Claude
 
 **Remove entirely** if:
 
-- Duplicates README.md content
+- Duplicates README.md or docs/ content
 - No longer relevant/accurate
 - Covered better elsewhere
 
@@ -83,8 +103,8 @@ Present your finding to the user:
 
 **Issue Type**:
 
-- [ ] Human-oriented content (move to README.md)
-- [ ] Overly verbose (extract to skill)
+- [ ] Human-oriented content (move to README.md or docs/)
+- [ ] Overly verbose (extract to skill or move to docs/)
 - [ ] Redundant (remove/condense)
 - [ ] Unclear AI instructions (rewrite)
 
@@ -96,10 +116,10 @@ Present your finding to the user:
 ```
 
 **Recommended Action**:
-[Specific recommendation: where to move, what to extract, how to condense]
+[Specific recommendation: where to move (README.md vs docs/), what to extract, how to condense]
 
 **Rationale**:
-[Brief explanation of why this needs refactoring]
+[Brief explanation of why this needs refactoring and which destination is appropriate]
 ```
 
 ### Step 3: Get User Approval
@@ -119,8 +139,9 @@ Once approved, execute based on the refactoring type:
 1. Read README.md to understand current structure
 2. Identify appropriate section (or create new section)
 3. Adapt tone to be human-friendly (add context, explain "why")
-4. Add content to README.md
-5. Update CLAUDE.md:
+4. Keep it brief and scannable (< 50 lines per section)
+5. Add content to README.md
+6. Update CLAUDE.md:
     - Remove human-oriented parts
     - Keep brief AI instruction if needed
     - Add cross-reference to README.md if helpful
@@ -135,7 +156,7 @@ creates a safety net for refactoring. This philosophy ensures...
 
 # After (CLAUDE.md)
 
-All features must follow TDD workflow. See `.claude/skills/tdd-workflow/workflow.yaml`
+All features must follow TDD workflow. See docs/TDD_GUIDE.md for details.
 
 # Moved to README.md
 
@@ -144,6 +165,57 @@ All features must follow TDD workflow. See `.claude/skills/tdd-workflow/workflow
 ### Why Test-Driven Development?
 
 We adopted TDD because it provides confidence and safety when refactoring...
+
+For detailed TDD workflow, see [docs/TDD_GUIDE.md](docs/TDD_GUIDE.md).
+```
+
+#### For Moving to docs/
+
+1. Check if docs/ directory exists (create if needed)
+2. Determine appropriate location:
+    - Standalone guide: `docs/GUIDE_NAME.md`
+    - Categorized: `docs/category/guide-name.md`
+    - Planning: `docs/features/`, `docs/refactoring/`
+3. Adapt content for detailed documentation:
+    - Keep comprehensive step-by-step instructions
+    - Include examples, templates, troubleshooting
+    - Add table of contents for long documents
+4. Create or update the docs file
+5. Update README.md to link to the new guide
+6. Update CLAUDE.md:
+    - Replace verbose section with brief instruction
+    - Reference the docs/ file for details
+
+**Example transformation**:
+
+```markdown
+# Before (CLAUDE.md - 300 lines)
+
+## Adding a New Environment
+
+Follow these detailed steps to add a new environment...
+[300 lines of detailed instructions]
+
+# After (CLAUDE.md - 5 lines)
+
+## Adding a New Environment
+
+See [docs/ADDING_NEW_ENVIRONMENT.md](docs/ADDING_NEW_ENVIRONMENT.md) for complete guide.
+
+Quick summary: Update types, config, deployment stack, bootstrap AWS account.
+
+# Created: docs/ADDING_NEW_ENVIRONMENT.md
+
+# Adding a New Environment
+
+Complete step-by-step guide for adding new environments to fe-infra...
+[Full 300 lines with examples, troubleshooting, best practices]
+
+# Updated: README.md
+
+## Documentation
+
+- [Adding New Environment](docs/ADDING_NEW_ENVIRONMENT.md) - Complete guide for QA, UAT, etc.
 ```
 
 #### For Extracting to Skill
@@ -221,6 +293,7 @@ Provide summary:
 
 - `CLAUDE.md`: [what changed - moved/removed/condensed]
 - `README.md`: [what was added, if applicable]
+- `docs/[name].md`: [if comprehensive guide created]
 - `.claude/skills/[name]/`: [if skill created]
 
 **Before/After Comparison**:
