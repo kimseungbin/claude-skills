@@ -31,12 +31,57 @@ claude-skills/
 
 ## Available Skills
 
-- **conventional-commits**: Create commits following Conventional Commits specification with intelligent multi-commit splitting
-- **claude-md-refactoring**: Refactor CLAUDE.md files to separate AI instructions from human documentation
-- **maintaining-documentation**: Maintain documentation system (CLAUDE.md, README.md, docs/) synchronized with code changes. Supports multiple project types (CDK, React, Python) via implementation guides
-- **skill-creator**: Create new Claude Code skills following best practices and standardized structure. Supports hybrid pattern with implementation guides
-- **git-strategy**: Manage git workflow for environment-based infrastructure deployments with rollback capabilities
-- **test-symlink-skill**: Test skill for verifying symlink functionality
+### conventional-commits
+**When to use:** User requests to commit changes or generate commit messages
+
+Automatically creates properly formatted Conventional Commits with intelligent multi-commit splitting. Uses implementation guides (infrastructure, frontend, backend, fullstack) for domain-specific decision trees.
+
+**Invoke:** `Skill(conventional-commits)` or `/commit` command
+
+---
+
+### maintaining-documentation
+**When to use:** After making code changes that affect project structure, architecture, or behavior
+
+Keeps documentation (CLAUDE.md, README.md, docs/) synchronized with code changes. Supports multiple project types via implementation guides (cdk-infrastructure, react-frontend, python-backend).
+
+**Invoke:** `Skill(maintaining-documentation)`
+
+---
+
+### skill-creator
+**When to use:** Creating a new Claude Code skill or adding implementation guides to existing skills
+
+Guides through skill creation process following best practices and standardized structure. Supports hybrid pattern with project-type specific implementation guides.
+
+**Invoke:** `Skill(skill-creator)`
+
+---
+
+### git-strategy
+**When to use:** Managing git workflow for environment-based infrastructure deployments (DEV → STAGING → PROD)
+
+Provides guidance on rollback procedures, emergency hotfixes, and branch management for infrastructure projects with multiple deployment environments.
+
+**Invoke:** `Skill(git-strategy)`
+
+---
+
+### claude-md-refactoring
+**When to use:** One-time task to refactor existing CLAUDE.md files
+
+Separates AI instructions from human documentation, moving user-facing content to README.md while keeping technical details for Claude in CLAUDE.md.
+
+**Invoke:** `Skill(claude-md-refactoring)` or `/refactor-claude-md` command
+
+---
+
+### test-symlink-skill
+**When to use:** Debugging symlink functionality in Claude Code
+
+Test skill for verifying symlinks work correctly in your environment.
+
+**Invoke:** `Skill(test-symlink-skill)`
 
 ## Available Commands
 
@@ -58,40 +103,26 @@ Direct them to README.md for complete setup instructions. Key steps:
 
 ### Adding New Skills
 
-Create skills in `skills/` directory:
+**Use the skill-creator skill** to create new skills with proper structure and best practices.
 
 ```bash
-mkdir skills/new-skill-name
-# Create SKILL.md with proper frontmatter
-# Add supporting files as needed
+# Invoke the skill-creator skill
+Skill(skill-creator)
 ```
 
-Each skill must have `SKILL.md` with frontmatter:
+The skill-creator skill will:
+- Guide you through skill creation process
+- Generate proper directory structure and files
+- Ensure frontmatter and documentation follow standards
+- Create implementation guides if needed (for skills like conventional-commits)
+- Test the skill in this repository
 
-```yaml
----
-name: skill-name
-description: |
-    Clear description of what this skill does and when to use it.
----
-```
+**When to create a new skill:**
+- User requests a new automated workflow
+- You identify a reusable pattern across projects
+- An existing skill needs project-type variations (create implementation guide)
 
-### Testing Skills
-
-Test skills by creating symlinks to `.claude/skills/`:
-
-```bash
-cd .claude/skills
-ln -s ../../skills/skill-name skill-name
-```
-
-### Best Practices for Skills
-
-- **Keep generic**: Make skills project-agnostic where possible
-- **Clear naming**: Use descriptive kebab-case names
-- **Include examples**: Add supporting documentation (examples.md, decision-tree.md, etc.)
-- **Test thoroughly**: Verify skills work before committing
-- **Support config files**: Design skills to optionally read from `.claude/config/<skill-name>.yaml`
+For complete skill creation guidelines, see `skills/skill-creator/SKILL.md`.
 
 ## Project-Specific Customizations
 

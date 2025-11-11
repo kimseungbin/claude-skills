@@ -1,10 +1,7 @@
 ---
 name: claude-md-refactoring
 description: |
-    Use this skill when the user wants to refactor CLAUDE.md.
-    Helps identify human-oriented content to move to README.md,
-    lengthy sections to extract into skills, and keeps CLAUDE.md focused on AI instructions.
-    Guides one refactoring at a time to prevent overwhelming changes.
+    Use this skill when user wants to refactor CLAUDE.md to separate AI instructions from human documentation.
 ---
 
 # CLAUDE.md Refactoring Skill
