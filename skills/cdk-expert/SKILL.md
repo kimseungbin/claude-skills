@@ -1,14 +1,35 @@
 ---
 name: cdk-expert
 description: |
-    Comprehensive AWS CDK (Cloud Development Kit) expert assistant for infrastructure-as-code development.
-    Covers constructs, stacks, refactoring, resource naming, CloudFormation safety, security best practices,
-    and integration with CDK MCP server tools. Use when working with any CDK-related tasks.
+    AWS CDK expert for infrastructure refactoring, CloudFormation safety, and construct patterns.
+
+    Use when:
+    - Refactoring CDK constructs or moving resources between constructs
+    - Handling CloudFormation resource replacements or overrideLogicalId()
+    - Designing construct patterns and naming strategies
+    - Resolving CDK Nag warnings or security best practices
+    - Creating new constructs, stacks, or deployment pipelines
+    - Troubleshooting CloudFormation errors or drift detection
+
+    Keywords: refactor, construct, CloudFormation, logical ID, replacement, overrideLogicalId,
+    CDK Nag, resource naming, stack, deployment, cdk diff, cdk synth
 ---
 
 # AWS CDK Expert Skill
 
 You are an expert AWS CDK (Cloud Development Kit) consultant helping with infrastructure-as-code development. This skill provides comprehensive guidance across all aspects of CDK development.
+
+## MCP Server Integration
+
+**This repository has the AWS CDK MCP server enabled** (`awslabs.cdk-mcp-server`).
+
+Use MCP tools (prefixed with `mcp__`) for:
+- CDK best practices validation
+- Security checks and compliance
+- Pattern recommendations
+- Construct library lookups
+
+The MCP server provides real-time AWS CDK expertise and should be consulted alongside this skill's guidance.
 
 ## Table of Contents
 
@@ -537,6 +558,86 @@ aws cloudformation describe-stack-resources \
 - DynamoDB tables (data loss unless backed up)
 - RDS databases (data loss unless snapshotted)
 - ECR repositories (image history lost)
+
+### Complete overrideLogicalId() Workflow
+
+**When to Use:**
+- Moving resources between constructs (refactoring)
+- Renaming construct classes
+- Reorganizing construct hierarchy
+- **Only for L1 (Cfn*) constructs** - L2 constructs may create multiple resources
+
+**When NOT to Use:**
+- New resources (let CDK generate IDs)
+- Resources you want to replace intentionally
+- L2 constructs (they manage multiple L1 resources internally)
+
+**Complete Example: Refactoring Without Replacement**
+
+```typescript
+// BEFORE: Everything in CloudFrontCommonConstruct
+export class CloudFrontCommonConstruct extends Construct {
+  constructor(scope: Construct, id: string, props: Props) {
+    super(scope, id)  // id = "CloudFrontCommon"
+
+    const db = new CfnDatabase(this, 'CloudFrontLOgsDatabase', {})
+    // Logical ID: CloudFrontCommonCloudFrontLOgsDatabaseABC123
+  }
+}
+
+// AFTER: Split into separate construct (WRONG - will replace!)
+export class LogAnalyticsConstruct extends Construct {
+  constructor(scope: Construct, id: string, props: Props) {
+    super(scope, id)  // id = "LogAnalytics"
+
+    const db = new CfnDatabase(this, 'CloudFrontLOgsDatabase', {})
+    // Logical ID: LogAnalyticsCloudFrontLOgsDatabaseXYZ789  ❌ DIFFERENT!
+    // CloudFormation will DELETE old DB and CREATE new one
+  }
+}
+
+// AFTER: Split with overrideLogicalId (CORRECT - preserves!)
+export class LogAnalyticsConstruct extends Construct {
+  constructor(scope: Construct, id: string, props: Props) {
+    super(scope, id)  // id = "LogAnalytics"
+
+    const db = new CfnDatabase(this, 'CloudFrontLOgsDatabase', {})
+    db.overrideLogicalId('CloudFrontCommonCloudFrontLOgsDatabaseABC123')
+    // Logical ID: CloudFrontCommonCloudFrontLOgsDatabaseABC123  ✅ SAME!
+    // CloudFormation recognizes it as the same resource → UPDATE only
+  }
+}
+```
+
+**Risks and Gotchas:**
+- **Typos are dangerous**: Wrong logical ID creates new resource (data loss)
+- **Hard to maintain**: Logical IDs divorced from code structure
+- **Breaks CDK naming conventions**: Harder for others to understand
+- **Hash suffix changes**: CDK may regenerate hash if props change significantly
+
+**Recommended Workflow:**
+
+```bash
+# 1. Synthesize BEFORE refactoring
+npm run cdk synth > before.json
+
+# 2. Find logical IDs you need to preserve
+grep -o '"[^"]*Database[^"]*"' before.json
+
+# 3. Do refactoring + add overrideLogicalId()
+
+# 4. Synthesize AFTER refactoring
+npm run cdk synth > after.json
+
+# 5. Compare logical IDs
+diff <(grep -o '"[^"]*"' before.json | sort) \
+     <(grep -o '"[^"]*"' after.json | sort)
+# Should be identical for resources you preserved!
+
+# 6. Check CloudFormation diff
+npm run cdk diff
+# Look for [-/+] (replace) vs [~] (update)
+```
 
 ### Pre-Refactoring Checklist
 
