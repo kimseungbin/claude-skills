@@ -170,6 +170,22 @@ const factory = new ServiceFactory(this, sharedResources)
 services.forEach(name => factory.createService(name))
 ```
 
+### Lambda Patterns
+
+**See dedicated guide:** [`lambda-patterns.md`](./lambda-patterns.md)
+
+Comprehensive Lambda best practices including:
+- NodejsFunction with TypeScript source (not pre-compiled JS)
+- Lambda workspace structure for monorepos
+- .gitignore patterns for CDK auto-bundling
+- Common anti-patterns and solutions
+- Build-free deployment workflow
+
+**Quick reference:**
+- ✅ DO: Point `entry` to `.ts` files, let CDK bundle with esbuild
+- ❌ DON'T: Commit `dist/` directories or pre-compile Lambda code
+- ✅ DO: Mark AWS SDK as external: `externalModules: ['@aws-sdk/*']`
+
 ---
 
 ## Stacks & Deployment
