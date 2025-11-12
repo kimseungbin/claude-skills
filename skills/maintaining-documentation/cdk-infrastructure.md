@@ -116,6 +116,68 @@ CDK/IaC projects typically have these distinct categories of changes:
 - Architecture decision records (ADRs)
 - Best practices documentation
 
+### 5. CDK Construct Dependency Patterns
+**Definition:** How dependencies are passed between CDK constructs (ConfigService, shared resources, etc.)
+
+**Common Anti-Patterns:**
+
+**❌ Using setContext for application dependencies:**
+```typescript
+// ANTI-PATTERN: Loses type safety
+this.node.setContext('configService', configService)
+const config = scope.node.tryGetContext('configService') // Returns 'any'
+```
+
+**Problems:**
+- Loses TypeScript type safety (returns `any`)
+- Makes dependencies implicit and hard to track
+- Causes runtime errors instead of compile-time errors
+- Difficult to refactor and test
+- No IDE autocomplete support
+
+**✅ Recommended: Explicit Props Injection:**
+```typescript
+// PREFERRED: Type-safe, explicit
+export interface MyConstructProps {
+  readonly configService: ConfigService  // Explicit in interface
+}
+
+new MyConstruct(this, 'MyConstruct', {
+  configService  // TypeScript validates this exists
+})
+```
+
+**Benefits:**
+- Type safety: Compile-time validation
+- Explicit contract: Props document dependencies
+- Easy refactoring: "Find References" works
+- Better testing: Easy to mock
+- IDE support: Autocomplete and type hints
+
+**When setContext IS appropriate:**
+- CDK-internal values only (e.g., availability zones, CDK version flags)
+- AWS account/region info provided by CDK
+- **Rule of thumb:** If you created it, pass it via props. If CDK created it, setContext is okay.
+
+**CLAUDE.md Sections to Update:**
+- Important Patterns and Conventions → Configuration Service Pattern
+- Code Organization Principles
+
+**README.md Updates:**
+- None (internal implementation detail)
+
+**docs/ to Create:**
+- `docs/best-practices/TYPE_SAFE_DEPENDENCY_INJECTION.md`
+  - Real-world example showing before/after
+  - Migration strategy for existing setContext code
+  - When to use each approach
+  - Comparison table
+
+**Example Reference:**
+- fe-infra project: `docs/best-practices/TYPE_SAFE_DEPENDENCY_INJECTION.md`
+- Real bug: Feature flags defaulted to DEV because setContext failed
+- Fix: Explicit ConfigService props, feature flags work correctly
+
 ## Decision Tree
 
 Use this decision tree to determine which documentation needs updating:
@@ -148,6 +210,18 @@ Code Change Made
 │  ├─ YES → Update CLAUDE.md "Important Patterns and Conventions"
 │  │       Consider creating docs/PATTERN_NAME.md
 │  │       Update README.md if affects onboarding
+│  └─ NO → Continue
+│
+├─ Changed CDK construct dependency pattern?
+│  ├─ YES → Update CLAUDE.md "Important Patterns and Conventions"
+│  │       Update "Configuration Service Pattern" section
+│  │       If anti-pattern identified:
+│  │         → Document with ❌ marker in CLAUDE.md
+│  │         → Create docs/best-practices/PATTERN_NAME.md
+│  │         → Include real-world example (before/after)
+│  │       If switching from setContext to props:
+│  │         → Document migration strategy
+│  │         → Add TODO comments in code
 │  └─ NO → Continue
 │
 └─ Created comprehensive guide?
