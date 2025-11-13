@@ -1,0 +1,74 @@
+# Type: chore - Edge Cases and Antipatterns
+# LLM already decided to use chore from main.yaml type_decision_tree
+# This file provides edge case clarification only
+
+description: "Maintenance, tooling, dependencies, CI/CD infrastructure"
+
+# When LLM reads this file:
+# - Already determined commit is chore-related
+# - Needs clarification on feat vs chore edge cases
+# - Wants to confirm correct scope (deployment vs tools vs deps)
+
+# Common scopes with chore
+scopes:
+  deployment: "CI/CD pipeline infrastructure, deployment monitoring"
+  tools: "Developer tooling (git hooks, scripts, linters)"
+  monorepo: "Workspace configuration, dependency updates"
+  deps: "Dependency updates only"
+
+# Key distinction - what does it serve?
+serves_applications:
+  type: "feat"
+  rationale: "Infrastructure that applications directly use or depend on"
+  examples:
+    - "feat(main): Add new profile microservice"
+    - "feat(service): Add Redis cluster support"
+    - "feat(cloudfront): Add response caching"
+
+serves_deployment:
+  type: "chore(deployment)"
+  rationale: "Infrastructure FOR monitoring/improving deployment process"
+  examples:
+    - "chore(deployment): Add Slack notifications for pipeline"
+    - "chore(deployment): Add drift detection workflow"
+    - "chore(deployment): Implement deployment approval system"
+
+serves_development:
+  type: "chore(tools)"
+  rationale: "Tools FOR developers to use during development"
+  examples:
+    - "chore(tools): Add git pre-push hooks"
+    - "chore(tools): Update ESLint configuration"
+    - "chore(tools): Add deployment analysis script"
+
+# Anti-patterns
+antipatterns:
+  - bad: "feat(deployment): Add pipeline notifications"
+    why: "Notifications are FOR deployment monitoring, not application feature"
+    good: "chore(deployment): Add pipeline notifications"
+
+  - bad: "chore(service): Add new microservice"
+    why: "New microservice serves applications, this is a feature"
+    good: "feat(main): Add new microservice"
+
+  - bad: "feat(tools): Add git hooks"
+    why: "Git hooks are developer tooling, not application feature"
+    good: "chore(tools): Add git pre-push hooks"
+
+# Edge cases
+edge_cases:
+  - scenario: "Adding monitoring dashboard for applications"
+    decision: "feat(monitoring) - applications use this to monitor themselves"
+
+  - scenario: "Adding monitoring for deployment pipeline"
+    decision: "chore(deployment) - this monitors deployment, not applications"
+
+  - scenario: "Updating infrastructure construct with no new capability"
+    decision: "refactor(construct-name) - code improvement without feature/bug"
+
+# Related types
+related:
+  feat: "Use when infrastructure serves applications"
+  refactor: "Use when changing code without adding features or fixing bugs"
+  fix: "Use when fixing bugs in infrastructure"
+  ci: "Use for GitHub Actions workflows (.github/workflows/)"

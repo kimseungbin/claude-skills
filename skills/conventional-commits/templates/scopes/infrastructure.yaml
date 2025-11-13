@@ -1,0 +1,247 @@
+# Scope: Infrastructure (CDK Construct Scopes)
+# LLM already decided type from main.yaml type_decision_tree
+# This file helps decide scope based on file paths
+
+description: "Scope patterns for CDK infrastructure code"
+
+# When LLM reads this file:
+# - Already determined commit type (feat/fix/refactor)
+# - Changed files are in lib/ or packages/infra/
+# - Needs to decide appropriate scope
+
+# File path to scope mapping
+file_path_patterns:
+  # Top-level stacks
+  lib/main-stack.ts: "main"
+  lib/global-stack.ts: "global"
+  lib/deployment-stack.ts: "deployment"
+  lib/shared.ts: "shared"
+
+  # Constructs (lib/constructs)
+  lib/constructs/service/**:
+    single_file: "service"
+    multiple_files: "service"
+
+  lib/constructs/cloudfront/**:
+    single_file: "cloudfront"
+    multiple_files: "cloudfront"
+
+  lib/constructs/code-build-project/**:
+    single_file: "build"
+    multiple_files: "build"
+
+  lib/constructs/lambda-at-edge/**:
+    single_file: "lambda-edge"
+    multiple_files: "lambda-edge"
+
+  lib/constructs/lambda-message-transformer/**:
+    single_file: "lambda"
+    multiple_files: "lambda"
+
+  lib/constructs/network.ts: "network"
+  lib/constructs/common-role.ts: "iam"
+  lib/constructs/media.ts: "media"
+
+  # Mid-level constructs (packages/infra)
+  packages/infra/src/constructs/**:
+    single_file: "construct name"  # Use specific construct name
+    multiple_files: "infra"        # Generic if multiple constructs
+
+# Decision tree for scope
+scope_decision_tree:
+  - question: "How many files changed?"
+    single_file:
+      - "Use construct name from file path"
+      - "Example: lib/constructs/service/index.ts → service"
+      - "Example: lib/constructs/cloudfront/waf.ts → cloudfront"
+
+    multiple_files_same_construct:
+      - "Use construct name"
+      - "Example: service/index.ts + service/task-definition.ts → service"
+
+    multiple_files_different_constructs:
+      - "Use parent scope"
+      - "Example: service/* + cloudfront/* → main or infra"
+
+  - question: "Is this a stack-level change?"
+    main_stack: "Use main"
+    global_stack: "Use global"
+    deployment_stack: "Use deployment"
+
+  - question: "Is this affecting multiple services?"
+    yes: "Use main (not specific service name)"
+    no: "Use specific construct or service name"
+
+# Construct scope patterns
+construct_scopes:
+  service:
+    description: "ECS service deployment construct"
+    files:
+      - "lib/constructs/service/**"
+    examples:
+      - "feat(service): Add auto-scaling support"
+      - "refactor(service): Extract ServiceInfraConstruct"
+
+  cloudfront:
+    description: "CloudFront and WAF constructs"
+    files:
+      - "lib/constructs/cloudfront/**"
+    examples:
+      - "feat(cloudfront): Add WAF rate limiting"
+      - "fix(cloudfront): Correct cache behavior for API"
+
+  build:
+    description: "CodeBuild project construct"
+    files:
+      - "lib/constructs/code-build-project/**"
+    examples:
+      - "feat(build): Add layer caching support"
+      - "fix(build): Correct environment variable injection"
+
+  lambda-edge:
+    description: "Lambda@Edge functions"
+    files:
+      - "lib/constructs/lambda-at-edge/**"
+    examples:
+      - "feat(lambda-edge): Add custom domain support"
+      - "fix(lambda-edge): Correct viewer request handler"
+
+  lambda:
+    description: "Lambda functions (non-edge)"
+    files:
+      - "lib/constructs/lambda-message-transformer/**"
+      - "packages/lambda/**"
+    examples:
+      - "feat(lambda): Add ECS reboot scheduler"
+      - "fix(lambda): Correct SNS message format"
+
+  network:
+    description: "VPC and networking"
+    files:
+      - "lib/constructs/network.ts"
+    examples:
+      - "feat(network): Add VPC peering"
+      - "fix(network): Correct subnet CIDR allocation"
+
+  iam:
+    description: "IAM roles and policies"
+    files:
+      - "lib/constructs/common-role.ts"
+    examples:
+      - "feat(iam): Add S3 read permissions"
+      - "fix(iam): Correct ECS task role policy"
+
+  media:
+    description: "Media storage (S3 + CloudFront)"
+    files:
+      - "lib/constructs/media.ts"
+    examples:
+      - "feat(media): Add image optimization"
+      - "fix(media): Correct CORS configuration"
+
+# Stack scope patterns
+stack_scopes:
+  main:
+    description: "Main stack (primary application stack)"
+    when_to_use:
+      - "Changes to MainStack class"
+      - "Multiple services affected"
+      - "Cross-construct changes"
+    examples:
+      - "feat(main): Add profile microservice"
+      - "refactor(main): Consolidate service deployment"
+
+  global:
+    description: "Global stack (us-east-1 resources)"
+    when_to_use:
+      - "Changes to GlobalStack class"
+      - "WAF in global region"
+      - "Lambda@Edge functions"
+    examples:
+      - "feat(global): Add WAF IP blocking"
+      - "fix(global): Correct Lambda@Edge permissions"
+
+  deployment:
+    description: "Deployment stack (CodePipeline)"
+    when_to_use:
+      - "Changes to DeploymentStack class"
+      - "Pipeline configuration"
+      - "Cross-account setup"
+    examples:
+      - "feat(deployment): Add manual approval stage"
+      - "fix(deployment): Correct source branch configuration"
+
+  shared:
+    description: "Shared resources"
+    when_to_use:
+      - "Changes to shared.ts"
+      - "VPC, cluster, certificates"
+      - "Cross-service shared infrastructure"
+    examples:
+      - "feat(shared): Add Redis cluster"
+      - "fix(shared): Correct certificate validation"
+
+# Multi-construct changes
+multi_construct_patterns:
+  - scenario: "service/* + cloudfront/*"
+    scope: "main"
+    rationale: "Multiple major constructs → use parent scope"
+
+  - scenario: "service/index.ts + service/task-definition.ts"
+    scope: "service"
+    rationale: "Same construct → use construct name"
+
+  - scenario: "All services affected (auth, yozm, support)"
+    scope: "main"
+    rationale: "Multiple services → use main, not individual service names"
+
+  - scenario: "packages/infra/src/constructs/service-infra/* + service-app/*"
+    scope: "infra"
+    rationale: "Multiple mid-level constructs → use infra"
+
+# Service-specific scopes (use sparingly)
+service_scopes:
+  note: "Use service names only when change affects single service"
+  services:
+    - auth
+    - yozm
+    - support
+    - project
+    - partner
+    - solution
+    - profile
+
+  when_to_use:
+    - "Configuration changes for single service"
+    - "Service-specific construct modifications"
+
+  when_not_to_use:
+    - "Multiple services affected → use main"
+    - "Infrastructure construct changes → use construct name (service)"
+
+  examples:
+    good:
+      - "feat(auth): Add OAuth2 integration"
+      - "fix(yozm): Correct memory allocation"
+
+    bad:
+      - "feat(auth): Refactor ServiceConstruct"  # Should be feat(service)
+      - "feat(main): Add auto-scaling to auth"  # Should be feat(auth) if only auth affected
+
+# Edge cases
+edge_cases:
+  - scenario: "Extracting ServiceInfraConstruct (affects all services)"
+    scope: "service"
+    rationale: "Refactoring construct itself, not changing services"
+
+  - scenario: "Adding new microservice profile"
+    scope: "main"
+    rationale: "Main stack orchestrates services"
+
+  - scenario: "Updating CloudFront WAF rule"
+    scope: "cloudfront"
+    rationale: "CloudFront construct handles WAF"
+
+  - scenario: "Modifying CodeBuild for all services"
+    scope: "build"
+    rationale: "Build construct change, not service-specific"

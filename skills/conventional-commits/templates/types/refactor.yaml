@@ -1,0 +1,150 @@
+# Type: refactor - Edge Cases and Examples
+# LLM already decided to use refactor from main.yaml type_decision_tree
+# This file provides edge case clarification and examples
+
+description: "Code change that neither fixes a bug nor adds a feature"
+
+# When LLM reads this file:
+# - Already determined commit is refactor-related
+# - Needs clarification on refactor vs feat/fix edge cases
+# - Wants examples of refactor commits for infrastructure projects
+
+# Common scopes with refactor in infrastructure projects
+scopes:
+  service: "Service construct refactoring"
+  config: "Configuration restructuring"
+  infra: "General infrastructure code improvements"
+  construct: "Construct-level refactoring"
+
+# Edge cases - refactor vs other types
+edge_cases:
+  - scenario: "Extracting ServiceInfraConstruct without new capability"
+    decision: "refactor(service): Extract ServiceInfraConstruct for two-phase deployment"
+    rationale: "Code restructuring without adding feature or fixing bug"
+
+  - scenario: "Renaming variables for clarity"
+    decision: "refactor(config): Rename configService to environmentConfig"
+    rationale: "Code clarity improvement"
+
+  - scenario: "Moving files to different directory"
+    decision: "refactor(infra): Move constructs to packages/infra/src/constructs/"
+    rationale: "Code organization improvement"
+
+  - scenario: "Optimizing resource allocation (no bug, no new feature)"
+    decision: "refactor(config): Optimize Fargate CPU/memory allocation"
+    rationale: "Performance optimization without fixing bug or adding capability"
+
+  - scenario: "Fixing bug causing errors"
+    decision: "fix(config): Correct memory limit causing OOM errors"
+    rationale: "Bug fix, not refactoring → fix"
+
+  - scenario: "Adding new construct with new capability"
+    decision: "feat(service): Add auto-scaling support"
+    rationale: "New feature, not refactoring → feat"
+
+# Examples from infrastructure projects
+examples:
+  construct_extraction:
+    - message: "refactor(service): Extract ServiceInfraConstruct"
+      description: "Separated build infrastructure from runtime service"
+
+    - message: "refactor(infra): Extract mid-level constructs to packages/"
+      description: "Organized construct hierarchy"
+
+  code_organization:
+    - message: "refactor(config): Consolidate environment configuration"
+      description: "Simplified configuration structure"
+
+    - message: "refactor(construct): Move CloudFront logic to dedicated file"
+      description: "Improved code organization"
+
+  naming_improvements:
+    - message: "refactor(service): Rename TaskDefinitionProps for clarity"
+      description: "Improved type naming"
+
+    - message: "refactor(config): Standardize scope naming conventions"
+      description: "Consistent naming patterns"
+
+  performance_optimization:
+    - message: "refactor(config): Optimize Fargate resource allocation"
+      description: "Performance improvement without fixing bug"
+
+    - message: "refactor(service): Reduce ECS task startup time"
+      description: "Optimization without new feature"
+
+# Anti-patterns (should NOT be refactor)
+antipatterns:
+  - bad: "refactor(service): Add auto-scaling"
+    why: "Adding new capability is a feature"
+    good: "feat(service): Add auto-scaling support"
+
+  - bad: "refactor(config): Fix memory limit"
+    why: "Fixing bug is not refactoring"
+    good: "fix(config): Correct memory limit causing OOM"
+
+  - bad: "refactor(monitoring): Add CloudWatch dashboard"
+    why: "Adding new monitoring is a feature"
+    good: "feat(monitoring): Add CloudWatch dashboard"
+
+  - bad: "refactor(docs): Update README"
+    why: "Documentation changes use docs type"
+    good: "docs(project): Update architecture documentation"
+
+# Related types
+related:
+  feat: "Use when adding new capability"
+  fix: "Use when correcting incorrect behavior"
+  docs: "Use for documentation-only changes"
+  chore: "Use for tooling/dependency maintenance"
+
+# Refactor characteristics
+refactor_characteristics:
+  what_it_is:
+    - "Code restructuring without behavior change"
+    - "Performance optimization without fixing bug"
+    - "Renaming for clarity"
+    - "Moving code to different location"
+    - "Extracting constructs/functions"
+    - "Simplifying complex logic"
+
+  what_it_is_not:
+    - "Adding new functionality → feat"
+    - "Fixing bugs → fix"
+    - "Changing documentation → docs"
+    - "Updating dependencies → chore"
+
+# Infrastructure-specific guidance
+infrastructure_guidance:
+  question: "Does this change external behavior?"
+  no: "Use refactor - internal improvement only"
+  yes: "Check if it's feat (new capability) or fix (bug correction)"
+
+  internal_improvements:
+    - "Extract construct for better organization"
+    - "Rename for clarity"
+    - "Optimize resource allocation (no bug)"
+    - "Simplify complex CDK logic"
+    - "Move files to better location"
+
+  external_changes:
+    - "Add new service → feat"
+    - "Fix health check bug → fix"
+    - "Add monitoring dashboard → feat"
+    - "Fix WAF blocking traffic → fix"
+
+# CDK-specific refactoring patterns
+cdk_refactoring_patterns:
+  construct_extraction:
+    - "Extract large stack into smaller constructs"
+    - "Create reusable construct library"
+    - "Separate concerns (build vs runtime)"
+
+  naming_safety:
+    - "Use overrideLogicalId() to preserve CloudFormation resources"
+    - "Test with cdk diff before refactoring"
+    - "Refactor one service at a time"
+
+  organization:
+    - "Move constructs to packages/ for reusability"
+    - "Group related constructs in directories"
+    - "Standardize construct props patterns"

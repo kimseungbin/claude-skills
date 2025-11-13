@@ -1,0 +1,160 @@
+# Type: docs - Edge Cases and Examples
+# LLM already decided to use docs from main.yaml type_decision_tree
+# This file provides edge case clarification and examples
+
+description: "Documentation changes with no code changes"
+
+# When LLM reads this file:
+# - Already determined commit is docs-related
+# - Needs clarification on docs vs refactor edge cases
+# - Wants to confirm correct scope for documentation
+
+# Common scopes with docs in infrastructure projects
+scopes:
+  project: "Project-wide documentation (CLAUDE.md, README.md)"
+  skill: "Skill documentation (.claude/skills/**)"
+  backlog: "Backlog and task documentation (docs/BACKLOG.md)"
+  features: "Feature documentation (docs/features/**)"
+  refactoring: "Refactoring task documentation (docs/refactoring/**)"
+
+# Edge cases - docs vs other types
+edge_cases:
+  - scenario: "Updating CLAUDE.md to reflect code changes"
+    decision: "docs(project): Update CLAUDE.md with new construct patterns"
+    rationale: "Documentation-only change, no code modified"
+
+  - scenario: "Adding JSDoc comments to code"
+    decision: "refactor(service): Add JSDoc comments to ServiceConstruct"
+    rationale: "Code changes (comments), not pure documentation → refactor"
+
+  - scenario: "Updating README with deployment instructions"
+    decision: "docs(project): Add deployment troubleshooting guide"
+    rationale: "Documentation-only change"
+
+  - scenario: "Fixing typo in inline code comment"
+    decision: "docs(service): Fix typo in ServiceConstruct comment"
+    rationale: "Documentation fix (even if in code file)"
+
+  - scenario: "Adding TypeScript type definitions"
+    decision: "refactor(types): Add ServiceConfig type definitions"
+    rationale: "Code change, not documentation → refactor"
+
+  - scenario: "Creating new feature documentation"
+    decision: "docs(features): Document two-phase deployment pattern"
+    rationale: "Documentation-only"
+
+# Examples from infrastructure projects
+examples:
+  project_documentation:
+    - message: "docs(project): Update CLAUDE.md with new construct hierarchy"
+      description: "Updated codebase guide for Claude Code"
+
+    - message: "docs(project): Add troubleshooting section to README"
+      description: "Enhanced project README"
+
+  skill_documentation:
+    - message: "docs(skill): Add LLM reading scenarios to conventional-commits"
+      description: "Improved skill documentation"
+
+    - message: "docs(skill): Document pre-push hook rationale"
+      description: "Added hooks/README.md"
+
+  backlog_documentation:
+    - message: "docs(backlog): Add Feature #18 for two-phase deployment"
+      description: "Documented new feature in backlog"
+
+    - message: "docs(refactoring): Update TODO-06 with implementation status"
+      description: "Updated refactoring task status"
+
+  inline_documentation:
+    - message: "docs(service): Fix typo in TaskDefinition comment"
+      description: "Documentation fix in code file"
+
+    - message: "docs(config): Clarify ConfigService usage in comments"
+      description: "Improved inline documentation"
+
+# Anti-patterns (should NOT be docs)
+antipatterns:
+  - bad: "docs(service): Add JSDoc comments"
+    why: "Code changes (adding comments) → refactor"
+    good: "refactor(service): Add JSDoc documentation to constructs"
+
+  - bad: "docs(types): Add TypeScript interfaces"
+    why: "Type definitions are code → refactor or feat"
+    good: "refactor(types): Define ServiceConfig interface"
+
+  - bad: "docs(project): Update CLAUDE.md and extract construct"
+    why: "Mixed documentation and code changes → separate commits"
+    good: "Two commits: 1) refactor(service) for code, 2) docs(project) for CLAUDE.md"
+
+  - bad: "docs(config): Fix memory configuration"
+    why: "Configuration changes are not documentation"
+    good: "fix(config): Correct memory limit for auth service"
+
+# Related types
+related:
+  refactor: "Use when adding code comments or inline documentation"
+  feat: "Use when adding new capability with documentation"
+  fix: "Use when fixing bugs (documentation fixes are still docs)"
+
+# Docs vs Refactor distinction
+docs_vs_refactor:
+  question: "Are you modifying code files with non-documentation changes?"
+  no: "Use docs - pure documentation"
+  yes: "Use refactor (inline docs) or feat (new code with docs)"
+
+  pure_documentation:
+    - "Markdown files (*.md)"
+    - "Documentation directories (docs/)"
+    - "README files"
+    - "CLAUDE.md updates"
+    - "Skill documentation"
+    - "Comment-only changes in code (typo fixes, clarifications)"
+
+  not_pure_documentation:
+    - "Adding JSDoc comments to functions → refactor"
+    - "Adding TypeScript types → refactor or feat"
+    - "Adding code with documentation → feat or refactor"
+    - "Changing code logic (even with doc updates) → feat/fix/refactor"
+
+# Infrastructure-specific guidance
+infrastructure_guidance:
+  question: "Does this change CloudFormation output?"
+  no: "Use docs if only documentation changed"
+  yes: "Use appropriate code type (feat/fix/refactor/chore)"
+
+  documentation_files:
+    project_level:
+      - "CLAUDE.md"
+      - "README.md"
+      - "CONTRIBUTING.md"
+
+    feature_documentation:
+      - "docs/features/**/*.md"
+      - "docs/BACKLOG.md"
+
+    refactoring_tasks:
+      - "docs/refactoring/**/*.md"
+
+    skill_documentation:
+      - ".claude/skills/**/README.md"
+      - ".claude/skills/**/SKILL.md"
+      - ".claude/skills/**/*.md"
+
+# When to commit docs separately
+separate_commits:
+  rule: "Keep documentation commits separate from code commits"
+
+  why:
+    - "Clear separation of concerns in git history"
+    - "Easier to review documentation changes"
+    - "Documentation can be updated independently"
+
+  example_workflow:
+    - "1. Make code changes → commit as feat/fix/refactor"
+    - "2. Update documentation → commit as docs"
+    - "Better than: Mixed commit with both code and docs"
+
+  exceptions:
+    - "Inline typo fixes (single word) → can use docs type"
+    - "Comment clarifications without code changes → docs type"

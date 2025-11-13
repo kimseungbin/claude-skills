@@ -1,0 +1,128 @@
+# Type: fix - Edge Cases and Examples
+# LLM already decided to use fix from main.yaml type_decision_tree
+# This file provides edge case clarification and examples
+
+description: "Bug fix that corrects incorrect behavior"
+
+# When LLM reads this file:
+# - Already determined commit is fix-related
+# - Needs clarification on fix vs refactor edge cases
+# - Wants examples of fix commits for infrastructure projects
+
+# Common scopes with fix in infrastructure projects
+scopes:
+  service: "Service-related bug fixes"
+  cloudfront: "CloudFront or CDN bug fixes"
+  config: "Configuration bug fixes"
+  network: "Network or VPC bug fixes"
+  deployment: "Deployment infrastructure bug fixes"
+
+# Edge cases - fix vs other types
+edge_cases:
+  - scenario: "Correcting incorrect CPU/memory configuration causing OOM"
+    decision: "fix(config): Correct memory allocation for auth service"
+    rationale: "Fixing incorrect configuration that caused errors"
+
+  - scenario: "Fixing ALB health check causing false negatives"
+    decision: "fix(service): Correct health check path for profile service"
+    rationale: "Bug in health check configuration"
+
+  - scenario: "Changing CPU/memory for performance optimization (no bug)"
+    decision: "refactor(config): Optimize Fargate resource allocation"
+    rationale: "Not a bug, just optimization → refactor"
+
+  - scenario: "Fixing typo in environment variable name"
+    decision: "fix(config): Correct DD_SERVICE environment variable name"
+    rationale: "Typo caused incorrect behavior"
+
+  - scenario: "Updating dependency to patch security vulnerability"
+    decision: "fix(deps): Update aws-cdk-lib to patch CVE-2024-XXXX"
+    rationale: "Security fix is a bug fix"
+
+  - scenario: "Refactoring construct without fixing bug"
+    decision: "refactor(service): Extract ServiceInfraConstruct"
+    rationale: "No bug being fixed → refactor"
+
+# Examples from infrastructure projects
+examples:
+  configuration:
+    - message: "fix(config): Correct memory limit for yozm service"
+      description: "Fixed OOM errors by correcting memory configuration"
+
+    - message: "fix(service): Fix health check timeout causing false failures"
+      description: "Bug in ALB health check configuration"
+
+  infrastructure:
+    - message: "fix(cloudfront): Correct WAF rule priority causing blocks"
+      description: "Fixed WAF rule ordering bug"
+
+    - message: "fix(network): Fix VPC peering route table configuration"
+      description: "Corrected route table entries"
+
+  deployment:
+    - message: "fix(deployment): Correct CodeBuild environment variable injection"
+      description: "Fixed missing environment variable in build"
+
+    - message: "fix(service): Fix ECS task role permissions for S3 access"
+      description: "Corrected IAM policy"
+
+  dependencies:
+    - message: "fix(deps): Update aws-sdk to patch credential leak"
+      description: "Security vulnerability fix"
+
+# Anti-patterns (should NOT be fix)
+antipatterns:
+  - bad: "fix(config): Update CPU allocation"
+    why: "If not fixing a bug, just optimization"
+    good: "refactor(config): Optimize Fargate CPU allocation"
+
+  - bad: "fix(service): Refactor ServiceConstruct"
+    why: "Refactoring is not a bug fix"
+    good: "refactor(service): Extract ServiceInfraConstruct"
+
+  - bad: "fix(monitoring): Add CloudWatch dashboard"
+    why: "Adding new feature, not fixing bug"
+    good: "feat(monitoring): Add CloudWatch dashboard"
+
+  - bad: "fix(deps): Update CDK to v2.100.0"
+    why: "Routine dependency update without specific bug"
+    good: "chore(deps): Update aws-cdk-lib to v2.100.0"
+
+# Related types
+related:
+  feat: "Use when adding new capability, not fixing bug"
+  refactor: "Use when changing code without fixing bug or adding feature"
+  chore: "Use for routine dependency updates without specific bug fix"
+
+# Fix vs Refactor distinction
+fix_vs_refactor:
+  question: "Is there incorrect behavior being corrected?"
+  yes: "Use fix - there's a bug causing errors or unexpected behavior"
+  no: "Use refactor - just improving code structure/performance"
+
+  incorrect_behavior_examples:
+    - "OOM errors from wrong memory limit"
+    - "Health checks failing when service is healthy"
+    - "WAF blocking legitimate traffic"
+    - "Missing IAM permissions causing runtime errors"
+    - "Typos causing configuration errors"
+
+  not_incorrect_behavior_examples:
+    - "Optimizing resource allocation (no errors)"
+    - "Restructuring code for maintainability"
+    - "Improving performance without fixing bug"
+    - "Routine dependency updates"
+
+# Infrastructure-specific guidance
+infrastructure_guidance:
+  question: "Did this cause an error or unexpected behavior?"
+  yes: "Use fix - it's a bug"
+  no: "Use refactor (code improvement) or feat (new capability)"
+
+  common_infrastructure_bugs:
+    - "Incorrect resource limits → OOM/throttling"
+    - "Wrong health check paths → false failures"
+    - "Missing IAM permissions → runtime errors"
+    - "Incorrect environment variables → service errors"
+    - "WAF rules blocking legitimate traffic"
+    - "Route table misconfigurations → connectivity issues"

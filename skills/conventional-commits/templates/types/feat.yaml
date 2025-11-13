@@ -1,0 +1,110 @@
+# Type: feat - Edge Cases and Examples
+# LLM already decided to use feat from main.yaml type_decision_tree
+# This file provides edge case clarification and examples
+
+description: "New feature or capability for applications to use"
+
+# When LLM reads this file:
+# - Already determined commit is feat-related
+# - Needs clarification on feat vs chore/refactor edge cases
+# - Wants examples of feat commits for infrastructure projects
+
+# Common scopes with feat in infrastructure projects
+scopes:
+  main: "Multiple services or core infrastructure changes"
+  service: "Service construct or service-related infrastructure"
+  cloudfront: "CloudFront distribution or CDN features"
+  monitoring: "Monitoring infrastructure for applications"
+  network: "VPC, subnets, network infrastructure"
+
+# Edge cases - feat vs other types
+edge_cases:
+  - scenario: "Adding new microservice"
+    decision: "feat(main): Add <service-name> microservice"
+    rationale: "New service is a feature applications can use"
+
+  - scenario: "Adding Redis cluster for caching"
+    decision: "feat(service): Add Redis cluster support"
+    rationale: "Applications will use Redis, this is infrastructure for apps"
+
+  - scenario: "Adding monitoring dashboard for applications"
+    decision: "feat(monitoring): Add application monitoring dashboard"
+    rationale: "Applications use this to monitor themselves"
+
+  - scenario: "Adding CloudFront caching for assets"
+    decision: "feat(cloudfront): Add response caching for static assets"
+    rationale: "Improves application performance, feature for apps"
+
+  - scenario: "Refactoring service construct without new capability"
+    decision: "refactor(service): Extract ServiceInfraConstruct"
+    rationale: "No new feature, just code restructuring → refactor"
+
+  - scenario: "Adding pipeline notifications"
+    decision: "chore(deployment): Add Slack notifications for pipeline"
+    rationale: "For deployment monitoring, not application feature → chore"
+
+# Examples from infrastructure projects
+examples:
+  microservices:
+    - message: "feat(main): Add profile microservice"
+      description: "New service that applications can use"
+
+    - message: "feat(service): Add auto-scaling support"
+      description: "New capability for services"
+
+  infrastructure:
+    - message: "feat(cloudfront): Add WAF protection"
+      description: "Security feature for applications"
+
+    - message: "feat(network): Add VPC peering to data lake"
+      description: "Network feature enabling new functionality"
+
+  monitoring:
+    - message: "feat(monitoring): Add CloudWatch dashboard for services"
+      description: "Monitoring feature for applications"
+
+    - message: "feat(service): Add X-Ray tracing support"
+      description: "Observability feature for debugging"
+
+# Anti-patterns (should NOT be feat)
+antipatterns:
+  - bad: "feat(deployment): Add pipeline notifications"
+    why: "Pipeline notifications are FOR deployment, not applications"
+    good: "chore(deployment): Add pipeline notifications"
+
+  - bad: "feat(tools): Add git hooks"
+    why: "Git hooks are developer tooling, not application feature"
+    good: "chore(tools): Add git pre-push hooks"
+
+  - bad: "feat(service): Refactor ServiceConstruct"
+    why: "Refactoring without new capability is not a feature"
+    good: "refactor(service): Extract ServiceInfraConstruct"
+
+  - bad: "feat(config): Update CPU/memory settings"
+    why: "Configuration changes without new capability"
+    good: "refactor(config): Optimize Fargate resource allocation"
+
+# Related types
+related:
+  chore: "Use when infrastructure serves deployment/tooling, not applications"
+  refactor: "Use when changing code without adding new capability"
+  fix: "Use when fixing bugs, not adding features"
+
+# Infrastructure-specific guidance
+infrastructure_guidance:
+  question: "Is this FOR applications to use?"
+  yes: "Use feat - applications directly benefit from this"
+  no: "Check if it's chore (deployment/tools) or refactor (code improvement)"
+
+  examples_for_applications:
+    - "New microservice"
+    - "Redis/database integration"
+    - "CloudFront caching"
+    - "Monitoring dashboard"
+    - "Auto-scaling policies"
+
+  examples_not_for_applications:
+    - "Pipeline notifications → chore(deployment)"
+    - "Git hooks → chore(tools)"
+    - "Dependency updates → chore(deps)"
+    - "Code restructuring → refactor"

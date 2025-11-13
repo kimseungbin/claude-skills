@@ -1,0 +1,202 @@
+# Scope: Configuration and Workspace
+# LLM already decided type from main.yaml type_decision_tree
+# This file helps decide scope for config and workspace files
+
+description: "Scope patterns for configuration, types, and workspace files"
+
+# When LLM reads this file:
+# - Already determined commit type (usually refactor/fix/chore)
+# - Changed files are in src/config/, types/, or root config files
+# - Needs to decide appropriate scope
+
+# File path to scope mapping
+file_path_patterns:
+  # Configuration files
+  src/config/config.service.ts: "config"
+  src/config/config.data.ts: "config"
+  src/config/config.defaults.ts: "config"
+  src/config/types/**: "config"
+  src/config/validators/**: "config"
+
+  # Type definitions
+  types/general.ts: "types"
+  types/service.ts: "types"
+  types/**: "types"
+
+  # Root workspace files
+  package.json: "monorepo"
+  tsconfig.json: "monorepo"
+  .eslintrc.js: "monorepo"
+  .prettierrc.yaml: "monorepo"
+  cdk.json: "monorepo"
+
+  # Workspace packages
+  packages/*/package.json: "monorepo"
+  packages/lambda/package.json: "monorepo"
+
+  # Feature flags
+  feature-flags.yaml: "feature-flags"
+  packages/infra/src/feature-flags/**: "feature-flags"
+
+# Configuration scope patterns
+config_scope:
+  when_to_use:
+    - "Changes to ConfigService"
+    - "Configuration data or defaults"
+    - "Service-specific configuration"
+    - "Environment configuration"
+    - "Configuration validators"
+
+  examples:
+    - "fix(config): Correct memory limit for auth service"
+    - "refactor(config): Consolidate environment defaults"
+    - "feat(config): Add Redis configuration support"
+
+  file_patterns:
+    - "src/config/**"
+
+# Types scope patterns
+types_scope:
+  when_to_use:
+    - "TypeScript type definitions"
+    - "Enums (Environment, ServiceName, etc.)"
+    - "Interface definitions"
+
+  examples:
+    - "refactor(types): Add ServiceConfig interface"
+    - "feat(types): Add new Environment.QA enum"
+    - "fix(types): Correct FargateCpuMemory type"
+
+  file_patterns:
+    - "types/**"
+
+# Monorepo scope patterns
+monorepo_scope:
+  when_to_use:
+    - "Workspace configuration (package.json, tsconfig.json)"
+    - "Dependency updates affecting multiple packages"
+    - "Root-level config files"
+    - "Workspace structure changes"
+
+  examples:
+    - "chore(monorepo): Update aws-cdk-lib to v2.100.0"
+    - "chore(monorepo): Add TypeScript strict mode"
+    - "refactor(monorepo): Reorganize workspace packages"
+
+  file_patterns:
+    - "package.json"
+    - "tsconfig.json"
+    - "cdk.json"
+    - ".eslintrc.js"
+    - ".prettierrc.yaml"
+    - "packages/*/package.json"
+
+# Feature flags scope
+feature_flags_scope:
+  when_to_use:
+    - "Adding/modifying feature flags"
+    - "Feature flag decorator changes"
+    - "Flag configuration updates"
+
+  examples:
+    - "feat(feature-flags): Add two-phase-deployment flag"
+    - "refactor(feature-flags): Improve decorator error handling"
+    - "fix(feature-flags): Correct environment detection"
+
+  file_patterns:
+    - "feature-flags.yaml"
+    - "packages/infra/src/feature-flags/**"
+
+# Decision tree for configuration-related scopes
+scope_decision_tree:
+  - question: "What type of file changed?"
+    config_service: "Use config"
+    type_definitions: "Use types"
+    workspace_config: "Use monorepo"
+    feature_flags: "Use feature-flags"
+
+  - question: "Multiple file types changed?"
+    config_and_types: "Use config (config is primary)"
+    monorepo_and_packages: "Use monorepo"
+    mixed: "Consider separate commits"
+
+# Edge cases
+edge_cases:
+  - scenario: "Adding new service configuration"
+    scope: "config"
+    rationale: "Configuration change"
+    example: "feat(config): Add profile service configuration"
+
+  - scenario: "Adding new Environment enum value"
+    scope: "types"
+    rationale: "Type definition change"
+    example: "feat(types): Add Environment.QA enum"
+
+  - scenario: "Updating CDK dependency"
+    scope: "monorepo"
+    rationale: "Workspace-level dependency"
+    example: "chore(monorepo): Update aws-cdk-lib to v2.100.0"
+
+  - scenario: "Fixing validation logic in config"
+    scope: "config"
+    rationale: "Configuration validation is part of config system"
+    example: "fix(config): Correct Fargate CPU/memory validation"
+
+  - scenario: "Adding feature flag for new feature"
+    scope: "feature-flags"
+    rationale: "Feature flag system change"
+    example: "feat(feature-flags): Add qa-environment flag"
+
+# Config vs types distinction
+config_vs_types:
+  question: "Is this runtime configuration or compile-time types?"
+  runtime_config: "Use config"
+  compile_time_types: "Use types"
+
+  runtime_config_examples:
+    - "Service CPU/memory limits"
+    - "Environment domains"
+    - "CodeBuild compute types"
+    - "Auto-scaling thresholds"
+
+  compile_time_types_examples:
+    - "Environment enum"
+    - "ServiceName enum"
+    - "Interface definitions"
+    - "Type aliases"
+
+# Multiple file changes
+multi_file_patterns:
+  - scenario: "config.data.ts + config.defaults.ts"
+    scope: "config"
+    rationale: "Both are configuration files"
+
+  - scenario: "types/general.ts + types/service.ts"
+    scope: "types"
+    rationale: "Both are type definition files"
+
+  - scenario: "config.data.ts + types/service.ts"
+    scope: "config"
+    rationale: "Config is primary change, types are supporting"
+    alternative: "Consider separate commits for clarity"
+
+  - scenario: "package.json + tsconfig.json"
+    scope: "monorepo"
+    rationale: "Both are workspace configuration"
+
+# Dependency scope patterns
+deps_scope:
+  note: "Alternative to monorepo for dependency-only changes"
+
+  when_to_use:
+    - "Only dependency updates (no config changes)"
+    - "Clear focus on dependency management"
+
+  examples:
+    - "chore(deps): Update @aws-sdk packages to v3.500.0"
+    - "fix(deps): Update aws-cdk-lib to patch CVE-2024-XXXX"
+
+  vs_monorepo:
+    - "Use deps for dependency-focused changes"
+    - "Use monorepo for broader workspace config changes"
+    - "Both are acceptable, deps is more specific"

@@ -1,0 +1,240 @@
+# Scope: Developer Tooling
+# LLM already decided type (usually chore(tools)) from main.yaml type_decision_tree
+# This file helps decide scope for tooling and CI/CD files
+
+description: "Scope patterns for developer tooling, CI/CD, and GitHub workflows"
+
+# When LLM reads this file:
+# - Already determined commit type (usually chore(tools) or ci)
+# - Changed files are tooling-related (git hooks, scripts, GitHub Actions)
+# - Needs to decide appropriate scope
+
+# File path to scope mapping
+file_path_patterns:
+  # Git hooks
+  .githooks/**: "tools"
+  .git/hooks/**: "tools"
+
+  # Scripts
+  scripts/**: "tools"
+
+  # GitHub Actions
+  .github/workflows/**: "github"
+  .github/actions/**: "github"
+
+  # GitHub meta files
+  .github/CODEOWNERS: "github"
+  .github/pull_request_template.md: "github"
+  .github/ISSUE_TEMPLATE/**: "github"
+
+  # ESLint and formatters
+  .eslintrc.js: "tools"
+  .prettierrc.yaml: "tools"
+  infra/eslint/**: "tools"
+
+  # Other tooling
+  .editorconfig: "tools"
+  .gitignore: "tools"
+  .gitattributes: "tools"
+
+# Tools scope patterns
+tools_scope:
+  description: "Developer tooling (git hooks, scripts, linters)"
+  when_to_use:
+    - "Git hooks setup"
+    - "Shell scripts for deployment analysis"
+    - "ESLint configuration"
+    - "Prettier configuration"
+    - "General developer utilities"
+
+  examples:
+    - "chore(tools): Add git pre-push hooks"
+    - "chore(tools): Add deployment analysis script"
+    - "chore(tools): Update ESLint configuration"
+    - "fix(tools): Correct pre-push hook exit code"
+
+  file_patterns:
+    - ".githooks/**"
+    - "scripts/**"
+    - ".eslintrc.js"
+    - ".prettierrc.yaml"
+    - "infra/eslint/**"
+
+# GitHub scope patterns (CI/CD workflows and meta files)
+github_scope:
+  description: "GitHub-specific files (workflows, templates, CODEOWNERS)"
+  when_to_use:
+    - "GitHub Actions workflows"
+    - "PR templates"
+    - "Issue templates"
+    - "CODEOWNERS file"
+
+  examples:
+    - "ci(github): Add deployment workflow"
+    - "chore(github): Update PR template"
+    - "fix(github): Correct workflow trigger"
+
+  file_patterns:
+    - ".github/workflows/**"
+    - ".github/pull_request_template.md"
+    - ".github/ISSUE_TEMPLATE/**"
+    - ".github/CODEOWNERS"
+
+# Type decision for GitHub files
+github_type_decision:
+  workflows: "ci (GitHub Actions workflows)"
+  templates: "chore(github) (PR/issue templates)"
+  codeowners: "chore(github) (ownership file)"
+
+  examples:
+    workflows:
+      - "ci(github): Add deployment workflow"
+      - "ci(github): Update build matrix"
+
+    templates:
+      - "chore(github): Update PR template with checklist"
+      - "chore(github): Add bug report template"
+
+    codeowners:
+      - "chore(github): Update CODEOWNERS for new team"
+
+# Deployment scope (for CI/CD infrastructure)
+deployment_scope:
+  description: "Deployment infrastructure (pipeline notifications, drift detection)"
+  when_to_use:
+    - "Pipeline notification systems"
+    - "Deployment approval workflows"
+    - "CloudFormation drift detection"
+    - "Deployment monitoring"
+
+  note: "This is different from 'github' scope"
+  distinction:
+    github: "GitHub Actions workflows (.github/workflows/)"
+    deployment: "Deployment infrastructure (Lambda, SNS, CodePipeline constructs)"
+
+  examples:
+    - "chore(deployment): Add Slack notifications for pipeline"
+    - "chore(deployment): Add drift detection workflow"
+    - "feat(deployment): Add manual approval stage"
+
+  file_patterns:
+    - "lib/constructs/lambda-message-transformer/** (deployment infrastructure)"
+    - "Not .github/workflows/** (those use 'github' or 'ci')"
+
+# Decision tree for tooling-related scopes
+scope_decision_tree:
+  - question: "What type of tooling file changed?"
+    git_hooks: "tools"
+    shell_scripts: "tools"
+    eslint_prettier: "tools"
+    github_workflows: "github (with type=ci)"
+    github_templates: "github (with type=chore)"
+    deployment_infra: "deployment (with type=chore)"
+
+  - question: "Is this GitHub Actions or deployment infrastructure?"
+    github_actions: "Use ci(github) for workflows"
+    deployment_infra: "Use chore(deployment) for pipeline infrastructure"
+
+# Edge cases
+edge_cases:
+  - scenario: "Adding git pre-push hooks"
+    type: "chore"
+    scope: "tools"
+    example: "chore(tools): Add git pre-push hooks for deployment safety"
+
+  - scenario: "Adding deployment analysis script"
+    type: "chore"
+    scope: "tools"
+    example: "chore(tools): Add analyze-and-approve-deployment.sh script"
+
+  - scenario: "Adding GitHub Actions deployment workflow"
+    type: "ci"
+    scope: "github"
+    example: "ci(github): Add manual deployment workflow"
+
+  - scenario: "Adding Lambda for pipeline notifications"
+    type: "chore"
+    scope: "deployment"
+    example: "chore(deployment): Add Slack notification Lambda"
+
+  - scenario: "Updating PR template"
+    type: "chore"
+    scope: "github"
+    example: "chore(github): Update PR template with deployment checklist"
+
+  - scenario: "Updating ESLint rules"
+    type: "chore"
+    scope: "tools"
+    example: "chore(tools): Update ESLint to enforce stricter rules"
+
+# ci vs chore distinction for GitHub
+ci_vs_chore_github:
+  question: "Is this a GitHub Actions workflow?"
+  yes: "Use ci(github)"
+  no: "Use chore(github)"
+
+  workflows_use_ci:
+    - ".github/workflows/*.yaml"
+    - ".github/workflows/*.yml"
+
+  meta_files_use_chore:
+    - ".github/pull_request_template.md"
+    - ".github/ISSUE_TEMPLATE/**"
+    - ".github/CODEOWNERS"
+
+  examples:
+    ci:
+      - "ci(github): Add deployment workflow"
+      - "ci(github): Update linting workflow"
+      - "fix(github): Correct workflow permissions"
+
+    chore:
+      - "chore(github): Update PR template"
+      - "chore(github): Add bug report template"
+      - "chore(github): Update CODEOWNERS"
+
+# tools vs github vs deployment distinction
+scope_distinction:
+  tools:
+    description: "Developer utilities (git hooks, scripts, linters)"
+    files:
+      - ".githooks/**"
+      - "scripts/**"
+      - ".eslintrc.js"
+    example: "chore(tools): Add pre-push hooks"
+
+  github:
+    description: "GitHub-specific files (workflows, templates)"
+    files:
+      - ".github/**"
+    example: "ci(github): Add deployment workflow"
+
+  deployment:
+    description: "Deployment infrastructure (pipeline monitoring)"
+    files:
+      - "lib/constructs/lambda-message-transformer/**"
+      - "Deployment-related constructs (not GitHub Actions)"
+    example: "chore(deployment): Add pipeline notifications"
+
+# Multiple file changes
+multi_file_patterns:
+  - scenario: ".githooks/pre-push + scripts/analyze-and-approve-deployment.sh"
+    scope: "tools"
+    rationale: "Both are developer tools"
+
+  - scenario: ".github/workflows/deploy.yaml + .github/workflows/lint.yaml"
+    scope: "github"
+    type: "ci"
+    rationale: "Both are GitHub Actions workflows"
+
+  - scenario: ".github/pull_request_template.md + .github/CODEOWNERS"
+    scope: "github"
+    type: "chore"
+    rationale: "Both are GitHub meta files"
+
+  - scenario: "scripts/bootstrap.sh + .github/workflows/deploy.yaml"
+    scope: Split into two commits
+    rationale: "Different scopes (tools vs github)"
+    commits:
+      - "chore(tools): Add bootstrap script"
+      - "ci(github): Add deployment workflow"

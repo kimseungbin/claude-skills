@@ -1,0 +1,167 @@
+# Conventional Commits Configuration (Decision-Tree Pattern)
+# This is a TEMPLATE - copy to .claude/config/conventional-commits.yaml and customize
+
+project: your-project-name
+description: "Brief project description"
+implementation: infrastructure  # or: frontend, backend, fullstack
+
+# Format specification
+format:
+  pattern: "{type}({scope}): {subject}"
+  max_subject_length: 72
+  max_body_line_length: 100
+
+# Quick reference - most common types (80% of commits)
+# For detailed decision trees, see types/ directory
+types_quick:
+  feat: "New feature or capability"
+  fix: "Bug fix"
+  refactor: "Code change (neither bug fix nor feature)"
+  docs: "Documentation only (no code changes)"
+  chore: "Maintenance, tooling, dependencies"
+
+# Quick reference - most common scopes (80% of commits)
+# For detailed patterns and decision trees, see scopes/ directory
+scopes_quick:
+  # Update these for your project structure
+  frontend: "Frontend code"
+  backend: "Backend code"
+  config: "Configuration files"
+  tools: "Developer tooling"
+  project: "Project documentation"
+
+# Footer conventions
+footer:
+  required:
+    - "Skill: conventional-commits"
+  optional:
+    - "BREAKING CHANGE: description"
+    - "Refs #123 or Closes #123"
+    - "Co-authored-by: Name <email>"
+  deployment_safety:
+    note: "For infrastructure projects with pre-push hooks"
+    fields:
+      - "Safe-To-Deploy: manual-deletion-planned"
+      - "Analyzed-By: <your-name>"
+      - "Services: <service-list>"
+    reference: ".claude/skills/conventional-commits/hooks/pre-push.md"
+
+# COMPLETE Type Decision Tree (90% of commits decided here)
+type_decision_tree:
+  - question: "What are you doing?"
+    answers:
+      adding_new_capability: "feat - New feature or infrastructure for applications"
+      fixing_bug: "fix - Bug fix that corrects incorrect behavior"
+      changing_code_structure: "refactor - Code change (neither bug fix nor feature)"
+      updating_docs_only: "docs - Documentation changes with no code changes"
+      updating_dependencies: "chore - Dependency updates (chore(deps) or chore(monorepo))"
+
+  - question: "Infrastructure project - what does it serve?"
+    for_applications:
+      description: "Applications directly use or depend on this"
+      examples: ["New microservice", "Redis cluster", "CloudFront caching"]
+      type: "feat"
+    for_deployment:
+      description: "Monitors/improves deployment process"
+      examples: ["Pipeline notifications", "Drift detection", "Deployment approval"]
+      type: "chore(deployment)"
+    for_development:
+      description: "Developer tooling"
+      examples: ["Git hooks", "ESLint config", "GitHub Actions"]
+      type: "chore(tools)"
+
+  - question: "Edge case unclear?"
+    feat_vs_chore_infrastructure: "See types/chore.yaml for detailed edge cases"
+    docs_vs_refactor: "See types/docs.yaml for documentation patterns"
+    refactor_vs_feat: "See types/refactor.yaml for code change patterns"
+
+# Scope Decision (check these patterns first)
+scope_decision:
+  - question: "What files changed?"
+    single_construct: "Use construct name (e.g., service, cloudfront)"
+    single_service: "Use service name (e.g., auth, yozm)"
+    multiple_services: "Use parent scope (e.g., main, infra)"
+    config_only: "Use config"
+    docs_only: "Use project or specific doc scope"
+
+  - question: "Still unclear?"
+    infrastructure: "See scopes/infrastructure.yaml for construct patterns"
+    configuration: "See scopes/configuration.yaml for config patterns"
+    documentation: "See scopes/documentation.yaml for doc patterns"
+    tooling: "See scopes/tooling.yaml for tool patterns"
+
+# When to load detailed files (10% of commits)
+load_detailed_files:
+  - condition: "Type still unclear after decision tree"
+    action: "See types/*.yaml for edge cases and antipatterns"
+
+  - condition: "Scope unclear for multiple file changes"
+    action: "See scopes/*.yaml for detailed patterns"
+
+  - condition: "Need similar commit example"
+    action: "See examples/*.yaml for pattern matching"
+
+  - condition: "Quality check needed"
+    action: "See guides/specificity.yaml for title validation"
+
+# File references - load these only when needed
+detailed_docs:
+  types:
+    path: "types/"
+    when_to_read: "Unclear which type (feat vs chore, docs vs refactor)"
+    files:
+      - "feat.yaml - When to use feat"
+      - "fix.yaml - When to use fix"
+      - "refactor.yaml - When to use refactor"
+      - "docs.yaml - When to use docs"
+      - "chore.yaml - feat vs chore for infrastructure"
+
+  scopes:
+    path: "scopes/"
+    when_to_read: "Multiple files changed, unclear scope, need decision tree"
+    files:
+      - "infrastructure.yaml - Infrastructure scopes"
+      - "configuration.yaml - Config and workspace scopes"
+      - "documentation.yaml - Documentation scopes"
+      - "tooling.yaml - Developer tooling scopes"
+
+  examples:
+    path: "examples/"
+    when_to_read: "Need similar commit pattern, complex change"
+    files:
+      - "infrastructure.yaml - Infrastructure examples"
+      - "documentation.yaml - Documentation examples"
+      - "deployment-approval.yaml - With deployment footers"
+
+  guides:
+    path: "guides/"
+    when_to_read: "Quality check, title validation, best practices"
+    files:
+      - "specificity.yaml - Title quality checklist"
+      - "title-patterns.yaml - Good/bad patterns"
+
+# Subject line conventions
+subject_conventions:
+  - "Use imperative mood: 'Add feature' not 'Added feature'"
+  - "Capitalize first letter"
+  - "No period at end"
+  - "Be specific: name components, not just files"
+  - "For quality check, see guides/specificity.yaml"
+
+# Body conventions
+body_conventions:
+  - "Separate from subject with blank line"
+  - "Explain what and why, not how"
+  - "Use bullet points for multiple changes"
+  - "Wrap at max_body_line_length"
+
+# Setup instructions
+setup:
+  note: "This is a template - customize for your project"
+  steps:
+    - "1. Copy this file to .claude/config/conventional-commits.yaml"
+    - "2. Copy types/, scopes/, examples/, guides/ directories"
+    - "3. Update scopes_quick with your project structure"
+    - "4. Customize types/ if needed (usually not required)"
+    - "5. Add project-specific examples to examples/"
+    - "6. Commit config files to your repository"
