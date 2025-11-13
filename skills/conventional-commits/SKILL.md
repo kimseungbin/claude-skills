@@ -11,11 +11,20 @@ This skill generates commit messages following the [Conventional Commits](https:
 
 When the user requests to create a commit or generate a commit message:
 
-1. **Read the commit rules configuration**:
-    - **First**, check if `.claude/config/conventional-commits.yaml` exists (project-specific rules)
-    - **If not found**, fall back to `.claude/skills/conventional-commits/commit-rules.yaml` (default rules)
-    - Parse the rules including: types, scopes, format patterns, and conventions
-    - Project-specific rules take precedence and override default rules
+1. **Read the commit rules configuration** (minimal-context loading):
+    - **Always load main config first**:
+        - **First**, check if `.claude/config/conventional-commits.yaml` exists (project-specific)
+        - **If not found**, fall back to `.claude/skills/conventional-commits/commit-rules.yaml` (default)
+        - Main config contains: quick reference, complete type decision tree, scope patterns
+    - **Load detailed files only when needed** (5-10% of commits):
+        - **types/*.yaml** - Load when type unclear after decision tree (feat vs chore edge cases)
+        - **scopes/*.yaml** - Load when scope unclear for multiple file changes
+        - **examples/*.yaml** - Load when need similar commit pattern
+        - **guides/*.yaml** - Load for quality check or title validation
+    - **Context optimization:**
+        - 90% of commits: Read main config only (~168 lines)
+        - 10% of commits: Read main config + 1-2 detailed files (~240 lines)
+        - Average: 67% context reduction vs monolithic config
 
 2. **Load implementation guide** (if specified):
     - Check if config has `implementation` field (e.g., `implementation: infrastructure`)
@@ -183,13 +192,48 @@ This skill is a **git submodule** shared across multiple projects. Files in `.cl
 3. If EXISTS, update it with new rules
 4. NEVER modify `commit-rules.yaml` in the skill directory (it's a submodule!)
 
-**Template for project-specific config:**
-Copy structure from `.claude/skills/conventional-commits/commit-rules.yaml` or `commit-rules.template.yaml` and customize for the project.
+**Split Configuration Pattern** (recommended for large projects):
+
+Projects with extensive rules (500+ lines) can use the split configuration pattern to reduce context loading:
+
+1. **Copy template structure**:
+   ```bash
+   # Copy main config
+   cp .claude/skills/conventional-commits/templates/main.yaml \
+      .claude/config/conventional-commits.yaml
+
+   # Copy detailed files (optional, load on-demand)
+   cp -r .claude/skills/conventional-commits/templates/types \
+         .claude/config/conventional-commits/
+   cp -r .claude/skills/conventional-commits/templates/scopes \
+         .claude/config/conventional-commits/
+   cp -r .claude/skills/conventional-commits/templates/examples \
+         .claude/config/conventional-commits/
+   cp -r .claude/skills/conventional-commits/templates/guides \
+         .claude/config/conventional-commits/
+   ```
+
+2. **Customize for your project**:
+   - Update `scopes_quick` in main config with your file patterns
+   - Modify `scopes/*.yaml` with project-specific scope patterns
+   - Add project-specific examples to `examples/*.yaml`
+
+3. **Benefits**:
+   - 67% context reduction (load ~168 lines instead of 515 lines)
+   - Main config contains complete type decision tree
+   - Detailed files loaded only when needed (5-10% of commits)
+
+**Monolithic Configuration** (simple, all-in-one):
+
+For smaller projects or simpler workflows, use a single configuration file:
+- Copy from `commit-rules.yaml` or `commit-rules.template.yaml`
+- Customize types, scopes, and conventions
+- All rules in one file (easier to manage for small projects)
 
 **Example projects:**
 
 - See `commit-rules.example.yaml` for a Trip Settle monorepo example
-- Use `commit-rules.template.yaml` as a starting template
+- See `templates/` directory for split configuration examples
 
 ## Interactive Commit Selection
 
@@ -206,92 +250,66 @@ When changes span multiple scopes or types, this skill uses **interactive select
 
 This provides fine-grained control over commit granularity while maintaining standardized commit messages.
 
-## Enforcing Skill Usage with Git Hooks
+## Git Hooks Integration
 
-Projects can enforce that all commits are created using this skill (instead of direct `git commit` commands) by adding a footer tag and validating it with a git hook.
+This skill integrates with two types of git hooks for quality and safety:
 
-### Footer Tag Pattern
+### Commit Message Validation (commit-msg hook)
 
-Add to your project's `.claude/config/conventional-commits.yaml`:
+Projects can enforce that all commits are created using this skill by validating the `Skill: conventional-commits` footer tag.
 
-```yaml
-conventions:
-  footer:
-    - "REQUIRED: Always add 'Skill: conventional-commits' to mark skill usage"
-    - "This footer tag is validated by commit-msg hook"
+**What it validates:**
+- Conventional commit format compliance
+- Required footer tags (e.g., `Skill: conventional-commits`)
+- Subject line length and format
+
+**Quick setup:**
+Add footer validation to `.claude/config/conventional-commits.yaml` and create commit-msg hook in `.git/hooks/commit-msg`.
+
+**For complete details:** See [hooks/commit-msg.md](hooks/commit-msg.md)
+
+**When to read:** Commit-msg hook rejected your commit and you need to understand validation rules.
+
+### Deployment Safety (pre-push hook)
+
+Infrastructure projects use pre-push hooks to detect dangerous CloudFormation changes before deployment. When resource replacements are detected, additional approval footers are required.
+
+**Footer format:**
+```
+Safe-To-Deploy: manual-deletion-planned
+Analyzed-By: <your-name>
+Services: <service-list>
 ```
 
-Update all examples to include the footer:
+**Quick workflow when push is blocked:**
+1. Run `./scripts/analyze-and-approve-deployment.sh`
+2. Script analyzes changes and generates footer
+3. Amend commit with footer
+4. Push again
 
-```yaml
-examples:
-  example_commit:
-    message: "feat(scope): Add feature"
-    body: |
-      Feature description.
+**For complete details:** See [hooks/pre-push.md](hooks/pre-push.md)
 
-      - Change 1
-      - Change 2
+**When to read:** Pre-push hook blocked your deployment due to resource replacement.
 
-      Skill: conventional-commits  # Footer tag
+### Footer Integration
+
+Both hooks work together via commit footers:
+
+```
+refactor(service): Extract ServiceInfraConstruct
+
+Separate build and runtime concerns.
+
+Safe-To-Deploy: manual-deletion-planned
+Analyzed-By: John Doe
+Services: auth
+
+Skill: conventional-commits
 ```
 
-### Git Hook Validation
-
-Create `.git/hooks/commit-msg` to validate the footer tag:
-
-```bash
-#!/bin/bash
-
-# Commit-msg hook - Enforce conventional-commits skill usage
-COMMIT_MSG_FILE="$1"
-COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
-
-if ! echo "$COMMIT_MSG" | grep -q "Skill: conventional-commits"; then
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "❌ COMMIT BLOCKED"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
-    echo "This commit was not created using the conventional-commits skill."
-    echo ""
-    echo "Required footer tag missing: 'Skill: conventional-commits'"
-    echo ""
-    echo "┌─────────────────────────────────────────────────────┐"
-    echo "│  HOW TO FIX:                                        │"
-    echo "├─────────────────────────────────────────────────────┤"
-    echo "│  ✅ Use: Skill(conventional-commits)                │"
-    echo "│  ✅ Use: SlashCommand(/commit)                      │"
-    echo "│  ❌ DO NOT use: git commit directly                 │"
-    echo "└─────────────────────────────────────────────────────┘"
-    echo ""
-    exit 1
-fi
-
-exit 0
-```
-
-Make it executable:
-
-```bash
-chmod +x .git/hooks/commit-msg
-```
-
-### Benefits
-
-- **Consistency:** All commits follow the skill's workflow and format
-- **Quality:** Prevents accidental direct commits bypassing skill validation
-- **Team Alignment:** Everyone uses the same commit creation process
-- **Automation:** CI/CD can rely on consistent commit format
-
-### Bypassing (Emergency Only)
-
-```bash
-# Emergency hotfix - skip hook validation
-git commit --no-verify -m "emergency: Critical fix"
-```
-
-Document why bypass was necessary in the commit message.
+**Footer order:**
+1. Deployment safety footers (if required by pre-push hook)
+2. Skill footer (if required by commit-msg hook)
 
 ## Notes
 
