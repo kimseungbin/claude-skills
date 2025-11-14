@@ -7,10 +7,11 @@ Critical guide to preventing accidental resource replacements during CDK refacto
 1. [Understanding Logical IDs](#understanding-logical-ids)
 2. [Safe Refactoring](#safe-refactoring-no-replacement)
 3. [Dangerous Refactoring](#dangerous-refactoring-will-replace)
-4. [Using overrideLogicalId()](#using-overridelogicalid)
-5. [Safe vs Unsafe Replacements](#safe-vs-unsafe-replacements)
-6. [Complete Workflow](#complete-overridelogicalid-workflow)
-7. [Pre-Refactoring Checklist](#pre-refactoring-checklist)
+4. [CDK Refactor Command](#cdk-refactor-command-limitations)
+5. [Using overrideLogicalId()](#using-overridelogicalid)
+6. [Safe vs Unsafe Replacements](#safe-vs-unsafe-replacements)
+7. [Complete Workflow](#complete-overridelogicalid-workflow)
+8. [Pre-Refactoring Checklist](#pre-refactoring-checklist)
 
 ---
 
@@ -172,22 +173,21 @@ new Bucket(this, 'NewBucket')
 
 When refactoring causes logical ID changes, you have two options:
 
-### Option 1: CDK Refactor Command (Recommended)
+### Option 1: CDK Refactor Command (Recommended for Simple Changes)
 
-**Best for:** Any refactoring that changes logical IDs (construct moves, renames, hierarchy changes)
+**Best for:** Simple renames and moves within existing construct structure
 
-The `cdk refactor` command is the **safest and recommended approach** for handling logical ID changes. It uses CloudFormation's refactoring API to update logical IDs in-place without resource replacement.
+The `cdk refactor` command uses CloudFormation's refactoring API to update logical IDs in-place without resource replacement.
 
 **When to use:**
-- Moving resources between constructs
-- Renaming constructs
-- Reorganizing construct hierarchy
-- Extracting reusable constructs
+- Renaming construct IDs at the same level
+- Moving resources between stacks (same account/region)
+- Simple path changes without hierarchy restructuring
 
 **Workflow:**
 ```bash
 # 1. Make code changes that affect logical IDs
-# (e.g., rename construct, move to new parent)
+# (e.g., rename construct, move between stacks)
 
 # 2. Validate refactoring
 npm run cdk synth -- --unstable=refactor
@@ -209,7 +209,85 @@ npm run cdk deploy
 - ⚠️ Resources must stay in same AWS account/region
 - ⚠️ Requires up-to-date CDK bootstrap
 
-**See also:** `/TEMP_CDK_REFACTOR_RESEARCH.md` for comprehensive guide
+**Critical Limitation - Structural Hierarchy Changes:**
+
+`cdk refactor` **CANNOT handle** introducing intermediate parent constructs:
+
+```typescript
+// ❌ This type of refactoring FAILS with cdk refactor
+// BEFORE:
+Profile/CodeBuildProjectConstruct/CodeBuildProject/Resource
+
+// AFTER (adding intermediate "Infra" construct):
+Profile/Infra/CodeBuildProjectConstruct/CodeBuildProject/Resource
+//       ^^^^^ New intermediate parent construct
+
+// Error from cdk refactor:
+// ❌ Refactor failed: A refactor operation cannot add, remove or update resources.
+//    Only resource moves and renames are allowed.
+```
+
+**Why it fails:**
+- `cdk refactor` sees this as **adding new resources** (Profile/Infra/...) and **deleting old ones** (Profile/...)
+- Adding intermediate constructs changes the **entire construct tree hierarchy**
+- CDK treats these as different resources, not moves
+
+**What cdk refactor CAN do:**
+- ✅ Rename at same level: `MyQueue` → `MyRenamedQueue` (same parent)
+- ✅ Move between stacks: `StackA/Queue` → `StackB/Queue`
+- ✅ Simple path change: `Service/Queue` → `MyService/Queue` (same depth)
+
+**What cdk refactor CANNOT do:**
+- ❌ Add intermediate parents: `Service/Queue` → `Service/Infra/Queue`
+- ❌ Restructure construct hierarchy
+- ❌ Extract to mid-level constructs with different tree structure
+
+**When cdk refactor doesn't work, use:**
+- **Option A**: Manual AWS CLI deletion + clean deployment (acceptable in DEV)
+- **Option B**: `overrideLogicalId()` for every resource (permanent technical debt)
+
+**IMPORTANT: Why CLI deletion, not CloudFormation context flags?**
+
+When you have multiple environments (DEV, QA, STAGING, PROD) deploying from the same codebase:
+
+❌ **DON'T use CDK context or conditional code:**
+```typescript
+// ❌ BAD: Affects CloudFormation template, complicates multi-env deployments
+const skipProfile = this.node.tryGetContext('skipProfileMigration') === 'true'
+if (shouldDeployService('profile') && !skipProfile) {
+  new ProfileServiceV2(this, 'Profile', {...})
+}
+```
+
+**Why this is problematic:**
+- CloudFormation templates are generated during `cdk synth`
+- Context flags must be coordinated across all environment deployments
+- Risk of accidentally deploying with wrong context to wrong environment
+- Creates temporary migration logic that stays in code forever
+- Harder to reason about what's deployed where
+
+✅ **DO use AWS CLI for direct resource deletion:**
+```bash
+# Delete specific resources in DEV only via AWS CLI
+AWS_PROFILE=fe-dev AWS_REGION=ap-northeast-2 aws cloudformation delete-stack \
+  --stack-name dev \
+  --retain-resources ProfileECRRepo49C9B6B6 ProfileTaskDefinition2F1814FB
+
+# Or delete individual resources
+AWS_PROFILE=fe-dev aws ecs delete-service \
+  --cluster dev --service profile --force
+```
+
+**Why CLI deletion is better:**
+- ✅ Direct, explicit control over what gets deleted
+- ✅ No code changes that could affect other environments
+- ✅ No risk of wrong context flag in wrong environment
+- ✅ Clear audit trail in AWS CloudTrail
+- ✅ Can retain specific resources if needed (ECR images, etc.)
+
+**See also:**
+- `/TEMP_CDK_REFACTOR_RESEARCH.md` for comprehensive guide
+- `docs/refactoring/high/ARCH-14.md` for real-world failure example
 
 ### Option 2: overrideLogicalId() (Manual Fallback)
 
