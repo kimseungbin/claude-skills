@@ -302,6 +302,159 @@ Everyone knows it's a PR from the GitHub context. Start directly with the first 
 
 This applies to PR descriptions only. Markdown files in the repository may still use H1 headings as appropriate.
 
+### 3.8. Avoid Checkbox Overuse
+
+**Checkboxes are for task lists, not for selecting single options.**
+
+Many PR templates misuse checkboxes for single-choice selections (environment, impact level, yes/no questions). This creates confusion and visual clutter.
+
+#### When NOT to Use Checkboxes
+
+**❌ Single selection (environment)**
+```markdown
+- [ ] DEV
+- [x] STAGING  ← Only ONE can be true
+- [ ] PRODUCTION
+```
+
+**✅ Use direct statement instead:**
+```markdown
+**Target Environment:** STAGING (from `staging` branch)
+```
+
+or with visual emphasis:
+```markdown
+**Environment:** ![STAGING](https://img.shields.io/badge/env-STAGING-yellow)
+```
+
+---
+
+**❌ Yes/No questions (breaking change)**
+```markdown
+- [x] This PR includes breaking changes
+```
+
+**✅ Use emoji + direct answer:**
+```markdown
+**Breaking Change:** ❌ No
+```
+
+or when yes:
+```markdown
+**Breaking Change:** ⚠️ Yes
+
+**Details:**
+- API endpoint changed: `/v1/users` → `/v2/users`
+- Migration required: Update all API clients
+```
+
+---
+
+**❌ Impact levels**
+```markdown
+- [ ] High Impact
+- [ ] Medium Impact
+- [x] Low Impact
+```
+
+**✅ Use emoji header + analysis:**
+```markdown
+🟢 **Low Impact**
+
+**Analysis:**
+- Code refactoring only, no runtime changes
+- STAGING/PROD use existing constructs
+- DEV/QA validated successfully
+```
+
+---
+
+**❌ Multiple change types**
+```markdown
+- [x] feat
+- [x] refactor
+- [ ] fix
+```
+
+**Problem:** Looks like checklist, but it's categorical information
+
+**✅ List types with emojis:**
+```markdown
+♻️ refactor: 리팩토링 (Profile 서비스 아키텍처 개선)
+🎉 feat: 새로운 기능 (CloudFront custom domain 제어)
+🔧 chore: 유지보수 (CDK 업데이트, 도구 개선)
+```
+
+#### When TO Use Checkboxes
+
+**✅ Actual task lists (pre-flight checks)**
+```markdown
+## Pre-deployment Tests
+
+- [x] `npm run lint:check` passed
+- [x] `npm run build` succeeded
+- [x] `npm run cdk synth` succeeded
+- [ ] CloudFormation Change Set reviewed
+- [ ] Security impact reviewed
+```
+
+**✅ Post-deployment verification**
+```markdown
+## Verification Steps
+
+- [ ] ECS Service status: RUNNING
+- [ ] Target Group health: Healthy
+- [ ] CloudWatch Logs: No errors
+- [ ] API endpoints responding
+```
+
+**Why:** These are actual TODO items requiring completion
+
+#### Checkbox Alternatives Reference
+
+| Use Case | Instead of Checkbox | Use |
+|----------|-------------------|-----|
+| **Single selection** | `- [x] Option A` | Direct statement: `**Field:** Value` |
+| **Yes/No** | `- [x] Yes` | Emoji: `**Field:** ✅ Yes` or `❌ No` |
+| **Impact levels** | `- [x] Low` | Emoji header: `🟢 **Low Impact**` |
+| **Multiple types** | `- [x] feat`<br>`- [x] fix` | Listed: `♻️ refactor`<br>`🎉 feat` |
+| **Environment** | `- [x] STAGING` | Badge: `![STAGING](url)` or direct text |
+| **Breaking** | `- [x] Breaking` | Conditional: `⚠️ Yes` with details OR `❌ No` |
+
+#### Visual Hierarchy Tips
+
+**1. Use traffic light emojis for impact:**
+- 🔴 High Impact
+- 🟡 Medium Impact
+- 🟢 Low Impact
+
+**2. Use status emojis for binary states:**
+- ✅ Complete / ❌ Not complete
+- ⚠️ Warning / 🚨 Critical
+- ⏳ In Progress / 🎯 Planned
+
+**3. Use type emojis for change categories:**
+- 🎉 feat (new feature)
+- 🐛 fix (bug fix)
+- ♻️ refactor (restructuring)
+- 📝 docs (documentation)
+- 🔧 chore (maintenance)
+- 🤖 ci (CI/CD)
+
+**4. Use bold for field labels:**
+```markdown
+**Target Environment:** STAGING
+**Impact Level:** 🟢 Low
+**Breaking Change:** ❌ No
+```
+
+**5. Use blockquotes for important notes:**
+```markdown
+> **중요:** STAGING/PROD는 기존 구조를 유지합니다
+```
+
+See [examples/environment-promotion.md](examples/environment-promotion.md) for full examples.
+
 ### 4. Fill Out PR Template Sections
 
 For each section in the PR template, follow this decision-making process:
