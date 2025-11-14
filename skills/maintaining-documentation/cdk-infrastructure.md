@@ -89,7 +89,50 @@ CDK/IaC projects typically have these distinct categories of changes:
 - Rollback procedures
 - Pipeline architecture diagrams
 
-### 4. Patterns and Conventions
+### 4. Deployment Safety Mechanisms
+**Definition:** Infrastructure that prevents dangerous deployments, detects resource replacements, and requires manual approval.
+
+**Examples:**
+- Git pre-push hooks (running `cdk diff` before deployment)
+- Deployment approval scripts (analyzing CloudFormation changes)
+- Resource replacement detection logic
+- Deployment footer validation (commit-msg hooks)
+- CloudFormation logical ID preservation strategies
+- Manual deletion procedures for fixed-name resources
+
+**CLAUDE.md Sections to Update:**
+- Git Workflow & Version Control → Pre-Push Hook Integration
+- Important Patterns and Conventions → Resource Naming
+- Deployment Considerations
+
+**README.md Updates:**
+- Development workflow setup (git hooks installation)
+- Quick start prerequisites (git hooks setup)
+
+**docs/ to Create/Update:**
+- `docs/GIT_HOOKS_SETUP.md` - Complete git hooks setup guide
+- `docs/DEPLOYMENT_APPROVAL_WORKFLOW.md` - How to handle blocked deployments
+- `docs/RESOURCE_NAMING_FIXED_VS_AUTO.md` - Fixed vs auto-generated naming
+- `docs/REFACTORING_STRATEGY_FIXED_NAMES.md` - Safe refactoring patterns
+- `docs/CDK_DIFF_EXPLAINED.md` - Understanding cdk diff output
+- `scripts/analyze-and-approve-deployment.sh` - Deployment analysis script
+- `scripts/setup-git-hooks.sh` - Git hooks installation script
+- `.githooks/pre-push` - Pre-push hook implementation
+
+**Skill Updates to Create/Update:**
+- `.claude/config/git-strategy.md` - Add "Pre-Push Hook Integration" section
+- `.claude/skills/conventional-commits/` - Add deployment footer documentation
+- `.claude/skills/cdk-expert/docs/cloudformation-safety.md` - Add pre-push hook workflow
+
+**When this category applies:**
+- Implementing git hooks for deployment safety
+- Adding deployment approval mechanisms
+- Creating scripts for analyzing CloudFormation changes
+- Updating resource naming to prevent replacements
+- Adding footer validation to commits
+- Implementing manual deletion workflows
+
+### 5. Patterns and Conventions
 **Definition:** Coding patterns, naming conventions, validation rules, and development workflows.
 
 **Examples:**
@@ -116,7 +159,7 @@ CDK/IaC projects typically have these distinct categories of changes:
 - Architecture decision records (ADRs)
 - Best practices documentation
 
-### 5. CDK Construct Dependency Patterns
+### 6. CDK Construct Dependency Patterns
 **Definition:** How dependencies are passed between CDK constructs (ConfigService, shared resources, etc.)
 
 **Common Anti-Patterns:**
@@ -204,6 +247,22 @@ Code Change Made
 │  ├─ YES → Update CLAUDE.md "Deployment Flow"
 │  │       Update CLAUDE.md CI/CD paths
 │  │       Update README.md deployment instructions
+│  └─ NO → Continue
+│
+├─ Implemented deployment safety mechanisms?
+│  ├─ YES → Update CLAUDE.md "Git Workflow & Version Control"
+│  │       Add "Pre-Push Hook Integration" section
+│  │       Update CLAUDE.md "Important Patterns and Conventions"
+│  │       Update README.md development workflow setup
+│  │       Create docs/GIT_HOOKS_SETUP.md
+│  │       Create docs/DEPLOYMENT_APPROVAL_WORKFLOW.md
+│  │       Create docs/RESOURCE_NAMING_FIXED_VS_AUTO.md (if relevant)
+│  │       Create scripts/analyze-and-approve-deployment.sh
+│  │       Create scripts/setup-git-hooks.sh
+│  │       Create .githooks/pre-push
+│  │       Update .claude/config/git-strategy.md (if exists)
+│  │       Update .claude/skills/conventional-commits/ deployment footer docs
+│  │       Update .claude/skills/cdk-expert/docs/cloudformation-safety.md
 │  └─ NO → Continue
 │
 ├─ Introduced new pattern/convention/workflow?
