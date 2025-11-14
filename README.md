@@ -56,13 +56,13 @@ In your target project, add this repository as a git submodule:
 cd /path/to/your/project
 
 # Add the submodule
-git submodule add <your-repo-url> .claude/submodules/claude-skills
+git submodule add <your-repo-url> claude-skills
 
 # Initialize and update the submodule
 git submodule update --init --recursive
 ```
 
-**Note:** The path `.claude/submodules/claude-skills` is recommended for organization, but you can choose any location.
+**Note:** The path `claude-skills` is recommended for simplicity, but you can choose any location.
 
 ### Step 2: Create Symlinks to Skills
 
@@ -73,13 +73,13 @@ Claude Code discovers skills in `.claude/skills/`, so create symlinks from there
 cd .claude/skills/
 
 # Create symlinks for each skill you want to use
-ln -s ../submodules/claude-skills/skills/claude-md-refactoring claude-md-refactoring
-ln -s ../submodules/claude-skills/skills/test-symlink-skill test-symlink-skill
+ln -s ../../claude-skills/skills/claude-md-refactoring claude-md-refactoring
+ln -s ../../claude-skills/skills/test-symlink-skill test-symlink-skill
 
 # Or create symlinks for all skills at once
-cd .claude/skills && for skill_dir in ../submodules/claude-skills/skills/*/; do
+cd .claude/skills && for skill_dir in ../../claude-skills/skills/*/; do
   skill_name=$(basename "$skill_dir")
-  ln -s "../submodules/claude-skills/skills/$skill_name" "$skill_name"
+  ln -s "../../claude-skills/skills/$skill_name" "$skill_name"
 done
 ```
 
@@ -91,7 +91,7 @@ Symlinks are tracked by git and will work for your team members:
 
 ```bash
 git add .claude/skills/
-git add .claude/submodules/
+git add claude-skills/
 git add .gitmodules
 git commit -m "Add shared Claude Code skills as submodule"
 git push
@@ -111,10 +111,10 @@ If you want to use the example commands from this repository:
 
 ```bash
 # Copy commands to your project (not symlinked)
-cp .claude/submodules/claude-skills/commands/*.md .claude/commands/
+cp claude-skills/commands/*.md .claude/commands/
 
 # Or copy selectively
-cp .claude/submodules/claude-skills/commands/commit.md .claude/commands/
+cp claude-skills/commands/commit.md .claude/commands/
 ```
 
 **Why copy instead of symlink?**
@@ -305,16 +305,16 @@ To pull the latest changes from this skill repository:
 
 ```bash
 # Navigate to the submodule
-cd .claude/submodules/claude-skills
+cd claude-skills
 
 # Pull latest changes
-git pull origin main
+git pull upstream main
 
 # Go back to project root
-cd ../../..
+cd ..
 
 # Commit the submodule update
-git add .claude/submodules/claude-skills
+git add claude-skills
 git commit -m "Update shared skills to latest version"
 git push
 ```
@@ -324,10 +324,10 @@ git push
 If you need to pin to a specific version:
 
 ```bash
-cd .claude/submodules/claude-skills
+cd claude-skills
 git checkout <commit-hash-or-tag>
-cd ../../..
-git add .claude/submodules/claude-skills
+cd ..
+git add claude-skills
 git commit -m "Update shared skills to version X.Y.Z"
 git push
 ```
@@ -335,7 +335,7 @@ git push
 ### Check Current Version
 
 ```bash
-cd .claude/submodules/claude-skills
+cd claude-skills
 git log -1 --oneline
 ```
 
@@ -387,15 +387,15 @@ In projects that use this submodule:
 1. Update the submodule:
 
     ```bash
-    cd .claude/submodules/claude-skills
-    git pull origin main
-    cd ../..
+    cd claude-skills
+    git pull upstream main
+    cd ..
     ```
 
 2. Create symlink:
     ```bash
     cd .claude/skills
-    ln -s ../submodules/claude-skills/skills/my-new-skill my-new-skill
+    ln -s ../../claude-skills/skills/my-new-skill my-new-skill
     git add my-new-skill
     git commit -m "Add my-new-skill symlink"
     ```
@@ -413,9 +413,9 @@ To automatically create symlinks after checkout, create `.git/hooks/post-checkou
 cd .claude/skills/ || exit
 
 # Create symlinks for all skills
-for skill in ../submodules/claude-skills/skills/*/; do
+for skill in ../../claude-skills/skills/*/; do
     skill_name=$(basename "$skill")
-    ln -sf "../submodules/claude-skills/skills/$skill_name" "$skill_name"
+    ln -sf "../../claude-skills/skills/$skill_name" "$skill_name"
 done
 ```
 
@@ -493,7 +493,7 @@ git submodule status
 git submodule update --remote --force
 
 # Or reinitialize
-git submodule deinit -f .claude/submodules/claude-skills
+git submodule deinit -f claude-skills
 git submodule update --init
 ```
 
@@ -502,7 +502,7 @@ git submodule update --init
 When you update a submodule, it enters "detached HEAD" state. This is normal:
 
 ```bash
-cd .claude/submodules/claude-skills
+cd claude-skills
 git checkout main  # Or your default branch
 git pull
 ```
