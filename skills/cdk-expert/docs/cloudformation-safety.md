@@ -371,6 +371,207 @@ npm run cdk diff
 #     (means REPLACEMENT - DON'T DEPLOY!)
 ```
 
+---
+
+## Real Production Incident: Service Construct Refactoring Failure
+
+**Date:** 2025-11-12
+**Severity:** CRITICAL - Production rollback, all CodeBuild projects deleted
+**Root Cause:** Mid-level construct refactoring without `overrideLogicalId()`
+
+### What Happened
+
+**Goal:** Refactor Service construct to support two-phase deployment (infrastructure vs application)
+
+**Implementation (WRONG):**
+```typescript
+// BEFORE: Flat structure (Working)
+export class Service extends Construct {
+  constructor(scope, id, props) {
+    super(scope, id)  // id = "Auth"
+
+    const repository = new EcrRepository(this, 'ECR', {...})
+    // Logical ID: AuthECRRepo72FDEBC1
+
+    const codeBuild = new CodeBuildProjectConstruct(this, 'CodeBuildProjectConstruct', {...})
+    // Logical ID: AuthCodeBuildProjectConstruct...
+
+    const service = new FargateService(this, 'FargateService', {...})
+    // Logical ID: AuthFargateService...
+  }
+}
+
+// AFTER: Mid-level constructs (BROKEN - No overrideLogicalId!)
+export class Service extends Construct {
+  constructor(scope, id, props) {
+    super(scope, id)  // id = "Auth"
+
+    const infra = new ServiceInfraConstruct(this, 'Infra', {...})
+    // ❌ New parent scope adds "Infra" prefix!
+
+    const app = new ServiceAppConstruct(this, 'App', {...})
+    // ❌ New parent scope adds "App" prefix!
+  }
+}
+
+export class ServiceInfraConstruct extends Construct {
+  constructor(scope, id, props) {
+    super(scope, id)  // id = "Infra"
+
+    const repository = new EcrRepository(this, 'ECR', {...})
+    // Logical ID: AuthInfraECRRepo21DBF314  ❌ DIFFERENT!
+
+    const codeBuild = new CodeBuildProjectConstruct(this, 'CodeBuildProjectConstruct', {...})
+    // Logical ID: AuthInfraCodeBuildProject...  ❌ DIFFERENT!
+  }
+}
+```
+
+### CloudFormation Behavior
+
+```
+Logical ID Changed: AuthECRRepo72FDEBC1 → AuthInfraECRRepo21DBF314
+
+CloudFormation interprets this as:
+1. DELETE old resource (AuthECRRepo72FDEBC1)
+2. CREATE new resource (AuthInfraECRRepo21DBF314)
+
+But both try to use same physical name "auth" → CONFLICT!
+
+Error: "auth already exists in stack arn:aws:cloudformation:..."
+```
+
+### Impact
+
+**Resources Affected:**
+- ❌ All 7 CodeBuild projects: DELETED
+- ❌ ECR repositories: Attempted deletion
+- ❌ ECS services: Attempted recreation
+- ❌ ALB target groups: Name conflicts
+
+**Stack State:** `UPDATE_ROLLBACK_COMPLETE` (unable to update, only delete)
+
+**Recovery Time:** 4+ hours to rollback, delete stack, clean up orphaned resources, and redeploy
+
+### Why It Failed
+
+**Missing Step:** No `overrideLogicalId()` used to preserve Logical IDs
+
+**What Should Have Been Done:**
+```typescript
+export class ServiceInfraConstruct extends Construct {
+  constructor(scope, id, props) {
+    super(scope, id)  // id = "Infra"
+
+    const repository = new EcrRepository(this, 'ECR', {...})
+
+    // ✅ CRITICAL: Preserve original Logical ID
+    const cfnRepo = repository.node.defaultChild as CfnRepository
+    cfnRepo.overrideLogicalId('AuthECRRepo72FDEBC1')  // Exact match!
+
+    const codeBuild = new CodeBuildProjectConstruct(this, 'CodeBuildProjectConstruct', {...})
+    const cfnCodeBuild = codeBuild.node.defaultChild as CfnProject
+    cfnCodeBuild.overrideLogicalId('AuthCodeBuildProjectConstruct...')  // Exact match!
+  }
+}
+```
+
+### Lessons Learned
+
+**1. ALWAYS run `cdk diff` before deploying refactored code**
+```bash
+# Would have shown:
+[-] AWS::ECR::Repository AuthECRRepo72FDEBC1
+[+] AWS::ECR::Repository AuthInfraECRRepo21DBF314
+# ❌ This is REPLACEMENT - DO NOT DEPLOY!
+```
+
+**2. Hierarchical construct changes = Logical ID changes**
+- Adding parent constructs changes the construct tree path
+- Construct tree path determines Logical ID
+- Different Logical ID = CloudFormation replacement
+
+**3. `overrideLogicalId()` is MANDATORY when:**
+- Moving resources between constructs
+- Adding wrapper/parent constructs
+- Changing construct hierarchy
+- Any refactoring that changes construct tree
+
+**4. Test in DEV first, one service at a time**
+- Don't migrate all services at once
+- Verify zero CloudFormation changes
+- Rollback plan ready
+
+### Correct Refactoring Approach
+
+**Step 1: Capture existing Logical IDs**
+```bash
+npm run cdk synth > before.yaml
+grep -E "^  Auth[A-Z]" before.yaml > auth-logical-ids.txt
+```
+
+**Step 2: Implement with `overrideLogicalId()`**
+```typescript
+export class ServiceInfraConstruct extends Construct {
+  constructor(scope, id, props) {
+    super(scope, id)
+
+    // For EVERY resource, override Logical ID to match original
+    const repository = new EcrRepository(this, 'ECR', {...})
+    const cfnRepo = repository.node.defaultChild as CfnRepository
+    cfnRepo.overrideLogicalId('AuthECRRepo72FDEBC1')
+
+    const codeBuild = new CodeBuildProjectConstruct(this, 'CodeBuildProjectConstruct', {...})
+    const cfnCodeBuild = codeBuild.node.defaultChild as CfnProject
+    cfnCodeBuild.overrideLogicalId('AuthCodeBuildProjectConstruct...')
+
+    // Repeat for ALL resources in the construct
+  }
+}
+```
+
+**Step 3: Verify zero changes**
+```bash
+npm run cdk synth > after.yaml
+diff before.yaml after.yaml  # Should show ZERO Logical ID differences
+
+npm run cdk diff  # Should show NO resource replacements
+```
+
+**Step 4: Test with ONE service first**
+```typescript
+// Only migrate auth, leave others unchanged
+const services = {
+  [ServiceName.AUTH]: new ServiceV2(this, 'Auth', {...}),  // New
+  [ServiceName.YOZM]: new Service(this, 'Yozm', {...}),    // Old
+  // ... others stay on old Service
+}
+```
+
+**Step 5: Deploy and verify**
+```bash
+# Deploy to DEV
+git checkout -b refactor/service-v2-auth-test
+git push origin refactor/service-v2-auth-test
+
+# Monitor CloudFormation - should see UPDATE, not REPLACE
+# Verify auth service remains healthy
+# Only then migrate next service
+```
+
+### Prevention Checklist
+
+Before ANY construct refactoring:
+
+- [ ] Read CloudFormation Safety documentation
+- [ ] Run `cdk synth` to capture current Logical IDs
+- [ ] Plan use of `overrideLogicalId()` for ALL resources
+- [ ] Test in DEV environment first
+- [ ] Migrate one service/construct at a time
+- [ ] Verify `cdk diff` shows zero replacements
+- [ ] Have rollback plan ready (git revert)
+- [ ] Monitor CloudFormation events during deployment
+
 **Step 5: Test in DEV**
 ```bash
 # Deploy to DEV first
@@ -456,6 +657,244 @@ Before refactoring infrastructure code, complete this checklist:
 - [ ] **Know how to rollback**: Can we revert the CDK code?
 - [ ] **Data recovery plan**: How to restore data if lost?
 - [ ] **Communication plan**: Who to notify if issues occur?
+
+---
+
+## Pre-Push Hook Integration
+
+### Automated Safety Detection
+
+Infrastructure projects can use **pre-push hooks** to automatically detect dangerous refactoring before deployment.
+
+**Hook behavior:**
+```
+Developer → git push → Pre-push hook → cdk diff → Detect [-/+] → Block if dangerous
+```
+
+**What it detects:**
+- Resource replacements (logical ID changes)
+- Fixed-name resource recreations (CodeBuild, ECS)
+- Changes that would cause downtime
+
+### When Pre-Push Hook Blocks Your Refactoring
+
+**Scenario:** You refactored code and tried to push, but hook blocked it.
+
+```bash
+$ git push origin master
+
+❌ DANGEROUS DEPLOYMENT DETECTED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Resource replacements detected:
+  [-/+] AWS::CodeBuild::Project (dev-service-auth-build)
+  [-/+] AWS::ECS::Service (dev-service-auth)
+
+BLOCKED: These changes will DELETE and RECREATE resources!
+```
+
+**This is the hook doing its job!** It detected that your refactoring changed logical IDs.
+
+### Three Options When Hook Blocks
+
+#### Option 1: Fix with `overrideLogicalId()` (Recommended)
+
+Use `overrideLogicalId()` to preserve logical IDs after refactoring:
+
+```typescript
+// Your refactoring changed: ServiceConstruct → ServiceInfraConstruct
+// This changed logical IDs, triggering hook
+
+// FIX: Override to preserve old logical ID
+const codeBuildProject = new Project(this, 'CodeBuildProject', {
+  projectName: `${environment}-service-${serviceName}-build`,
+})
+
+// Preserve the old logical ID from before refactoring
+codeBuildProject.node.addMetadata(
+  'aws:cdk:logicalId',
+  `Service${pascalCase(serviceName)}CodeBuild`  // Old ID from ServiceConstruct
+)
+```
+
+**Then:**
+```bash
+git add .
+git commit --amend --no-edit  # Update commit with fix
+git push origin master  # Hook re-runs, now passes ✅
+```
+
+#### Option 2: Approve with Deployment Footer
+
+If replacement is intentional and safe:
+
+```bash
+# Run analysis script
+./scripts/analyze-and-approve-deployment.sh
+
+# Script adds approval footer to commit:
+# Safe-To-Deploy: manual-deletion-planned
+# Analyzed-By: Your Name
+# Services: auth
+# Resources-Affected: CodeBuild=1
+
+git push origin master  # Hook validates footer and allows push
+```
+
+**When to use:**
+- Resource is stateless (safe to replace)
+- You've planned manual deletion steps
+- Incremental rollout (one service at a time)
+
+#### Option 3: Bypass Hook (Emergency Only)
+
+```bash
+git push --no-verify origin master  # ⚠️ Bypasses all hooks!
+```
+
+**Only use for:**
+- Testing the hook itself
+- Emergency hotfixes where delay is critical
+- Intentional resource recreation (document in commit)
+
+### Refactoring Workflow with Pre-Push Hook
+
+**Recommended workflow:**
+
+1. **Plan refactoring:**
+   - Identify constructs to extract
+   - List resources that will be affected
+   - Determine which logical IDs need preservation
+
+2. **Implement with `overrideLogicalId()`:**
+   ```typescript
+   // Extract construct
+   export class ServiceInfraConstruct extends Construct {
+     constructor(scope, id, props) {
+       super(scope, id)
+
+       const build = new Project(this, 'Build', { /* ... */ })
+
+       // Preserve old logical ID from before extraction
+       build.node.addMetadata('aws:cdk:logicalId', 'OldLogicalId')
+     }
+   }
+   ```
+
+3. **Test locally:**
+   ```bash
+   cdk diff  # Verify no [-/+] patterns
+   ```
+
+4. **Commit and push:**
+   ```bash
+   git commit -m "refactor(service): Extract ServiceInfraConstruct"
+   git push origin master  # Pre-push hook validates safety ✅
+   ```
+
+5. **If hook blocks:**
+   - Review `cdk diff` output in error message
+   - Fix with `overrideLogicalId()` (option 1)
+   - OR approve with footer if intentional (option 2)
+
+### Pre-Push Hook Best Practices
+
+#### Always Fix (Never Approve) For:
+
+- **Routine refactoring** - extract methods, rename files
+- **Scope changes** - moving constructs to different files
+- **Code organization** - directory restructuring
+- **Any change where `overrideLogicalId()` can prevent replacement**
+
+#### Consider Approval Footer For:
+
+- **Intentional replacements** - upgrading to new resource type
+- **Stateless resources** - Lambda functions (code-only updates)
+- **Two-phase deployment** - separating build from runtime infrastructure
+- **Testing in DEV** - validating new patterns before production
+
+#### Never Bypass Hook For:
+
+- Routine development work
+- "I'll fix it later" situations
+- Because you're in a hurry
+- Without documenting why in commit message
+
+### Troubleshooting Pre-Push Hook
+
+**Hook blocks valid refactoring:**
+```bash
+# Check what changed
+cdk diff
+
+# If you used overrideLogicalId() but hook still blocks:
+# 1. Verify logical ID string matches exactly
+# 2. Check all affected resources have overrides
+# 3. Review cdk diff output for remaining [-/+] patterns
+```
+
+**Hook doesn't detect issue:**
+```bash
+# Hook may not catch all scenarios
+# Always manually review cdk diff:
+cdk diff | grep -E '^\[.?\+\]'  # Find replacements
+```
+
+**Hook fails to run:**
+```bash
+# Verify hook is installed
+ls -la .git/hooks/pre-push
+
+# Re-install if missing
+./scripts/setup-git-hooks.sh
+```
+
+### Example: Refactoring with Pre-Push Hook
+
+**Scenario:** Extract `ServiceInfraConstruct` from `ServiceConstruct`
+
+**Step 1: Identify affected resources**
+```typescript
+// Before: ServiceConstruct creates CodeBuild directly
+const codeBuild = new Project(this, 'CodeBuild', {})
+// Logical ID: ServiceAuthCodeBuild1234
+```
+
+**Step 2: Extract with overrides**
+```typescript
+// After: ServiceInfraConstruct now owns CodeBuild
+export class ServiceInfraConstruct extends Construct {
+  constructor(scope, id, props) {
+    super(scope, id)  // id will be different!
+
+    const codeBuild = new Project(this, 'CodeBuild', {})
+
+    // Override to preserve old logical ID
+    codeBuild.node.addMetadata('aws:cdk:logicalId', 'ServiceAuthCodeBuild1234')
+  }
+}
+```
+
+**Step 3: Verify with cdk diff**
+```bash
+cdk diff
+# Should show no [-/+] for CodeBuild
+# Only [~] (update) or nothing
+```
+
+**Step 4: Commit and push**
+```bash
+git commit -m "refactor(service): Extract ServiceInfraConstruct"
+git push origin master
+# ✅ Pre-push hook validates no replacements, allows push
+```
+
+**If hook had blocked:**
+```bash
+# Option 1: Review error, fix overrideLogicalId()
+# Option 2: Run approval script if intentional
+./scripts/analyze-and-approve-deployment.sh
+```
 
 ---
 
