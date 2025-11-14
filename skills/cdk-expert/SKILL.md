@@ -138,7 +138,10 @@ See **[CloudFormation Safety](./docs/cloudformation-safety.md)** ⚠️
 - [ ] Run `cdk diff` to see CloudFormation changes
 - [ ] Check for `[-/+]` (replacement) vs `[~]` (update)
 - [ ] Identify stateful resources (S3, RDS, DynamoDB)
-- [ ] Use `overrideLogicalId()` if needed
+- [ ] Choose refactoring approach:
+  - [ ] **`cdk refactor`** (recommended) - Updates logical IDs without replacement
+  - [ ] **`overrideLogicalId()`** (fallback) - Manual logical ID preservation
+  - [ ] **Accept replacement** (if resources are stateless)
 - [ ] Test in DEV environment first
 
 ---
@@ -159,7 +162,9 @@ See **[CloudFormation Safety](./docs/cloudformation-safety.md)** ⚠️
 - Changing construct ID (changes logical ID)
 - Changing resource ID parameter (changes logical ID)
 
-**Solution:** Use `overrideLogicalId()` for L1 (Cfn*) constructs to preserve logical IDs.
+**Solutions (in order of preference):**
+1. **`cdk refactor`** command (recommended) - Updates logical IDs in-place without resource replacement
+2. **`overrideLogicalId()`** - Manual preservation for L1 (Cfn*) constructs
 
 **Full details:** [CloudFormation Safety Guide](./docs/cloudformation-safety.md)
 

@@ -242,14 +242,33 @@ diff <(grep -o '"[^"]*"' before.json | sort) \
 
 **Step 3: Choose approach**
 
-**Option A: Accept replacement (if safe)**
+**Option A: CDK Refactor Command (Recommended)**
 
-```typescript
-// Old construct gone, new construct created
-// CloudFormation will replace resources
+```bash
+# 1. Make refactoring changes (move resources, rename constructs)
+# 2. Apply refactoring FIRST (before other changes)
+npm run cdk -- refactor --unstable=refactor
+# CDK detects logical ID changes and updates them in-place
+# No resource replacement!
+
+# 3. Then deploy normally
+npm run cdk deploy
 ```
 
-**Option B: Use overrideLogicalId() to prevent replacement**
+**When to use:**
+- Moving resources between constructs
+- Renaming constructs
+- Reorganizing construct hierarchy
+- Any change that affects logical IDs
+
+**Constraints:**
+- ⚠️ Preview feature (requires `--unstable=refactor` flag)
+- ⚠️ Must refactor separately from other infrastructure changes
+- ⚠️ Resources must stay in same AWS account/region
+
+**See:** `/TEMP_CDK_REFACTOR_RESEARCH.md` for complete guide
+
+**Option B: Use overrideLogicalId() (Manual Fallback)**
 
 ```typescript
 export class NewConstruct extends Construct {
@@ -263,13 +282,35 @@ export class NewConstruct extends Construct {
 }
 ```
 
-**Option C: Incremental migration**
+**When to use:**
+- `cdk refactor` not viable (cross-account, specific resource types)
+- Need fine-grained control over specific resources
+- Legacy code maintenance
+
+**Option C: Accept replacement (if safe)**
+
+```typescript
+// Old construct gone, new construct created
+// CloudFormation will replace resources
+```
+
+**When to use:**
+- Resources are stateless (Lambda, IAM roles, Glue tables)
+- Testing in DEV environment
+- Intentional resource recreation
+
+**Option D: Incremental migration**
 
 ```typescript
 // Phase 1: Keep old construct, add new construct (both exist)
 // Phase 2: Migrate resources gradually
 // Phase 3: Remove old construct when empty
 ```
+
+**When to use:**
+- High-risk production changes
+- Large-scale refactoring across many services
+- Need to validate each step
 
 ---
 
@@ -280,8 +321,12 @@ Before executing refactoring:
 - [ ] I've identified a clear benefit (reuse, separation, testing)
 - [ ] I've run `cdk diff` to check CloudFormation impact
 - [ ] I've identified resources that will be replaced
-- [ ] I've verified replaced resources are safe (stateless)
-- [ ] I've planned use of `overrideLogicalId()` if needed
+- [ ] I've verified replaced resources are safe (stateless) OR planned to use `cdk refactor`
+- [ ] I've chosen refactoring approach:
+  - [ ] Option A: `cdk refactor` command (recommended for logical ID changes)
+  - [ ] Option B: `overrideLogicalId()` (manual fallback)
+  - [ ] Option C: Accept replacement (stateless resources only)
+  - [ ] Option D: Incremental migration (high-risk changes)
 - [ ] I'll test in DEV environment first
 - [ ] I've documented the refactoring plan
 

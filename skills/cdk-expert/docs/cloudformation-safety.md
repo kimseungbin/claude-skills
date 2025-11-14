@@ -168,11 +168,54 @@ new Bucket(this, 'NewBucket')
 
 ---
 
-## Using overrideLogicalId()
+## Handling Logical ID Changes: Two Approaches
 
-### When to Use
+When refactoring causes logical ID changes, you have two options:
 
-Use `overrideLogicalId()` to preserve logical IDs when refactoring:
+### Option 1: CDK Refactor Command (Recommended)
+
+**Best for:** Any refactoring that changes logical IDs (construct moves, renames, hierarchy changes)
+
+The `cdk refactor` command is the **safest and recommended approach** for handling logical ID changes. It uses CloudFormation's refactoring API to update logical IDs in-place without resource replacement.
+
+**When to use:**
+- Moving resources between constructs
+- Renaming constructs
+- Reorganizing construct hierarchy
+- Extracting reusable constructs
+
+**Workflow:**
+```bash
+# 1. Make code changes that affect logical IDs
+# (e.g., rename construct, move to new parent)
+
+# 2. Validate refactoring
+npm run cdk synth -- --unstable=refactor
+
+# 3. Preview logical ID mapping
+npm run cdk diff -- --unstable=refactor
+# Shows: OldLogicalID → NewLogicalID (no resource replacement)
+
+# 4. Apply refactoring (separate from other changes!)
+npm run cdk -- refactor --unstable=refactor
+
+# 5. Deploy normally
+npm run cdk deploy
+```
+
+**Important constraints:**
+- ⚠️ Preview feature (requires `--unstable=refactor` flag)
+- ⚠️ Must refactor separately from other infrastructure changes
+- ⚠️ Resources must stay in same AWS account/region
+- ⚠️ Requires up-to-date CDK bootstrap
+
+**See also:** `/TEMP_CDK_REFACTOR_RESEARCH.md` for comprehensive guide
+
+### Option 2: overrideLogicalId() (Manual Fallback)
+
+**Best for:** When `cdk refactor` is not viable (cross-account, specific resource types)
+
+Use `overrideLogicalId()` to manually preserve logical IDs when refactoring:
 
 ```typescript
 // ✅ Preserve logical ID to avoid replacement
@@ -455,9 +498,34 @@ Error: "auth already exists in stack arn:aws:cloudformation:..."
 
 ### Why It Failed
 
-**Missing Step:** No `overrideLogicalId()` used to preserve Logical IDs
+**Missing Step:** Neither `cdk refactor` command nor `overrideLogicalId()` was used to preserve Logical IDs.
 
-**What Should Have Been Done:**
+### How CDK Refactor Would Have Prevented This
+
+**The BEST approach would have been using `cdk refactor`:**
+
+```bash
+# 1. Make the construct hierarchy changes (add ServiceInfraConstruct)
+# 2. Apply refactoring FIRST (before any other changes)
+npm run cdk -- refactor --unstable=refactor
+# CDK detects logical ID changes and updates them in-place
+# No resource replacement, no conflicts, no downtime!
+
+# 3. Then deploy normally
+npm run cdk deploy
+```
+
+**Why `cdk refactor` is ideal for this scenario:**
+- ✅ Automatically detects all logical ID changes across all 7 services
+- ✅ Updates CloudFormation logical IDs without resource replacement
+- ✅ No manual work needed to find and override each logical ID
+- ✅ Works with mid-level construct refactoring (ServiceInfra, ServiceApp)
+- ✅ Prevents the name conflict that caused the failure
+
+### Fallback: Manual overrideLogicalId() Approach
+
+**If `cdk refactor` isn't available, use `overrideLogicalId()`:**
+
 ```typescript
 export class ServiceInfraConstruct extends Construct {
   constructor(scope, id, props) {
