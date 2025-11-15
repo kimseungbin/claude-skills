@@ -1270,6 +1270,6 @@ Infrastructure projects need different sections than frontend projects. CDK proj
 
 ## See Also
 
-- [Conventional Commits Skill](../conventional-commits/skill.md) - For commit message generation
+- [Conventional Commits Skill](../conventional-commits/SKILL.md) - For commit message generation
 - [GitHub PR Template Best Practices](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/creating-a-pull-request-template-for-your-repository)
 - Project-specific: `.github/pr-guidelines/` (if exists)
