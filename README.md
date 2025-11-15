@@ -43,259 +43,53 @@ This repository uses a combination of git submodules and symlinks to provide:
 3. **Flexibility** - Choose which skills to include in each project
 4. **Auto-updates** - Pull latest skill improvements with a simple git command
 
-## Setup Instructions
+## Quick Start
 
-Follow these steps to use this skill repository in your project.
+**📖 See [Getting Started Guide](docs/getting-started.md) for detailed setup instructions.**
 
-### Step 1: Add as Git Submodule
-
-In your target project, add this repository as a git submodule:
+Quick setup:
 
 ```bash
-# Navigate to your project root
-cd /path/to/your/project
-
-# Add the submodule
+# 1. Add as submodule
 git submodule add <your-repo-url> claude-skills
-
-# Initialize and update the submodule
 git submodule update --init --recursive
-```
 
-**Note:** The path `claude-skills` is recommended for simplicity, but you can choose any location.
-
-### Step 2: Create Symlinks to Skills
-
-Claude Code discovers skills in `.claude/skills/`, so create symlinks from there to the skills in the submodule:
-
-```bash
-# Navigate to your skills directory
-cd .claude/skills/
-
-# Create symlinks for each skill you want to use
-ln -s ../../claude-skills/skills/claude-md-refactoring claude-md-refactoring
-ln -s ../../claude-skills/skills/test-symlink-skill test-symlink-skill
-
-# Or create symlinks for all skills at once
+# 2. Create individual symlinks for each skill
 cd .claude/skills && for skill_dir in ../../claude-skills/skills/*/; do
   skill_name=$(basename "$skill_dir")
   ln -s "../../claude-skills/skills/$skill_name" "$skill_name"
 done
-```
 
-**Important:** Adjust paths based on where you placed your submodule.
-
-### Step 3: Commit the Symlinks
-
-Symlinks are tracked by git and will work for your team members:
-
-```bash
-git add .claude/skills/
-git add claude-skills/
-git add .gitmodules
+# 3. Commit
+git add .claude/skills/ claude-skills/ .gitmodules
 git commit -m "Add shared Claude Code skills as submodule"
 git push
 ```
 
-### Step 4: Verify Setup
+**⚠️ Important:** Create individual symlinks for each skill (as shown above), not a single symlink to the entire `skills/` directory. This allows you to mix shared skills with project-specific ones.
 
-Test that Claude Code can discover your skills:
-
-1. Open Claude Code in your project
-2. Check available skills with `/skills` command
-3. Test a skill: "Test if 'claude-md-refactoring' works"
-
-### Step 5: Add Commands (Optional)
-
-If you want to use the example commands from this repository:
-
+**Team members cloning the project:**
 ```bash
-# Copy commands to your project (not symlinked)
-cp claude-skills/commands/*.md .claude/commands/
-
-# Or copy selectively
-cp claude-skills/commands/commit.md .claude/commands/
+git clone --recurse-submodules <your-project-url>
 ```
-
-**Why copy instead of symlink?**
-
-- Commands are not officially documented to support symlinks in Claude Code
-- Commands are typically small and project-specific
-- Copying allows easy customization per project
-- Commands can reference project-specific skills or tools
-
-**Customizing commands:**
-After copying, edit the commands in `.claude/commands/` to:
-
-- Adjust `allowed-tools` to match your project's needs
-- Update skill references if you renamed or customized skills
-- Add project-specific instructions or constraints
 
 ## Project-Specific Customizations
 
-### Adding Project-Specific Config Files
-
 Skills in this repository are designed to be generic and reusable. When you need project-specific customizations, use external config files instead of modifying the symlinked skills.
-
-**Pattern: External Config Files**
 
 Skills can optionally read from `.claude/config/<skill-name>.yaml` for project-specific settings. This keeps shared skills unchanged while allowing project customization.
 
-**Example Structure:**
+**📖 See [Configuration Guide](docs/configuration.md) for detailed examples and patterns.**
 
-```
-.claude/
-├── skills/
-│   └── conventional-commits@     # Symlink to submodule (generic)
-├── config/
-│   └── conventional-commits.yaml # Project-specific config (real file)
-└── submodules/
-    └── claude-skills/
-```
-
-### How It Works
-
-1. **Skill symlinks remain unchanged** - Full directory symlinks to submodule
-2. **Config files are project-specific** - Real files committed to your project repo
-3. **Skills check for config files** - If `.claude/config/<skill-name>.yaml` exists, skill uses it
-
-### Example: Conventional Commits Skill
-
-**Generic skill (in submodule):**
-
-```yaml
-# skills/conventional-commits/SKILL.md
----
-name: Conventional Commits
-description: Create commits following Conventional Commits specification
----
-
-# Conventional Commits
-
-Follow the Conventional Commits specification:
-- Use format: type(scope): message
-- Keep subject line under 72 characters
-- Use imperative mood
-- Support multi-commit splitting
-
-## Project-Specific Rules
-
-If `.claude/config/conventional-commits.yaml` exists, also follow those rules.
-If the config file doesn't exist, create it when the user specifies project rules.
-```
-
-**Project-specific config:**
+Quick example:
 
 ```yaml
 # .claude/config/conventional-commits.yaml
 project: my-awesome-project
 ticket_format: 'JIRA-{number}'
 required_prefix: true
-custom_types:
-    - feat: New feature
-    - fix: Bug fix
-    - docs: Documentation only
-    - perf: Performance improvement
-approvers:
-    - '@tech-lead'
-branch_rules:
-    main:
-        - Require ticket number
-        - Require approval
-    develop:
-        - Optional ticket number
 ```
 
-### Creating Config Files
-
-**When Claude encounters project-specific requirements:**
-
-1. **User specifies project rules**: "For this project, all commits must include a ticket number in format PROJ-XXX"
-
-2. **Claude should**:
-    - Check if `.claude/config/<skill-name>.yaml` exists
-    - If not, create the config file with project-specific settings
-    - If exists, update with new rules
-
-3. **Example workflow**:
-
-    ```bash
-    # Claude creates the config directory if needed
-    mkdir -p .claude/config
-
-    # Claude creates/updates the config file
-    cat > .claude/config/conventional-commits.yaml <<EOF
-    project: my-project
-    ticket_format: "PROJ-{number}"
-    required_ticket: true
-    EOF
-    ```
-
-4. **Commit the config file**:
-    ```bash
-    git add .claude/config/
-    git commit -m "Add project-specific commit rules"
-    ```
-
-### Benefits of This Approach
-
-✅ **Symlinks stay simple** - Full directory symlinks, no file-by-file symlinking
-✅ **Clear separation** - Shared skills vs project-specific config
-✅ **Git-friendly** - Config files are regular files in your repo
-✅ **Updateable** - Pull skill updates without conflicts
-✅ **Team sharing** - Config files are committed and shared with team
-
-### Designing Skills for Config Support
-
-When creating skills in this repository, follow this pattern:
-
-1. **Keep skill generic** - No project-specific details in SKILL.md
-2. **Document config option** - Mention where to put project config
-3. **Provide config example** - Show sample config structure
-4. **Auto-create config** - Instruct Claude to create config file when user provides project rules
-
-**Template for skill documentation:**
-
-```markdown
-## Project-Specific Configuration
-
-This skill can be customized per-project using `.claude/config/<skill-name>.yaml`.
-
-**Config file location:** `.claude/config/<skill-name>.yaml`
-
-**When to create:** If the user specifies project-specific requirements, create this file.
-
-**Example config:**
-\`\`\`yaml
-
-# Your example config structure
-
-\`\`\`
-```
-
-## Team Collaboration
-
-### For Team Members
-
-When team members clone the repository:
-
-```bash
-# Clone with submodules
-git clone --recurse-submodules <your-project-url>
-
-# Or if already cloned, initialize submodules
-git submodule update --init --recursive
-```
-
-The symlinks work automatically, and Claude Code will discover the skills immediately.
-
-### Onboarding New Projects
-
-When starting a new project that should use these skills:
-
-1. Follow Step 1-3 above to add the submodule
-2. Create symlinks for the skills you need
-3. Commit and push
 
 ## Updating Skills
 
@@ -441,6 +235,9 @@ claude-skills/
 ├── commands/                       # Example slash commands (source files)
 │   ├── commit.md                   # Command that invokes conventional-commits skill
 │   └── refactor-claude-md.md       # Command that invokes claude-md-refactoring skill
+├── docs/                           # Documentation
+│   ├── configuration.md            # Project-specific configuration guide
+│   └── getting-started.md          # Detailed setup instructions
 ├── skills/                         # Shared skills for use as submodule
 │   ├── conventional-commits/
 │   │   ├── SKILL.md
@@ -454,7 +251,7 @@ claude-skills/
 │   └── test-symlink-skill/
 │       └── SKILL.md
 ├── CLAUDE.md                       # AI instructions for this repository
-└── README.md                       # This file (setup instructions for humans)
+└── README.md                       # This file (overview and quick reference)
 ```
 
 **Note:** This repo uses symlinks for skills but **copied files** for commands in `.claude/` for testing purposes. When using this repo as a submodule in your projects:
@@ -464,56 +261,12 @@ claude-skills/
 
 ## Troubleshooting
 
-### Symlink Not Working
+**📖 See [Getting Started Guide](docs/getting-started.md#troubleshooting) for common setup issues and solutions.**
 
-**Check symlink path:**
-
-```bash
-ls -la .claude/skills/
-readlink .claude/skills/skill-name
-```
-
-**Verify submodule initialized:**
-
-```bash
-git submodule status
-```
-
-### Skill Not Discovered by Claude Code
-
-- Ensure the skill has a `SKILL.md` file with proper frontmatter
-- Check that the symlink points to the correct directory
-- Verify the symlink target exists: `ls -la .claude/skills/skill-name`
-- Restart Claude Code
-
-### Submodule Not Updating
-
-```bash
-# Force update
-git submodule update --remote --force
-
-# Or reinitialize
-git submodule deinit -f claude-skills
-git submodule update --init
-```
-
-### Submodule Detached HEAD
-
-When you update a submodule, it enters "detached HEAD" state. This is normal:
-
-```bash
-cd claude-skills
-git checkout main  # Or your default branch
-git pull
-```
-
-### Team Member Can't See Submodule
-
-They need to initialize submodules after cloning:
-
-```bash
-git submodule update --init --recursive
-```
+Quick troubleshooting:
+- **Skills not discovered?** Check symlinks with `ls -la .claude/skills/`
+- **Submodule issues?** Run `git submodule update --init --recursive`
+- **Team member setup?** Ensure they clone with `--recurse-submodules`
 
 ## Best Practices
 
