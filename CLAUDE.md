@@ -9,19 +9,25 @@ claude-skills/
 ├── .claude/
 │   ├── commands/                   # Local commands (copied for testing in this repo)
 │   │   ├── commit.md               # Copied from ../../commands/commit.md
+│   │   ├── create-pr.md            # Copied from ../../commands/create-pr.md
 │   │   └── refactor-claude-md.md   # Copied from ../../commands/refactor-claude-md.md
 │   └── skills/                     # Local skills (symlinked from skills/)
 │       ├── conventional-commits@
 │       └── claude-md-refactoring@
 ├── commands/                       # Example slash commands (source files)
 │   ├── commit.md
+│   ├── create-pr.md
 │   └── refactor-claude-md.md
-├── skills/                         # Shared skills directory
-│   ├── conventional-commits/
+├── skills/                         # Shared skills directory (10 skills total)
+│   ├── cdk-expert/
 │   ├── claude-md-refactoring/
-│   ├── maintaining-documentation/
-│   ├── skill-creator/
+│   ├── conventional-commits/
+│   ├── git-hooks-setup/
 │   ├── git-strategy/
+│   ├── maintaining-documentation/
+│   ├── nestjs-patterns/
+│   ├── pull-request-management/
+│   ├── skill-creator/
 │   └── test-symlink-skill/
 ├── CLAUDE.md                       # This file
 └── README.md                       # Setup instructions for humans
@@ -83,9 +89,46 @@ Test skill for verifying symlinks work correctly in your environment.
 
 **Invoke:** `Skill(test-symlink-skill)`
 
+---
+
+### cdk-expert
+**When to use:** AWS CDK infrastructure refactoring, CloudFormation resource replacement safety, CDK Nag warnings, construct patterns
+
+AWS CDK expert skill providing guidance on infrastructure patterns, CloudFormation safety, and best practices. Includes extensive documentation and MCP server integration. Supports project-specific configuration via `.claude/config/cdk-expert.yaml`.
+
+**Invoke:** `Skill(cdk-expert)`
+
+---
+
+### git-hooks-setup
+**When to use:** Setting up project-specific git hooks, pre-commit validation, quality gates
+
+Generates custom git hooks tailored to your project's needs. Automatically detects project type and provides appropriate hooks with templates, examples, and comprehensive guides.
+
+**Invoke:** `Skill(git-hooks-setup)`
+
+---
+
+### nestjs-patterns
+**When to use:** NestJS repository pattern implementation, dependency injection setup, testing strategies, ESM configuration
+
+Provides NestJS-specific patterns and best practices including abstract class patterns, DI configuration, testing strategies, and ESM module configuration.
+
+**Invoke:** `Skill(nestjs-patterns)`
+
+---
+
+### pull-request-management
+**When to use:** Creating pull requests, filling PR templates, analyzing deployment impacts, managing environment promotions
+
+Comprehensive PR creation and management with template compliance, confidence-based decision making, deployment impact analysis, and checkbox alternatives. Supports project-specific configuration for PR rules and templates.
+
+**Invoke:** `Skill(pull-request-management)` or `/create-pr` command
+
 ## Available Commands
 
 - **commit**: Invokes the conventional-commits skill
+- **create-pr**: Invokes the pull-request-management skill
 - **refactor-claude-md**: Invokes the claude-md-refactoring skill
 
 **Note:** Commands should be copied to `.claude/commands/` in target projects, not symlinked. Commands are typically project-specific and small enough to copy.
