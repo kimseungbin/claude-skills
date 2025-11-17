@@ -845,6 +845,155 @@ After PR is created:
 3. **Respond to Reviews**: Address feedback and update PR template if questions reveal gaps
 4. **Track Template Pain Points**: Note any template sections that caused confusion
 
+## Korean Template Conventions
+
+For projects using Korean PR templates (common in Korean companies), follow these specific conventions:
+
+### Language and Terminology
+
+**Environment Names:**
+- ❌ Don't: "PRODUCTION 환경", "DEV 환경"
+- ✅ Do: **운영 환경** (PRODUCTION), **개발 환경** (DEV), **스테이징 환경** (STAGING)
+- Use **bold Korean terms** with English in parentheses for clarity
+
+**Main Content:**
+- Write descriptions in Korean (primary language)
+- Use English only for technical clarification in parentheses
+- Don't use English phrases like "Incremental Production Deployment" as main headers
+
+**Example:**
+```markdown
+❌ Incremental Production Deployment - Promoting workspace migration to production
+
+✅ **`npm workspace` 마이그레이션 및 개발 도구 개선**을 **운영 환경**에 배포합니다.
+```
+
+### Technical Terms with Backticks
+
+Always use backticks for technical terms to distinguish them from regular Korean text:
+
+**When to use backticks:**
+- Package names: `npm workspace`, `esbuild`, `TypeScript`
+- File paths: `packages/lambda/ecs-reboot/src/index.ts`
+- Code identifiers: `handler.handler`, `index.handler`
+- Configuration keys: `cpu`, `memory`, `desiredCount`
+- Technical terms: `workspace`, `Lambda`, `CloudFormation`
+
+**Example:**
+```markdown
+❌ Lambda 함수를 workspace 패키지로 재구성
+❌ npm workspace로 마이그레이션
+
+✅ Lambda 함수를 `workspace` 패키지로 재구성
+✅ `npm workspace`로 마이그레이션
+```
+
+### Change Type Emojis
+
+Always include emojis with change types for visual categorization:
+
+```markdown
+## 변경 유형 (Type of Change)
+
+- ♻️ **refactor**: 리팩토링 (`npm workspace` 구조 전환)
+- 📝 **docs**: 문서화 개선
+- 🔧 **chore**: 유지보수 (개발 도구, 서브모듈 업데이트)
+- 🎉 **feat**: 새로운 기능 추가
+- 🐛 **fix**: 버그 수정
+- 🤖 **ci**: CI/CD 변경
+```
+
+**Standard Emoji Mapping:**
+- ♻️ refactor (recycling symbol for restructuring)
+- 📝 docs (memo for documentation)
+- 🔧 chore (wrench for maintenance)
+- 🎉 feat (party popper for new features)
+- 🐛 fix (bug for bug fixes)
+- 🤖 ci (robot for automation)
+
+### Explain Technical Changes
+
+Always explain WHY technical changes occurred, not just WHAT changed:
+
+❌ **Don't:**
+```markdown
+**Infrastructure Changes:**
+- Lambda Functions: Handler changed from `handler.handler` to `index.handler`
+```
+
+✅ **Do:**
+```markdown
+**Infrastructure Changes:**
+- **Lambda Functions (7개 ECS Reboot 함수):**
+  - Handler 경로: `handler.handler` → `index.handler`
+  - Description 필드 추가: "ECS service reboot function for {service}"
+  - **변경 이유:** `packages/lambda/ecs-reboot/src/index.ts`로 소스 위치 변경,
+    CDK가 TypeScript를 직접 컴파일하도록 개선 (기존 JavaScript 파일 제거)
+```
+
+### Focus on What, Not How
+
+Lead with the actual changes being deployed, not the deployment methodology:
+
+❌ **Don't:**
+```markdown
+## 변경 사항 요약 (Summary)
+
+Incremental Production Deployment - workspace 마이그레이션을 운영 환경에 배포
+```
+
+✅ **Do:**
+```markdown
+## 변경 사항 요약 (Summary)
+
+**`npm workspace` 마이그레이션 및 개발 도구 개선**을 **운영 환경**에 배포합니다.
+
+**배포 전략:** 점진적 배포 (15개 커밋, STAGING의 78개 커밋 중 1단계)
+```
+
+**Rationale:**
+- The main issue is WHAT is being deployed (workspace migration)
+- HOW it's deployed (incremental) is secondary metadata
+- Reviewers care about changes first, methodology second
+
+### Technical Explanations Pattern
+
+For complex technical changes, use the "Why → Before → After → Result" pattern:
+
+```markdown
+**왜 Lambda handler가 변경되었나:**
+- `workspace` 구조에서 진입점(entry point) 파일명 표준화: `index.ts`
+- 기존: `handler.js` (컴파일된 파일을 직접 참조)
+- 변경: `index.ts` (TypeScript 소스를 CDK가 컴파일)
+- 결과: handler 경로가 `handler.handler`에서 `index.handler`로 변경
+```
+
+**Structure:**
+1. Question format: "왜 X가 변경되었나"
+2. Context: What standard/pattern drove the change
+3. Before state with explanation
+4. After state with explanation
+5. Clear outcome/result
+
+### Impact Level Formatting
+
+Use emoji traffic lights with bold Korean descriptions:
+
+```markdown
+## 배포 영향도 (Deployment Impact)
+
+🟡 **Medium Impact**
+
+**영향도 분석:**
+- Lambda 업데이트는 seamless (기존 실행중인 invocation 유지)
+- Task Definition 변경 없음 → ECS 재배포 불필요
+```
+
+**Emoji Guide:**
+- 🔴 **High Impact**: ECS 서비스 재배포 필요
+- 🟡 **Medium Impact**: 서비스 중단 없이 리소스 업데이트
+- 🟢 **Low Impact**: 메타데이터만 변경
+
 ## Project-Specific Customization
 
 ### Using PR Template Guidelines
