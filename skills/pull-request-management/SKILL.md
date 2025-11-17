@@ -334,19 +334,25 @@ or with visual emphasis:
 - [x] This PR includes breaking changes
 ```
 
-**✅ Use emoji + direct answer:**
+**✅ Use emoji + direct answer (POSITIVE when no breaking change):**
 ```markdown
-**Breaking Change:** ❌ No
+**Breaking Change:** ✅ 없음
 ```
 
-or when yes:
+or when yes (WARNING emoji to alert reader):
 ```markdown
-**Breaking Change:** ⚠️ Yes
+**Breaking Change:** ⚠️ 있음
 
 **Details:**
 - API endpoint changed: `/v1/users` → `/v2/users`
 - Migration required: Update all API clients
 ```
+
+**Emoji Rationale:**
+- ✅ (green checkmark) = Good news, safe to proceed, no breaking changes
+- ⚠️ (warning sign) = Danger, requires attention, has breaking changes
+- This is REVERSED from typical "yes/no" patterns for better UX
+- Readers should feel relief when they see ✅, concern when they see ⚠️
 
 ---
 
@@ -418,8 +424,8 @@ or when yes:
 | **Yes/No** | `- [x] Yes` | Emoji: `**Field:** ✅ Yes` or `❌ No` |
 | **Impact levels** | `- [x] Low` | Emoji header: `🟢 **Low Impact**` |
 | **Multiple types** | `- [x] feat`<br>`- [x] fix` | Listed: `♻️ refactor`<br>`🎉 feat` |
-| **Environment** | `- [x] STAGING` | Badge: `![STAGING](url)` or direct text |
-| **Breaking** | `- [x] Breaking` | Conditional: `⚠️ Yes` with details OR `❌ No` |
+| **Environment** | `- [x] STAGING` | Direct text with table for feature flag analysis |
+| **Breaking** | `- [x] Breaking` | Conditional: `⚠️ 있음` with details OR `✅ 없음` |
 
 #### Visual Hierarchy Tips
 
@@ -993,6 +999,161 @@ Use emoji traffic lights with bold Korean descriptions:
 - 🔴 **High Impact**: ECS 서비스 재배포 필요
 - 🟡 **Medium Impact**: 서비스 중단 없이 리소스 업데이트
 - 🟢 **Low Impact**: 메타데이터만 변경
+
+### Target Environment and Feature Flag Analysis
+
+**CRITICAL: Analyze each feature/change separately and mark YES/NO/NEVER for ALL three environments (개발/검증/운영).**
+
+#### Per-Feature Environment Analysis Pattern
+
+**Create a table with one row per feature/change, analyzing what that specific change does in each environment:**
+
+```markdown
+## 배포 대상 환경 (Target Environment)
+
+**이 PR의 배포 대상:** 검증 (STAGING)
+
+### 환경별 배포 영향 분석
+
+| 변경사항 | 개발 | 검증 | 운영 | FF | 사유 |
+|---------|------|------|------|----|----|
+| SSM Parameter Store 마이그레이션 | ✅ YES | ❌ NO | ❌ NO | ✅ | `ssm-parameter-secrets: [dev, qa]`<br>검증/운영은 코드만 배포, 기능 비활성 |
+| 태그 기반 QA 배포 | ✅ YES | ✅ YES | ✅ YES | ❌ | QA만 trigger 변경, 다른 환경은 코드만 추가 |
+| 태그 기반 운영 배포 | ✅ YES | ✅ YES | ❌ NO | ❌ | 코드는 배포되지만 PROD는 향후 활성화 예정 |
+| Cross-account SNS topic | ✅ YES | 🚫 NEVER | 🚫 NEVER | ❌ | DEV 계정 전용 리소스<br>다른 환경은 자체 SNS topic 사용 |
+| Bug fix (API 오류) | ✅ YES | ✅ YES | ✅ YES | ❌ | 모든 환경 적용 |
+
+> **참고:** FF = Feature Flag (기능 플래그)
+```
+
+**Table Structure:**
+
+- **Rows**: One per feature/change (not per environment)
+- **Columns**: 변경사항 | 개발 | 검증 | 운영 | FF | 사유
+- **Cell Values**:
+  - Environment columns: ✅ YES / ❌ NO / 🚫 NEVER
+  - FF column: ✅ (has feature flag) / ❌ (no feature flag)
+
+**Status Definitions:**
+
+1. **✅ YES**: This change DOES deploy and activate in this environment
+   - For 개발: Already deployed (direct push to master)
+   - For 검증: Will deploy when PR merges
+   - For 운영: Will deploy in future promotion (staging → prod)
+   - Feature is active and functional
+
+2. **❌ NO**: Code deploys but feature is DISABLED by feature flag
+   - Code changes are present in the environment
+   - Feature flag prevents activation
+   - Example: SSM secrets construct exists but runtime uses Secrets Manager
+   - This is intentional (prepares for future activation)
+
+3. **🚫 NEVER**: This change will NEVER deploy to this environment
+   - Environment-specific resources (e.g., DEV-only SNS topic)
+   - Architectural differences between environments
+   - Hard-coded environment restrictions
+   - Example: Cross-account resources that only exist in one account
+
+**When NOT to use the table:**
+- Documentation-only changes (README, CLAUDE.md)
+- Non-code changes with no runtime impact
+- State: "문서화 변경으로 테이블 생략"
+
+#### Feature Flag Analysis Steps
+
+**Step 1: Find Feature Flags in Changes**
+
+```bash
+git diff origin/staging...origin/master -- feature-flags.yaml
+```
+
+**Step 2: Check Enabled Environments**
+
+```yaml
+feature-name:
+  enabled: true
+  environments:
+    - dev
+    - qa  # Note: QA is separate from DEV/STAGING/PROD
+  description: "Feature description"
+```
+
+**Step 3: Analyze Each Feature Individually**
+
+For each feature/change:
+- List the feature name in leftmost column
+- For EACH environment column (개발/스테이징/운영):
+  - If feature flag enabled → ✅ YES
+  - If feature flag disabled → ❌ NO (code deploys, feature inactive)
+  - If architecturally impossible → 🚫 NEVER
+  - If no feature flag → ✅ YES for all
+
+**Step 4: Provide Rationale**
+
+In the rightmost column, explain:
+- Feature flag name and enabled environments
+- Why NO (feature flag disabled)
+- Why NEVER (architectural reason)
+- If YES for all, state "Feature flag 없음, 모든 환경 적용"
+
+#### Common Patterns
+
+**Pattern 1: Feature Flag Gated (Gradual Rollout)**
+```markdown
+| SSM secrets | ✅ YES | ❌ NO | ❌ NO | `ssm-parameter-secrets: [dev, qa]` |
+```
+- DEV: Feature flag enabled → active
+- STAGING/PROD: Code deployed, flag disabled → inactive
+
+**Pattern 2: Universal Deploy (No Feature Flag)**
+```markdown
+| Bug fix | ✅ YES | ✅ YES | ✅ YES | Feature flag 없음, 모든 환경 적용 |
+```
+- All environments get the fix
+
+**Pattern 3: Environment-Specific Resource (Never Deploy)**
+```markdown
+| DEV SNS topic | ✅ YES | 🚫 NEVER | 🚫 NEVER | DEV 계정 전용 리소스 |
+```
+- Only exists in DEV account architecture
+
+**Pattern 4: Planned Future Activation**
+```markdown
+| New feature | ✅ YES | ✅ YES | ❌ NO | PROD는 향후 활성화 예정 |
+```
+- Code in all environments, but PROD feature flag not yet enabled
+
+#### Important Notes
+
+**Feature flags are NOT deployment gates:**
+- Code ALWAYS deploys to target environment (STAGING or PROD)
+- Feature flags only control RUNTIME behavior
+- ❌ NO means "deployed but inactive", not "not deployed"
+- This is correct and intentional (infrastructure ready for future activation)
+
+**Common Mistakes:**
+
+❌ **Wrong** - Missing environment analysis:
+```markdown
+| SSM secrets | ✅ YES | ❌ NO | | Missing PROD analysis! |
+```
+
+✅ **Correct** - All environments analyzed:
+```markdown
+| SSM secrets | ✅ YES | ❌ NO | ❌ NO | Complete analysis |
+```
+
+---
+
+❌ **Wrong** - Using table for docs:
+```markdown
+| Update README | ✅ YES | ✅ YES | ✅ YES | Documentation |
+```
+
+✅ **Correct** - Skip table for non-code:
+```markdown
+문서화 변경 (README, CLAUDE.md 업데이트)으로 환경별 배포 영향 테이블 생략
+```
 
 ## Project-Specific Customization
 
