@@ -166,16 +166,19 @@ infrastructure_titles:
 # When to relax specificity
 exceptions:
   trivial_changes:
-    - "fix(config): Fix typo in comment"
-    - "docs(project): Fix typo in README"
-    - "chore(monorepo): Update .gitignore"
+    examples:
+      - "fix(config): Fix typo in comment"
+      - "docs(project): Fix typo in README"
+      - "chore(monorepo): Update .gitignore"
     reason: "Trivial changes don't need elaborate descriptions"
 
   obvious_from_scope:
-    - "chore(deps): Update aws-cdk-lib to v2.100.0"
-    - "ci(github): Add deployment workflow"
+    examples:
+      - "chore(deps): Update aws-cdk-lib to v2.100.0"
+      - "ci(github): Add deployment workflow"
     reason: "Scope + type make intent clear"
 
   emergency_hotfixes:
-    - "fix(lambda): Patch critical security vulnerability"
+    examples:
+      - "fix(lambda): Patch critical security vulnerability"
     reason: "Speed matters, details in body"
