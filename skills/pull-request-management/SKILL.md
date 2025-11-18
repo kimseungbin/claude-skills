@@ -1378,6 +1378,272 @@ git commit -m "docs(github): Improve PR template with deployment impact guide"
 # (manually refresh the PR description)
 ```
 
+## Common Mistakes in PR Title Selection
+
+Based on real-world PR creation experience, here are the most common mistakes and how to avoid them:
+
+### Mistake 1: Prioritizing by Commit Count
+
+**❌ Wrong Approach:**
+```bash
+# Count commit types
+6 chore commits
+4 docs commits
+2 feat commits
+
+# Choose title based on count
+Title: "chore: 개발 도구 개선"  # Because chore has most commits
+```
+
+**Why it's wrong:**
+- Commit count measures volume, not importance
+- Developer tools (chore) are often lowest priority for users
+- Doesn't reflect actual business impact
+
+**✅ Correct Approach:**
+```bash
+# Analyze by business impact
+Runtime changes: Lambda notification localization (feat)
+Infrastructure: Route53 RETAIN policy (feat)
+Developer tools: Claude Code settings (chore)
+
+# Choose title based on impact
+Title: "feat(lambda): 배포 알림 한국어 현지화 및 Slack 포맷 개선"
+```
+
+**Why it's right:**
+- Runtime changes affect users directly
+- Lambda notifications are user-facing
+- Developer tools mentioned last or in summary
+
+**Real example:** PR #226 had 6 chore commits but was titled `feat(lambda)` because Lambda changes had the most user impact.
+
+### Mistake 2: Using Generic Terms
+
+**❌ Generic Titles (Avoid):**
+```
+feat(infra): 인프라 개선
+chore: 도구 개선
+refactor: 코드 개선
+docs: 문서화 개선
+```
+
+**Why they're bad:**
+- "개선" (improvement) without context is meaningless
+- Reader can't understand what changed
+- Forces reading full description
+- All PRs could have same title
+
+**✅ Specific Titles (Use):**
+```
+feat(lambda): 배포 알림 한국어 현지화 및 Slack 포맷 개선
+feat(infra): Route53 hosted zone에 RETAIN 정책 추가로 DNS 보호
+refactor(config): SSM Parameter Store 참조 방식을 직접 참조로 변경
+docs(project): CloudFormation 스택 네이밍 규칙을 별도 문서로 분리
+```
+
+**Why they're good:**
+- Concrete action: "한국어 현지화" (Korean localization)
+- Specific component: "Route53 hosted zone"
+- Clear benefit: "DNS 보호" (DNS protection)
+- Measurable change: "별도 문서로 분리" (split into separate document)
+
+**Test:** If title could apply to 10 different PRs, it's too generic.
+
+### Mistake 3: Leading with Methodology Instead of Changes
+
+**❌ Methodology First:**
+```markdown
+## Summary
+
+점진적 배포: 개발 도구 개선 및 Lambda 현지화를 STAGING에 배포
+(Incremental deployment: Deploy tool improvements and Lambda localization to STAGING)
+```
+
+**Why it's wrong:**
+- Reader cares WHAT changed, not HOW it's deployed
+- Methodology is secondary metadata
+- Buries the actual changes
+
+**✅ Changes First:**
+```markdown
+## Summary
+
+**배포 파이프라인 Slack 알림을 한국어로 현지화하고 마크다운 포맷을 개선**합니다.
+
+**주요 변경사항:**
+- **Lambda 알림 현지화:** 환경 이름 한국어 번역
+- **Slack 포맷 개선:** AWS Chatbot 마크다운 문법 적용
+- **Route53 DNS 보호:** RETAIN 정책 추가
+- **도구 개선:** Claude Code 설정, PR 템플릿
+
+**배포 전략:** 점진적 배포 (16개 커밋)
+```
+
+**Why it's right:**
+- Lead with actual changes (Lambda localization)
+- Group related changes
+- Methodology mentioned at end as metadata
+
+### Mistake 4: Checking File Names Instead of Diff Content
+
+**❌ Superficial Analysis:**
+```bash
+# Check changed files only
+git diff origin/staging..origin/master --name-only
+
+lib/constructs/service/task-definition.ts   # Changed!
+src/config/config.data.ts                   # Changed!
+
+# Conclude: High Impact (task definition changed)
+```
+
+**Why it's wrong:**
+- File name doesn't tell what changed
+- Could be import path change (low impact)
+- Could be comment change (no impact)
+- Could be actual CPU/memory change (high impact)
+
+**✅ Deep Analysis:**
+```bash
+# Check ACTUAL changes
+git diff origin/staging..origin/master -- lib/constructs/service/task-definition.ts
+
+# If output shows:
+# - import { FargateCpu } from './fargate-cpu'
+# + import { FargateCpu } from '../../../src/config/types/fargate'
+
+# This is LOW IMPACT (import path only, no value changes)
+
+# If output shows:
+# - cpu: FargateCpu.CPU_256
+# + cpu: FargateCpu.CPU_512
+
+# This is HIGH IMPACT (actual CPU value changed)
+```
+
+**Why it's right:**
+- Checks actual diff content
+- Identifies value changes vs. structural changes
+- Prevents false high-impact assessments
+
+**Rule:** Always run `git diff <base>..<head> -- <file>` before determining impact.
+
+### Mistake 5: Prioritizing Documentation/Tooling Over Runtime
+
+**❌ Wrong Priority:**
+```
+Title: "chore(tools): Add Claude Code settings and improve Lambda notifications"
+```
+
+**Why it's wrong:**
+- Leads with tools (developer-facing)
+- Lambda notifications are user-facing but mentioned second
+- Tools are lowest priority for users
+
+**✅ Correct Priority:**
+```
+Title: "feat(lambda): 배포 알림 한국어 현지화 및 Slack 포맷 개선"
+
+Summary:
+- Lambda notifications (runtime)
+- Route53 DNS protection (infrastructure safety)
+- QA environment optimization (configuration)
+- SSM refactoring (code quality)
+- Tools and documentation (developer experience) ← Last
+```
+
+**Why it's right:**
+- Runtime changes first
+- Infrastructure safety second
+- Developer tools last
+- Clear hierarchy of importance
+
+**Priority hierarchy:**
+1. Runtime/User-Facing (Lambda notifications)
+2. Infrastructure Safety (Route53 RETAIN)
+3. Configuration (QA environment)
+4. Code Quality (SSM refactoring)
+5. Developer Tools (Claude Code, git hooks)
+6. Documentation (README, CLAUDE.md)
+
+### Quick Decision Tree for PR Titles
+
+```
+┌─ Has runtime/service changes? (Lambda, API, DB)
+│  ├─ YES → Use that in title (highest priority)
+│  └─ NO → Check next level
+│
+├─ Has infrastructure safety changes? (RETAIN, backup, DNS)
+│  ├─ YES → Use that in title (high priority)
+│  └─ NO → Check next level
+│
+├─ Has architecture/migration changes? (refactoring, new patterns)
+│  ├─ YES → Use that in title (medium priority)
+│  └─ NO → Check next level
+│
+├─ Has configuration changes? (QA, feature flags)
+│  ├─ YES → Use that in title (medium priority)
+│  └─ NO → Check next level
+│
+└─ Only developer tools/docs? (git hooks, README)
+   └─ Use that in title (lowest priority, but be specific)
+```
+
+### Example Application
+
+**Scenario:** 16 commits promoting master → staging
+- 6 chore (Claude Code, git hooks, submodules)
+- 4 docs (CLAUDE.md, CloudFormation naming)
+- 2 feat (Lambda localization, Route53 RETAIN)
+- 2 fix (Slack markdown, pre-push hook)
+- 2 refactor (QA simplification, SSM)
+
+**Decision process:**
+```
+Step 1: Runtime changes?
+→ YES: Lambda notification localization (Korean + Slack markdown)
+
+Step 2: Is it user-facing?
+→ YES: Deployment pipeline notifications visible to team
+
+Step 3: Type?
+→ feat (new Korean translations)
+
+Step 4: Scope?
+→ lambda (specific component)
+
+Step 5: Specific description?
+→ "배포 알림 한국어 현지화 및 Slack 포맷 개선"
+  (Deployment notification Korean localization and Slack format improvement)
+
+Final Title:
+→ "feat(lambda): 배포 알림 한국어 현지화 및 Slack 포맷 개선"
+```
+
+**Why NOT:**
+- ❌ "chore: 개발 도구 개선" (tools have most commits, but lowest impact)
+- ❌ "feat(lambda): 알림 현지화 및 인프라 개선" ("인프라 개선" too generic)
+- ❌ "feat: Lambda 및 도구 개선" (tools shouldn't be in title)
+
+### Summary: Don't Optimize for the Wrong Thing
+
+**Wrong optimization:**
+- Commit count (easy to measure, doesn't matter)
+- File count (easy to measure, doesn't matter)
+- Lines changed (easy to measure, doesn't matter)
+
+**Right optimization:**
+- Business impact (harder to assess, but matters)
+- User-facing changes (runtime > tools)
+- Specificity (concrete > generic)
+
+**The question to answer:**
+- ❌ "How many commits were about tools?" (wrong question)
+- ✅ "What changed in production that users will notice?" (right question)
+
+---
+
 ## Anti-Patterns to Avoid
 
 ### ❌ DON'T: Guess with Low Confidence
