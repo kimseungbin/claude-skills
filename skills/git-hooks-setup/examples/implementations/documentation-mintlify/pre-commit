@@ -1,0 +1,99 @@
+#!/bin/bash
+
+# pre-commit hook - Documentation quality checks
+#
+# PURPOSE: Prevent common mistakes in AWS SMB documentation
+# TRIGGER: Before commit is finalized
+# USE CASE: Documentation-only repository with Mintlify rendering
+#
+# CHECKS:
+# 1. Prevent committing files with unescaped HTML entities that break MDX
+# 2. Warn about large files (case study best practices)
+# 3. Check for common typos in AWS service names
+#
+# BYPASS (if needed):
+# git commit --no-verify
+
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# Color codes
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+# Get staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Check 1: HTML entity validation for MDX files
+echo "📝 Checking for unescaped HTML entities in MDX/MD files..."
+MDX_ERROR=0
+for FILE in $STAGED_FILES; do
+    if [[ "$FILE" =~ \.(md|mdx)$ ]]; then
+        # Check for <$ which breaks MDX parsing (except already escaped &lt;)
+        if git show :"$FILE" | grep -v '&lt;' | grep -q '<\$'; then
+            echo -e "${RED}❌ Found unescaped '<\$' in $FILE${NC}"
+            echo -e "${YELLOW}   Replace '<\$100M' with '&lt;\$100M'${NC}"
+            MDX_ERROR=1
+        fi
+    fi
+done
+
+if [ $MDX_ERROR -eq 1 ]; then
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${RED}MDX Parsing Error - Unescaped HTML entities found${NC}"
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e ""
+    echo -e "Mintlify's MDX parser treats '<\$' as an HTML tag."
+    echo -e "Use HTML entity: ${GREEN}&lt;\$100M${NC} instead of ${RED}<\$100M${NC}"
+    echo -e ""
+    exit 1
+fi
+
+# Check 2: Warn about large files
+echo "📦 Checking file sizes..."
+for FILE in $STAGED_FILES; do
+    if [ -f "$FILE" ]; then
+        SIZE=$(wc -c < "$FILE")
+        if [ $SIZE -gt 100000 ]; then  # 100KB
+            echo -e "${YELLOW}⚠️  Large file detected: $FILE ($(($SIZE / 1024))KB)${NC}"
+            echo -e "${YELLOW}   Consider splitting case studies for better readability${NC}"
+        fi
+    fi
+done
+
+# Check 3: Common AWS service name typos (non-blocking)
+echo "🔤 Checking AWS service names..."
+TYPO_FOUND=0
+for FILE in $STAGED_FILES; do
+    if [[ "$FILE" =~ \.(md|mdx)$ ]]; then
+        # Check for common typos (case-sensitive)
+        if git show :"$FILE" | grep -qE '(Cloudfront|cloudfront|Cloud Front)'; then
+            echo -e "${YELLOW}⚠️  Possible typo in $FILE: Use 'CloudFront' (capital F)${NC}"
+            TYPO_FOUND=1
+        fi
+        if git show :"$FILE" | grep -qE '(lambda|Lambda function)' | grep -v 'AWS Lambda'; then
+            echo -e "${YELLOW}⚠️  Possible inconsistency in $FILE: Use 'AWS Lambda'${NC}"
+            TYPO_FOUND=1
+        fi
+    fi
+done
+
+if [ $TYPO_FOUND -eq 1 ]; then
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}AWS service name inconsistencies detected (non-blocking)${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e ""
+    echo -e "Consider using official AWS service names:"
+    echo -e "  ✅ CloudFront (not Cloudfront, cloudfront, or Cloud Front)"
+    echo -e "  ✅ AWS Lambda (not just Lambda)"
+    echo -e "  ✅ Amazon S3 (not just S3 in formal docs)"
+    echo -e ""
+    echo -e "${YELLOW}Continuing commit (non-blocking warning)...${NC}"
+    echo -e ""
+fi
+
+echo -e "${GREEN}✅ Pre-commit checks passed!${NC}"
+exit 0
