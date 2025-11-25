@@ -19,27 +19,16 @@ description: |
 
 You are an expert AWS CDK (Cloud Development Kit) consultant helping with infrastructure-as-code development. This skill provides comprehensive guidance across all aspects of CDK development.
 
-## Quick Navigation
+## Documentation
 
-All detailed documentation is organized in the [`docs/`](./docs/) directory:
+All detailed documentation is in [`docs/`](./docs/). See **[docs/README.md](./docs/README.md)** for task-oriented navigation.
 
-### Core Concepts
-- **[CDK Fundamentals](./docs/cdk-fundamentals.md)** - L1/L2/L3 constructs, app lifecycle, CDK commands
-- **[Construct Patterns](./docs/construct-patterns.md)** - Design principles, props pattern, factory pattern, composition
-- **[Stacks & Deployment](./docs/stacks-deployment.md)** - Stack organization, cross-stack refs, multi-account deployment
-
-### Critical Safety
-- **[CloudFormation Safety](./docs/cloudformation-safety.md)** ⚠️ **CRITICAL** - Logical IDs, overrideLogicalId(), preventing resource replacement
-- **[Refactoring Decision Tree](./docs/refactoring-decision-tree.md)** - When and how to refactor CDK code safely
-
-### Best Practices
-- **[Security Practices](./docs/security-practices.md)** - IAM, secrets management, encryption, CDK Nag
-- **[Lambda Patterns](./docs/lambda-patterns.md)** - NodejsFunction, TypeScript source, bundling, workspace structure
-- **[Resource Naming](./docs/naming-strategy-decision-tree.md)** - Naming strategies and centralized naming service
-
-### Development
-- **[Testing & Validation](./docs/testing-validation.md)** - Unit tests, snapshot tests, CDK assertions, validation functions
-- **[Troubleshooting](./docs/troubleshooting.md)** - Common errors, debugging strategies, CloudFormation drift
+**Quick lookup:**
+- Before deploying → `docs/pre-deployment/`
+- Before refactoring → `docs/safe-changes/`
+- Writing new code → `docs/writing-code/`
+- Debugging issues → `docs/troubleshooting/`
+- Background knowledge → `docs/reference/`
 
 ---
 
@@ -99,7 +88,7 @@ Use MCP tools (prefixed with `mcp__`) for real-time CDK expertise:
 - Reviewing CDK Nag warnings
 - Implementing security best practices
 - Setting up multi-environment deployments
-- **Before refactoring**: Check [CloudFormation Safety](./docs/cloudformation-safety.md) to avoid resource replacement
+- **Before refactoring**: Check [CloudFormation Safety](./docs/safe-changes/cloudformation-safety.md) to avoid resource replacement
 
 **❌ Don't invoke for:**
 - Simple syntax questions (use IDE autocomplete)
@@ -114,7 +103,7 @@ Critical decision-making guides:
 
 ### 1. Should I Refactor This CDK Code?
 
-See **[Refactoring Decision Tree](./docs/refactoring-decision-tree.md)** for complete workflow.
+See **[Refactoring Decision Tree](./docs/safe-changes/refactoring-decision-tree.md)** for complete workflow.
 
 **Quick check:**
 - Will it be reused? → Extract
@@ -123,7 +112,7 @@ See **[Refactoring Decision Tree](./docs/refactoring-decision-tree.md)** for com
 
 ### 2. How Should I Name Resources?
 
-See **[Naming Strategy Decision Tree](./docs/naming-strategy-decision-tree.md)** for complete guide.
+See **[Naming Strategy Decision Tree](./docs/pre-deployment/naming-strategy-decision-tree.md)** for complete guide.
 
 **Quick check:**
 - Shared resource? → Explicit naming
@@ -132,7 +121,7 @@ See **[Naming Strategy Decision Tree](./docs/naming-strategy-decision-tree.md)**
 
 ### 3. Is This Refactoring Safe?
 
-See **[CloudFormation Safety](./docs/cloudformation-safety.md)** ⚠️
+See **[CloudFormation Safety](./docs/safe-changes/cloudformation-safety.md)** ⚠️
 
 **Pre-refactoring checklist:**
 - [ ] Run `cdk diff` to see CloudFormation changes
@@ -166,7 +155,7 @@ See **[CloudFormation Safety](./docs/cloudformation-safety.md)** ⚠️
 1. **`cdk refactor`** command (recommended) - Updates logical IDs in-place without resource replacement
 2. **`overrideLogicalId()`** - Manual preservation for L1 (Cfn*) constructs
 
-**Full details:** [CloudFormation Safety Guide](./docs/cloudformation-safety.md)
+**Full details:** [CloudFormation Safety Guide](./docs/safe-changes/cloudformation-safety.md)
 
 ---
 
@@ -182,7 +171,7 @@ See **[CloudFormation Safety](./docs/cloudformation-safety.md)** ⚠️
 - **Always check `cdk diff` before deployment**
 - Use AWS Solutions Constructs for common patterns
 - Leverage MCP server tools for guidance
-- Read [CloudFormation Safety](./docs/cloudformation-safety.md) before refactoring
+- Read [CloudFormation Safety](./docs/safe-changes/cloudformation-safety.md) before refactoring
 
 ### ❌ Don't:
 
@@ -230,27 +219,6 @@ security:
     nag_rule_pack: AwsSolutions
     require_vpc: true
 ```
-
----
-
-## Documentation Index
-
-All documentation files are in [`docs/`](./docs/):
-
-| File | Description | Lines |
-|------|-------------|-------|
-| [cdk-fundamentals.md](./docs/cdk-fundamentals.md) | L1/L2/L3, app lifecycle, commands | ~200 |
-| [construct-patterns.md](./docs/construct-patterns.md) | Design principles, patterns | ~400 |
-| [stacks-deployment.md](./docs/stacks-deployment.md) | Stack organization, multi-account | ~450 |
-| [cloudformation-safety.md](./docs/cloudformation-safety.md) | ⚠️ Logical IDs, overrideLogicalId() | ~600 |
-| [security-practices.md](./docs/security-practices.md) | IAM, secrets, encryption | ~200 |
-| [lambda-patterns.md](./docs/lambda-patterns.md) | NodejsFunction, bundling | ~280 |
-| [naming-strategy-decision-tree.md](./docs/naming-strategy-decision-tree.md) | Resource naming | ~600 |
-| [refactoring-decision-tree.md](./docs/refactoring-decision-tree.md) | Refactoring workflow | ~270 |
-| [testing-validation.md](./docs/testing-validation.md) | Unit tests, CDK assertions | ~200 |
-| [troubleshooting.md](./docs/troubleshooting.md) | Common errors, solutions | ~250 |
-
-**Total documentation: ~3,450 lines across 10 files**
 
 ---
 

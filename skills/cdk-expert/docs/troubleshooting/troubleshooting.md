@@ -415,10 +415,3 @@ cdk destroy
 cdk synth -j > template.json
 ```
 
----
-
-## Related Documentation
-
-- **CDK Fundamentals**: `docs/cdk-fundamentals.md`
-- **CloudFormation Safety**: `docs/cloudformation-safety.md`
-- **AWS CDK Troubleshooting**: https://docs.aws.amazon.com/cdk/latest/guide/troubleshooting.html

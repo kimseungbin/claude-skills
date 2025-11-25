@@ -388,11 +388,3 @@ export class ServiceConstruct extends Construct {
 - Hardcode values that should be props
 - Mutate props after construct creation
 
----
-
-## Related Documentation
-
-- **CDK Fundamentals**: `docs/cdk-fundamentals.md`
-- **Lambda Patterns**: `docs/lambda-patterns.md`
-- **Stacks & Deployment**: `docs/stacks-deployment.md`
-- **Refactoring Strategy**: `docs/refactoring-decision-tree.md`

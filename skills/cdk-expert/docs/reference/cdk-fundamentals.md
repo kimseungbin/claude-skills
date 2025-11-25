@@ -152,11 +152,3 @@ const account = '123456789012'
 // ✅ Good
 const account = Stack.of(this).account
 ```
-
----
-
-## Related Documentation
-
-- **Construct Patterns**: `docs/construct-patterns.md`
-- **CloudFormation Safety**: `docs/cloudformation-safety.md`
-- **Stacks & Deployment**: `docs/stacks-deployment.md`

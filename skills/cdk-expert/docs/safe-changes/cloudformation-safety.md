@@ -7,11 +7,15 @@ Critical guide to preventing accidental resource replacements during CDK refacto
 1. [Understanding Logical IDs](#understanding-logical-ids)
 2. [Safe Refactoring](#safe-refactoring-no-replacement)
 3. [Dangerous Refactoring](#dangerous-refactoring-will-replace)
-4. [CDK Refactor Command](#cdk-refactor-command-limitations)
-5. [Using overrideLogicalId()](#using-overridelogicalid)
-6. [Safe vs Unsafe Replacements](#safe-vs-unsafe-replacements)
-7. [Complete Workflow](#complete-overridelogicalid-workflow)
-8. [Pre-Refactoring Checklist](#pre-refactoring-checklist)
+4. [Handling Logical ID Changes](#handling-logical-id-changes-two-approaches)
+   - Option 1: CDK Refactor Command
+   - Option C: Two-Step Deployment with Feature Flags
+   - **Option D: Conditional Logic** (Recommended for phased deployment)
+   - Option 2: overrideLogicalId()
+5. [Safe vs Unsafe Replacements](#safe-vs-unsafe-replacements)
+6. [Complete Workflow](#complete-overridelogicalid-workflow)
+7. [Pre-Refactoring Checklist](#pre-refactoring-checklist)
+8. [Pre-Push Hook Integration](#pre-push-hook-integration)
 
 ---
 
@@ -288,6 +292,164 @@ AWS_PROFILE=fe-dev aws ecs delete-service \
 **See also:**
 - `/TEMP_CDK_REFACTOR_RESEARCH.md` for comprehensive guide
 - `docs/refactoring/high/ARCH-14.md` for real-world failure example
+
+### Option C: Two-Step Deployment with Feature Flags (Recommended for Multi-Environment)
+
+**Best for:** Multi-environment projects with feature flag system, stateless resource refactoring
+
+When `cdk refactor` fails due to intermediate parent constructs and you have a feature flag system, use two-step deployment:
+
+**Step 1: Disable → Deploy (removes resources)**
+```yaml
+# feature-flags.yaml
+pipeline-notifications:
+  enabled: true
+  environments: []  # Disable for all environments
+```
+```bash
+cdk deploy DeploymentStack --profile fe-dev
+# CloudFormation deletes PipelineAlertsTopic, MessageTransformer, etc.
+```
+
+**Step 2: Re-enable → Deploy (creates with new logical IDs)**
+```yaml
+# feature-flags.yaml
+pipeline-notifications:
+  enabled: true
+  environments: [dev, stag, production]  # Re-enable
+```
+```bash
+cdk deploy DeploymentStack --profile fe-dev
+# CloudFormation creates PipelineNotification/PipelineAlertsTopic, etc.
+```
+
+**Benefits over CLI deletion:**
+- ✅ No manual AWS CLI commands
+- ✅ CloudFormation manages deletion (safer, respects dependencies)
+- ✅ Works across all environments without code changes
+- ✅ Reusable pattern for future refactorings
+- ✅ Clear intent in version control (feature flag changes)
+
+**ONLY safe for stateless resources:**
+- ✅ SNS topics (subscribers will reconnect)
+- ✅ Lambda functions (code is ephemeral)
+- ✅ IAM roles (no data loss)
+- ✅ NotificationRules (configuration only)
+
+**NEVER use for stateful resources:**
+- ❌ S3 buckets (data loss)
+- ❌ DynamoDB tables (data loss)
+- ❌ RDS databases (data loss)
+- ❌ EFS file systems (data loss)
+
+**Real-world example:**
+Extracting `PipelineNotificationConstruct` from `deployment-stack.ts` changed logical IDs from `PipelineAlertsTopic2E9A9233` to `PipelineNotification/PipelineAlertsTopic...`. Two-step deployment enabled safe refactoring without `overrideLogicalId()` technical debt.
+
+**See also:**
+- `CLAUDE.md` § Feature Flags for Safe Refactoring
+- `packages/infra/src/feature-flags/README.md` for feature flag implementation
+
+### Option D: Conditional Logic Within Existing Construct (Recommended for Phased Deployment)
+
+**Best for:** Adding phased deployment capability without changing CloudFormation logical IDs
+
+When you need to enable/disable groups of resources within an existing construct (e.g., deploy ECR/CodeBuild before ECS/ALB), use **conditional logic** instead of extracting to separate constructs.
+
+**Why conditional logic over construct extraction:**
+
+| Approach | Risk | Maintenance | Visual Hierarchy |
+|----------|------|-------------|------------------|
+| Conditional logic | ✅ Zero (preserves Logical IDs) | ✅ Simple | ❌ Flat in CloudFormation |
+| Separate constructs + `overrideLogicalId()` | 🚨 High (30+ overrides per service) | ❌ Complex | ✅ Hierarchical |
+
+**Key insight:** Choose safety over visual organization in CloudFormation console.
+
+**Implementation pattern:**
+
+```typescript
+export class Service extends Construct {
+  constructor(scope: Construct, id: string, props: ServiceProps) {
+    super(scope, id)
+
+    // Two-phase deployment control via feature flags
+    const infraEnabled = isServiceDeploymentPhaseEnabled(environment, serviceName, 'infra')
+    const serviceEnabled = isServiceDeploymentPhaseEnabled(environment, serviceName, 'service')
+
+    // ===================================================================
+    // PHASE 1: Build Infrastructure (ECR + CodeBuild + TaskDefinition)
+    // ===================================================================
+    let taskDefinition: TaskDefinition | undefined
+
+    if (infraEnabled) {
+      const repository = new EcrRepository(this, 'ECR', {...})
+      taskDefinition = new TaskDefinition(this, 'TaskDefinition', {...})
+      new CodeBuildProject(this, 'CodeBuildProjectConstruct', {...})
+    }
+
+    // ===================================================================
+    // PHASE 2: Runtime Service (ECS + ALB + CloudFront)
+    // ===================================================================
+    if (serviceEnabled) {
+      if (!taskDefinition) {
+        throw new Error(`Phase 2 requires Phase 1 to be enabled first`)
+      }
+      new FargateService(this, 'FargateService', { taskDefinition, ... })
+      new ALB(this, 'ALB', {...})
+      new CloudFront(this, 'CloudFront', {...})
+    }
+  }
+}
+```
+
+**Feature flag configuration:**
+
+```yaml
+# feature-flags.yaml
+service-deployment:
+  qa:
+    auth:
+      infra: true      # Phase 1: Deploy ECR, CodeBuild, TaskDefinition
+      service: false   # Phase 2: Wait for Docker image before enabling
+```
+
+**Deployment workflow for new environments:**
+
+```bash
+# Step 1: Deploy Phase 1 (infrastructure)
+# feature-flags.yaml: qa.auth.infra=true, qa.auth.service=false
+git push origin master
+# → Creates ECR, CodeBuild, TaskDefinition
+
+# Step 2: Manual intervention - push Docker image
+aws ecr get-login-password | docker login ...
+docker build && docker push <ecr-uri>:latest
+
+# Step 3: Deploy Phase 2 (service)
+# feature-flags.yaml: qa.auth.infra=true, qa.auth.service=true
+git push origin master
+# → Creates ECS Service, ALB, CloudFront
+```
+
+**When to use conditional logic:**
+- ✅ Phased deployment needed (infra before service)
+- ✅ Feature flags control resource creation
+- ✅ Refactoring existing code (must preserve Logical IDs)
+- ✅ Safety is paramount
+
+**When to use separate constructs:**
+- ✅ Building **new** features (no existing Logical IDs to preserve)
+- ✅ Real code reuse across multiple stacks
+- ✅ Team can maintain `overrideLogicalId()` complexity
+- ✅ Visual hierarchy is operationally critical
+
+**Real-world validation:**
+- ✅ Captured 30 Auth service Logical IDs before implementation
+- ✅ Verified all 30 IDs preserved after conditional logic added
+- ✅ `cdk diff` showed zero `[-/+]` resource replacements
+
+**See also:**
+- `CLAUDE.md` § Two-Phase Service Deployment
+- `lib/constructs/service/index.ts` for implementation
 
 ### Option 2: overrideLogicalId() (Manual Fallback)
 
@@ -1061,10 +1223,3 @@ git push origin master
 - Assume all replacements are safe
 - Deploy to production without DEV testing
 
----
-
-## Related Documentation
-
-- **CDK Fundamentals**: `docs/cdk-fundamentals.md`
-- **Refactoring Strategy**: `docs/refactoring-decision-tree.md`
-- **Resource Naming**: `docs/naming-strategy-decision-tree.md`

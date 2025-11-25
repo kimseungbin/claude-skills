@@ -328,11 +328,3 @@ export function validateBeforeDeployment(stack: Stack): void {
 - Ignore CDK Nag warnings
 - Hard-code test values that should be dynamic
 
----
-
-## Related Documentation
-
-- **CDK Assertions**: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.assertions-readme.html
-- **CDK Nag**: https://github.com/cdklabs/cdk-nag
-- **Security Practices**: `docs/security-practices.md`
-- **CloudFormation Safety**: `docs/cloudformation-safety.md`

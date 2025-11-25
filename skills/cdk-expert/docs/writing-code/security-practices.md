@@ -243,11 +243,3 @@ sg.addEgressRule(
 - Set up CloudWatch alarms for security events
 - Use GuardDuty for threat detection
 
----
-
-## Related Documentation
-
-- **CDK Nag**: https://github.com/cdklabs/cdk-nag
-- **AWS Security Best Practices**: https://docs.aws.amazon.com/security/
-- **CloudFormation Safety**: `docs/cloudformation-safety.md`
-- **Testing & Validation**: `docs/testing-validation.md`

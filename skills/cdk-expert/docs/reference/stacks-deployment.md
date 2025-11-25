@@ -500,10 +500,3 @@ Error: Cannot reference resource across regions
 
 **Solution:** Use ARN strings instead of IResource objects for cross-region.
 
----
-
-## Related Documentation
-
-- **CDK Fundamentals**: `docs/cdk-fundamentals.md`
-- **CloudFormation Safety**: `docs/cloudformation-safety.md`
-- **Construct Patterns**: `docs/construct-patterns.md`
