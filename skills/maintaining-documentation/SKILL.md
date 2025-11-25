@@ -106,7 +106,16 @@ Create new docs/ files for:
 - Planning documents (backlogs, roadmaps, feature specs)
 - How-to guides for complex workflows
 
-**File organization** (from implementation guide):
+**Always link new docs/ files from:**
+- README.md documentation section
+- CLAUDE.md documentation index
+
+#### docs/ Organization Strategy
+
+Choose organization based on how documentation will be **used**, not just what it **contains**.
+
+**Option A: Topic-Based (Traditional)**
+
 ```
 docs/
 ├── guides/           # How-to guides
@@ -115,10 +124,73 @@ docs/
 └── architecture/     # System design docs
 ```
 
-**Always link new docs/ files from:**
-- README.md documentation section
-- CLAUDE.md documentation index
-- Related docs/ files (cross-references)
+**Best for:** General-purpose documentation, human-browsable structures.
+
+**Option B: Task-Oriented (Recommended for AI)**
+
+```
+docs/
+├── pre-deployment/      # Check BEFORE deploying
+├── safe-changes/        # When modifying existing code
+├── writing-code/        # When creating new resources
+├── reference/           # Background knowledge
+└── troubleshooting/     # When things go wrong
+```
+
+**Best for:** AI-consumed documentation where Claude Code needs to find the right doc quickly.
+
+**Why task-oriented works better for AI:**
+- Directory names answer "when do I need this?"
+- Reduces search time - Claude knows which directory to check based on current task
+- Self-documenting structure - no need to explain when to use each doc
+
+**Choosing directory names:**
+
+| Task/Scenario | Directory Name |
+|---------------|----------------|
+| Before running a command | `pre-{command}/` (e.g., `pre-deployment/`) |
+| When modifying existing code | `safe-changes/`, `refactoring/` |
+| When creating new things | `writing-code/`, `creating/` |
+| When something breaks | `troubleshooting/`, `debugging/` |
+| Background reading | `reference/`, `fundamentals/` |
+
+**Centralized Navigation with docs/README.md:**
+
+When using task-oriented structure, create `docs/README.md` as a navigation index:
+
+```markdown
+# Documentation Index
+
+## Quick Lookup: Which Docs Do I Need?
+
+| Scenario | Directory | Docs |
+|----------|-----------|------|
+| Before deploying | `pre-deployment/` | testing.md, validation.md |
+| Refactoring code | `safe-changes/` | safety-guide.md, checklist.md |
+| Writing new code | `writing-code/` | patterns.md, best-practices.md |
+```
+
+**Benefits of docs/README.md:**
+- Single file to read for navigation (token-efficient)
+- Individual docs don't need "Related Documentation" sections
+- One place to update when structure changes
+- SKILL.md or CLAUDE.md can simply point to `docs/README.md`
+
+**Anti-pattern: "Related Documentation" in every file**
+
+```markdown
+# ❌ Don't add this to every doc file
+## Related Documentation
+- See also: other-doc.md
+- Related: another-doc.md
+```
+
+**Why it's problematic:**
+- Duplicates navigation across all files
+- Paths break when files move
+- Maintenance burden grows with each new doc
+
+**Solution:** Centralize navigation in `docs/README.md` instead
 
 ### Step 7: Update Other Documentation (If Needed)
 
