@@ -224,17 +224,25 @@ Low Impact 체크
 | Bug fix (API 오류) | ✅ YES | ✅ YES | ✅ YES | ❌ | 모든 환경 적용 |
 
 # 영향받는 서비스 (Affected Services)
-<!-- 해당하는 서비스에 'x'를 표시해주세요 -->
+<!--
+  For each service, replace "✅ / ❌" with a single emoji:
+  - ✅: This PR affects the service
+  - ❌: This PR does not affect the service
 
-- [ ] auth
-- [ ] yozm
-- [ ] support
-- [ ] project
-- [ ] partner
-- [ ] solution
-- [ ] profile
-- [ ] 공통 인프라 (VPC, ECS Cluster, CloudFront, WAF 등)
-- [ ] 배포 파이프라인
+  Use the 비고 (Notes) column to add context if needed.
+-->
+
+| 서비스 | 영향 | 비고 |
+|--------|------|------|
+| auth | ✅ / ❌ | |
+| yozm | ✅ / ❌ | |
+| support | ✅ / ❌ | |
+| project | ✅ / ❌ | |
+| partner | ✅ / ❌ | |
+| solution | ✅ / ❌ | |
+| profile | ✅ / ❌ | |
+| 공통 인프라 | ✅ / ❌ | |
+| 배포 파이프라인 | ✅ / ❌ |
 
 # 상세 변경 내역 (Detailed Changes)
 
