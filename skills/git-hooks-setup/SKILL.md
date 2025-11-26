@@ -16,7 +16,100 @@ Generate custom git hooks tailored to your project's needs.
 - Adding validation to existing projects
 - Troubleshooting hook issues
 
-## Quick Start Workflow
+## Quick Start: Copy Bundles
+
+**Recommended approach**: Copy pre-built bundles instead of generating from scratch.
+
+```bash
+# 1. Copy base bundle (required - contains shared lib)
+cp -r bundles/base/.githooks/ .githooks/
+
+# 2. Choose hooks for your project
+cp bundles/hooks/pre-commit/basic.sh .githooks/pre-commit
+cp bundles/hooks/commit-msg/conventional.sh .githooks/commit-msg
+
+# 3. Make executable
+chmod +x .githooks/*
+
+# 4. Configure git
+git config core.hooksPath .githooks
+```
+
+**See**: [bundles/README.md](bundles/README.md) for complete recipes by project type.
+
+## Available Bundles
+
+### Base Bundle (Required)
+
+Always copy first. Contains shared library functions.
+
+```
+bundles/base/.githooks/
+├── lib/                    # Shared functions
+│   ├── colors.sh           # Terminal colors and symbols
+│   ├── output.sh           # Message formatting
+│   └── utils.sh            # Utilities
+├── scripts/
+│   ├── check-file-sizes.sh # File size warnings
+│   └── file-size-limits.yaml
+└── README.md
+```
+
+### Pre-commit Hooks
+
+| Hook | Project Type | Checks |
+|------|--------------|--------|
+| `basic.sh` | Simple TS/JS | Format, lint, type-check |
+| `monorepo.sh` | Workspaces | Workspace-aware + build |
+
+### Pre-push Hooks
+
+| Hook | Project Type | Checks |
+|------|--------------|--------|
+| `cdk-safety.sh` | AWS CDK | Synth, diff, resource safety |
+
+### Commit-msg Hooks
+
+| Hook | Use Case | Validates |
+|------|----------|-----------|
+| `conventional.sh` | Conventional Commits | type(scope): subject |
+| `skill-enforcement.sh` | Claude Code teams | Skill footer tag |
+
+## Project Type Recipes
+
+### Simple TypeScript Project
+
+```bash
+cp -r bundles/base/.githooks/ .githooks/
+cp bundles/hooks/pre-commit/basic.sh .githooks/pre-commit
+cp bundles/hooks/commit-msg/conventional.sh .githooks/commit-msg
+chmod +x .githooks/pre-commit .githooks/commit-msg
+git config core.hooksPath .githooks
+```
+
+### AWS CDK Project
+
+```bash
+cp -r bundles/base/.githooks/ .githooks/
+cp bundles/hooks/pre-push/cdk-safety.sh .githooks/pre-push
+cp bundles/hooks/commit-msg/conventional.sh .githooks/commit-msg
+chmod +x .githooks/pre-push .githooks/commit-msg
+git config core.hooksPath .githooks
+```
+
+### Monorepo Project
+
+```bash
+cp -r bundles/base/.githooks/ .githooks/
+cp bundles/hooks/pre-commit/monorepo.sh .githooks/pre-commit
+cp bundles/hooks/commit-msg/conventional.sh .githooks/commit-msg
+chmod +x .githooks/pre-commit .githooks/commit-msg
+git config core.hooksPath .githooks
+```
+
+## Alternative: Custom Generation
+
+If bundles don't fit your needs, generate custom hooks:
 
 ### 1. Analyze Project
 
@@ -57,67 +150,6 @@ Adapt template to project's scripts:
 
 **See**: [hooks/pre-commit-patterns.md](hooks/pre-commit-patterns.md) for common patterns
 
-### 4. Handle Existing Issues
-
-If project has many linting errors, make checks **non-blocking initially**:
-
-```bash
-if npm run lint:fix; then
-    success
-else
-    warn "⚠️ Linting issues (non-blocking for now)"
-    # TODO: Make blocking after refactoring
-fi
-```
-
-**See**: [hooks/pre-commit-patterns.md#pattern-2-non-blocking-checks](hooks/pre-commit-patterns.md#pattern-2-non-blocking-checks-progressive-adoption)
-
-### 5. Setup & Test
-
-```bash
-# Create hooks directory
-mkdir -p .githooks
-
-# Write hook script
-cat > .githooks/pre-commit << 'EOF'
-# ... hook content ...
-EOF
-
-# Make executable
-chmod +x .githooks/pre-commit
-
-# Configure git
-git config core.hooksPath .githooks
-
-# Test
-git commit --allow-empty -m "test: Verify hooks"
-git reset HEAD~1
-```
-
-**See**: [guides/setup-guide.md](guides/setup-guide.md) for complete setup
-
-**See**: [guides/testing-hooks.md](guides/testing-hooks.md) for testing strategies
-
-### 6. Document Choices
-
-Add to project's `docs/ROADMAP.md` or `DEVELOPMENT.md`:
-
-```markdown
-## Git Hooks
-
-### Pre-commit ✅
-
-- Auto-fix formatting (Prettier)
-- Auto-fix linting (ESLint, non-blocking)
-- Type checking (TypeScript)
-
-### Future Enhancements
-
-- [ ] Make linting blocking after refactoring
-- [ ] Add commit-msg validation
-- [ ] Add pre-push hook (tests, build)
-```
-
 ## Quick Reference
 
 ### Project Type Detection
@@ -128,21 +160,22 @@ Add to project's `docs/ROADMAP.md` or `DEVELOPMENT.md`:
 - **Frontend**: React/Vue/Svelte/Angular in dependencies
 - **Backend**: NestJS/Express/Fastify in dependencies
 
-### Available Tooling (Check package.json scripts)
-
-- **Formatting**: `format`, `format:check`, `prettier`
-- **Linting**: `lint`, `lint:fix`, `eslint`
-- **Type checking**: `type-check`, `tsc`
-- **Building**: `build`, `compile`
-- **Testing**: `test`, `test:unit`, `test:e2e`
-
 ### Performance Rules
 
 - **< 5s**: Always include in pre-commit
 - **5-30s**: Include if important
 - **> 30s**: Move to pre-push or CI
 
-## Detailed Guides
+## Detailed Resources
+
+### Bundles
+
+- **Bundle Overview**: [bundles/README.md](bundles/README.md)
+- **Pre-commit Hooks**: [bundles/hooks/pre-commit/README.md](bundles/hooks/pre-commit/README.md)
+- **Pre-push Hooks**: [bundles/hooks/pre-push/README.md](bundles/hooks/pre-push/README.md)
+- **Commit-msg Hooks**: [bundles/hooks/commit-msg/README.md](bundles/hooks/commit-msg/README.md)
+
+### Guides
 
 - **Setup & Verification**: [guides/setup-guide.md](guides/setup-guide.md)
 - **Project Analysis**: [guides/project-detection.md](guides/project-detection.md)
@@ -151,53 +184,18 @@ Add to project's `docs/ROADMAP.md` or `DEVELOPMENT.md`:
 - **Testing Hooks**: [guides/testing-hooks.md](guides/testing-hooks.md)
 - **Troubleshooting**: [guides/troubleshooting.md](guides/troubleshooting.md)
 
-## Examples
+### Legacy Templates
 
 - **Templates**: [examples/templates/](examples/templates/)
-    - `pre-commit-basic.sh` - Simple TypeScript/JavaScript project
-    - `pre-commit-monorepo.sh` - Multi-package workspace
-    - `pre-commit-aws-cdk.sh` - AWS CDK infrastructure
-    - `commit-msg-conventional.sh` - Conventional commits validation
-    - `commit-msg-skill-enforcement.sh` - Enforce conventional-commits skill usage via footer tag
-    - `commit-msg-snapshot.sh` - Visual regression test validation
 - **Real Implementations**: [examples/implementations/](examples/implementations/)
-    - `monorepo-nestjs-cdk/` - Chatbot project with NestJS + CDK
 
 ## Key Principles
 
-1. **Analyze first**: Understand project structure and available tooling
+1. **Copy bundles first**: Use pre-built bundles for common project types
 2. **Keep it fast**: Pre-commit should complete in <30 seconds
 3. **Auto-fix when possible**: Prettier, ESLint --fix
-4. **Progressive adoption**: Make checks non-blocking if needed, document improvement plan
+4. **Progressive adoption**: Make checks non-blocking if needed
 5. **Test thoroughly**: Test hooks before sharing with team
-6. **Document decisions**: Add git hooks section to project roadmap
-
-## Common Patterns
-
-### Auto-fix and Stage
-
-```bash
-npm run format
-git add -u  # Stage auto-fixed changes
-```
-
-### Non-blocking Checks
-
-```bash
-if npm run lint:fix; then
-    success
-else
-    warn "Issues detected (non-blocking)"
-fi
-```
-
-### Strict Validation
-
-```bash
-npm run type-check || exit 1
-```
-
-See [hooks/pre-commit-patterns.md](hooks/pre-commit-patterns.md) for complete pattern library.
 
 ## Project-Specific Configuration
 

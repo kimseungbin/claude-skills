@@ -1,0 +1,22 @@
+# File Size Limits Configuration
+#
+# Large files consume more tokens when AI assistants read them.
+# This check helps identify files that may benefit from refactoring.
+#
+# Thresholds based on typical codebase analysis:
+# - ts: 8KB (95th percentile of typical TypeScript codebases)
+# - md: 15KB (90th percentile for documentation)
+
+# Size limits by file extension (in bytes)
+limits:
+  ts: 8192      # 8KB - TypeScript files
+  md: 15360     # 15KB - Markdown files
+
+# Directories to exclude from checking
+exclude:
+  - node_modules
+  - dist
+  - build
+  - .git
+  - coverage
+  - cdk.out
