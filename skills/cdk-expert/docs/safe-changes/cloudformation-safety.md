@@ -16,6 +16,7 @@ Critical guide to preventing accidental resource replacements during CDK refacto
 6. [Complete Workflow](#complete-overridelogicalid-workflow)
 7. [Pre-Refactoring Checklist](#pre-refactoring-checklist)
 8. [Pre-Push Hook Integration](#pre-push-hook-integration)
+9. [Cross-Region Exports and Logical ID Constraints](#cross-region-exports-and-logical-id-constraints)
 
 ---
 
@@ -1203,6 +1204,136 @@ git push origin master
 # Option 2: Run approval script if intentional
 ./scripts/analyze-and-approve-deployment.sh
 ```
+
+---
+
+## Cross-Region Exports and Logical ID Constraints
+
+### Understanding Cross-Region Exports
+
+When resources in one stack are referenced by another stack in a different region, CloudFormation creates **cross-region exports**. These exports have names **derived from the resource's logical ID**.
+
+**Architecture Example:**
+```
+GlobalStack (us-east-1)
+├── WAF/MonitoringWebAcl → export: devGlobalStackuseast1FnGetAttWAFMonitoringWebAcl...
+├── WAF/BlockingWebAcl   → export: devGlobalStackuseast1FnGetAttWAFBlockingWebAcl...
+└── ...
+
+MainStack (ap-northeast-2)
+├── Service/Auth → import: monitoringWebAclArn (cross-region reference)
+├── Service/Yozm → import: monitoringWebAclArn (cross-region reference)
+└── ...
+```
+
+### Why Cross-Region Exports Cannot Be Updated
+
+**Critical Rule:**
+> Cross-region exports **CANNOT be updated** while another stack is importing them.
+
+**Error you'll see:**
+```
+Export devGlobalStackuseast1FnGetAttWAFMonitoringWebAclArn... cannot be updated as it is in use by dev
+```
+
+**Why this happens:**
+1. Export names are generated from logical IDs
+2. Changing logical ID = changing export name
+3. Importing stack still references old export name
+4. CloudFormation blocks the update to prevent broken references
+
+### Real-World Incident: WAF Refactoring Failure (2025-12-05)
+
+**Scenario:** Refactored `WafConstruct` in `packages/infra/src/constructs/waf/` with different logical ID structure.
+
+**Before (original `lib/constructs/cloudfront/waf.ts`):**
+```typescript
+// Creates multiple WebACLs with specific IDs
+new CfnWebACL(this, 'MonitoringWebAcl', {...})  // Logical ID: WAFMonitoringWebAcl...
+new CfnWebACL(this, 'BlockingWebAcl', {...})    // Logical ID: WAFBlockingWebAcl...
+```
+
+**After (refactored `packages/infra/src/constructs/waf/index.ts`):**
+```typescript
+// Creates single WebACL with different ID
+new CfnWebACL(this, 'WebAcl', {...})  // Logical ID: WAFWebAcl... ← DIFFERENT!
+```
+
+**Result:**
+1. DEV deployment failed: `UPDATE_ROLLBACK_FAILED` state
+2. Export names changed because logical IDs changed
+3. MainStack (ap-northeast-2) still importing old exports
+4. CloudFormation blocked the GlobalStack update
+
+**Recovery steps required:**
+```bash
+# 1. First deploy MainStack exclusively (removes import references)
+npx cdk deploy "DeploymentStack/MainStage/dev" --profile fe-dev --exclusively
+
+# 2. Fix GlobalStack rollback state
+aws cloudformation continue-update-rollback \
+  --stack-name dev-GlobalStack \
+  --region us-east-1 \
+  --profile fe-dev \
+  --resources-to-skip ExportsWriterapnortheast2AC4A0F1995E70D2E
+
+# 3. Revert to original WafConstruct that preserves logical IDs
+# 4. Deploy GlobalStack with correct logical IDs
+```
+
+### Prevention: Cross-Region Export Safety Rules
+
+**Rule 1: Never change logical IDs of exported resources**
+```typescript
+// ❌ DANGEROUS: Changing construct ID changes logical ID
+new CfnWebACL(this, 'NewWebAcl', {...})  // Different from 'MonitoringWebAcl'
+
+// ✅ SAFE: Keep original construct ID
+new CfnWebACL(this, 'MonitoringWebAcl', {...})  // Same logical ID
+```
+
+**Rule 2: When refactoring, use `overrideLogicalId()`**
+```typescript
+// If you must restructure, preserve the original logical ID
+const webAcl = new CfnWebACL(this, 'WebAcl', {...})
+webAcl.overrideLogicalId('WAFMonitoringWebAclABC123')  // Match original
+```
+
+**Rule 3: Check exports before refactoring**
+```bash
+# List all exports from a stack
+aws cloudformation list-exports --region us-east-1 --profile fe-dev \
+  --query 'Exports[?starts_with(Name, `devGlobal`)].Name'
+
+# Check what's importing your exports
+aws cloudformation list-imports --export-name "devGlobalStack..." --region ap-northeast-2
+```
+
+**Rule 4: Two-phase deployment for cross-region changes**
+```bash
+# Phase 1: Remove imports (deploy importing stack without references)
+# Phase 2: Update exports (deploy exporting stack with new logical IDs)
+# Phase 3: Re-add imports (deploy importing stack with new references)
+```
+
+### Cross-Region vs Same-Region Refactoring
+
+| Aspect | Same-Region | Cross-Region |
+|--------|-------------|--------------|
+| `cdk refactor` | ✅ Works | ❌ Not supported |
+| `overrideLogicalId()` | ✅ Works | ✅ Works (but limited) |
+| Two-phase deployment | Optional | Often required |
+| Export name change | Blocked if imported | Blocked if imported |
+| Recovery complexity | Low | High (multi-stack) |
+
+### Checklist: Before Refactoring Cross-Region Exported Resources
+
+- [ ] **Identify exports:** Run `cdk synth` and search for `Fn::GetAtt` with cross-region references
+- [ ] **List importers:** Check which stacks import these exports
+- [ ] **Plan logical ID preservation:** Document which IDs must remain unchanged
+- [ ] **Test in DEV:** Deploy to DEV environment first
+- [ ] **Monitor both regions:** Watch CloudFormation events in BOTH us-east-1 and ap-northeast-2
+- [ ] **Have rollback plan:** Know how to use `continue-update-rollback --resources-to-skip`
 
 ---
 
