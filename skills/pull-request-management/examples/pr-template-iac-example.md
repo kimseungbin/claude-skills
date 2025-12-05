@@ -277,8 +277,8 @@ Change Set: (GitHub Actions가 자동으로 생성)
 
 # 배포 전 테스트 (Pre-deployment Tests)
 <!-- 코드 병합 전 반드시 확인해야 할 항목들 -->
+<!-- Note: lint는 pre-push hook과 GitHub Actions에서 자동으로 검증되므로 별도 확인 불필요 -->
 
-- [ ] `npm run lint:check` 통과
 - [ ] `npm run build` 성공
 - [ ] `npm run cdk synth` 성공
 - [ ] CloudFormation Change Set 검토 완료

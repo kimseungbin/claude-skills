@@ -278,8 +278,8 @@ confidence:
     low: 40 # Suggest template update
 
 # Required checks before PR creation
+# Note: lint is NOT included - enforced by pre-push hook and GitHub Actions
 pre_flight_checks:
-    - npm run lint:check
     - npm run build
     - npm run cdk synth
 ```

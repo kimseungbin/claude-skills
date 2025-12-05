@@ -679,22 +679,21 @@ After filling out the template:
 
 #### 6.1. Verify Pre-Flight Checks
 
-Run checks specified in the PR template:
+Run checks that validate the build will succeed:
 
 ```bash
-# Common pre-flight checks
-npm run lint:check
+# Build verification (required)
 npm run build
-npm test
-npm run type-check
 
 # For CDK projects
 npm run cdk synth
-cdk diff
+```
 
-# For infrastructure changes
-terraform plan
-````
+**Note:** Lint checks are NOT included here because they are already enforced by:
+- Pre-push git hook (`.githooks/pre-push`)
+- GitHub Actions CI (`lint.yaml`)
+
+Running lint during PR creation would be redundant.
 
 #### 6.2. Push and Create PR
 
@@ -804,8 +803,8 @@ confidence:
     low: 40 # Suggest template update
 
 # Required checks before PR creation
+# Note: lint is NOT included - enforced by pre-push hook and GitHub Actions
 pre_flight_checks:
-    - npm run lint:check
     - npm run build
     - npm run cdk synth
 ```
