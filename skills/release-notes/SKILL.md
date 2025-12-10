@@ -20,6 +20,11 @@ When the user requests release notes or asks about pending production changes:
    git log --oneline --first-parent origin/prod..origin/staging
    ```
 
+   **If user specifies a target commit:**
+   - Use the specified commit instead of staging HEAD
+   - Compare `origin/prod..<commit-hash>` instead of `origin/prod..origin/staging`
+   - Store the commit hash for use when creating the release
+
 2. **Gather PR details for each merge commit**:
    - Extract PR numbers from commit messages (e.g., `(#123)`)
    - Use `gh pr view <number> --json title,body,files` to get details
@@ -185,9 +190,21 @@ When the user requests release notes or asks about pending production changes:
 
    When user chooses to save as draft, create a draft release on GitHub.
 
-   **Important:** Use `--target staging` for production releases (stable `v*` tags are created on staging branch):
+   **Target selection:**
+   - If a specific commit was specified: use `--target <commit-hash>`
+   - Otherwise: use `--target staging` (HEAD of staging branch)
+
+   **Why use specific commits?**
+   Using a specific commit hash ensures the release tag points to exactly the commit that was analyzed, even if new commits are pushed to staging before publishing the release.
 
    ```bash
+   # With specific commit (recommended)
+   gh release create v{version} --draft --target <commit-hash> --title "v{version}" --notes "$(cat <<'EOF'
+   {release notes content}
+   EOF
+   )"
+
+   # Without specific commit (uses staging HEAD)
    gh release create v{version} --draft --target staging --title "v{version}" --notes "$(cat <<'EOF'
    {release notes content}
    EOF
@@ -198,13 +215,20 @@ When the user requests release notes or asks about pending production changes:
    ```
    ✅ Draft 릴리스가 생성되었습니다.
    🔗 https://github.com/{owner}/{repo}/releases/tag/v{version}
-   📌 Target: staging
+   📌 Target: <commit-hash> (또는 staging)
 
    GitHub에서 검토 후 "Publish release"를 클릭하여 게시하세요.
    ```
 
 10. **Publish release** (if user chooses direct publish):
     ```bash
+    # With specific commit
+    gh release create v{version} --target <commit-hash> --title "v{version}" --notes "$(cat <<'EOF'
+    {release notes content}
+    EOF
+    )"
+
+    # Without specific commit
     gh release create v{version} --target staging --title "v{version}" --notes "$(cat <<'EOF'
     {release notes content}
     EOF
@@ -213,7 +237,53 @@ When the user requests release notes or asks about pending production changes:
 
 ## Example Workflows
 
-### Example 1: No Production Impact Release
+### Example 1: Release with Specific Commit Target
+
+```
+User: "abc1234 커밋 기준으로 릴리스 노트 작성해줘"
+
+1. Fetch and compare using specific commit:
+   git fetch origin prod staging
+   git log --oneline --first-parent origin/prod..abc1234
+
+   Output:
+   abc1234 feat(auth): Enable OAuth2 for production (#250)
+   def5678 fix(yozm): Fix memory leak in SSR (#249)
+
+   📌 Target commit stored: abc1234
+
+2. Analyze each PR...
+   (same analysis process)
+
+3. Draft notes...
+   (same drafting process)
+
+4. Ask for review:
+   위 릴리스 노트 초안을 검토해주세요.
+
+   📌 Target: abc1234 (staging HEAD가 아닌 특정 커밋)
+
+   다음 중 선택해주세요:
+   1. 수정 요청
+   2. GitHub에 Draft로 저장
+   3. 바로 게시 (권장하지 않음)
+
+5. User responds: "2"
+
+6. Create draft release with specific commit:
+   gh release create v1.2.0 --draft --target abc1234 --title "v1.2.0" --notes "..."
+
+   ✅ Draft 릴리스가 생성되었습니다.
+   🔗 https://github.com/wishket/fe-infra/releases/tag/v1.2.0
+   📌 Target: abc1234
+
+   GitHub에서 검토 후 "Publish release"를 클릭하여 게시하세요.
+
+   ⚠️ 이 릴리스는 staging HEAD가 아닌 특정 커밋(abc1234)을 대상으로 합니다.
+   staging에 새 커밋이 추가되어도 이 릴리스에는 영향을 주지 않습니다.
+```
+
+### Example 2: No Production Impact Release
 
 ```
 User: "릴리스 노트 작성해줘"
@@ -316,7 +386,7 @@ User: "릴리스 노트 작성해줘"
    GitHub에서 검토 후 "Publish release"를 클릭하여 게시하세요.
 ```
 
-### Example 2: Production-Impacting Release
+### Example 3: Production-Impacting Release
 
 ```
 User: "운영 배포 대기 중인 변경사항은?"
