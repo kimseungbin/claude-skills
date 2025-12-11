@@ -677,9 +677,14 @@ Impact Level:
 
 After filling out the template:
 
-#### 6.1. Verify Pre-Flight Checks
+#### 6.1. Verify Pre-Flight Checks (Feature Branch PRs Only)
 
-Run checks that validate the build will succeed:
+**SKIP pre-flight checks for environment promotion PRs** (e.g., `master` → `staging`, `staging` → `prod`):
+- These PRs compare remote branches that already passed CI when pushed
+- Running local checks is redundant and may include unrelated local changes
+- The commits were already validated by pre-push hooks and GitHub Actions
+
+**Run pre-flight checks ONLY for feature branch PRs** (local changes being pushed):
 
 ```bash
 # Build verification (required)
