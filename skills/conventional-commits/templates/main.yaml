@@ -50,25 +50,33 @@ footer:
 type_decision_tree:
   - question: "What are you doing?"
     answers:
-      adding_new_capability: "feat - New feature or infrastructure for applications"
+      adding_new_capability: "feat - New feature or infrastructure"
       fixing_bug: "fix - Bug fix that corrects incorrect behavior"
       changing_code_structure: "refactor - Code change (neither bug fix nor feature)"
       updating_docs_only: "docs - Documentation changes with no code changes"
       updating_dependencies: "chore - Dependency updates (chore(deps) or chore(monorepo))"
 
-  - question: "Infrastructure project - what does it serve?"
-    for_applications:
-      description: "Applications directly use or depend on this"
+  - question: "Infrastructure project - does it involve production code (Lambda, CDK constructs)?"
+    yes_serves_applications:
+      description: "New code that applications directly use or depend on"
       examples: ["New microservice", "Redis cluster", "CloudFront caching"]
-      type: "feat"
-    for_deployment:
-      description: "Monitors/improves deployment process"
-      examples: ["Pipeline notifications", "Drift detection", "Deployment approval"]
-      type: "chore(deployment)"
-    for_development:
-      description: "Developer tooling"
-      examples: ["Git hooks", "ESLint config", "GitHub Actions"]
-      type: "chore(tools)"
+      type: "feat({construct-scope})"
+    yes_serves_operations:
+      description: "New code for operational monitoring/automation (Lambda + CDK)"
+      examples: ["Drift detection Lambda", "Cost anomaly alerts", "Automated remediation"]
+      type: "feat({construct-scope})"
+      note: "Use feat because it's production code, scope indicates the construct"
+    no_config_only:
+      description: "Configuration/workflow changes without new Lambda/CDK code"
+      examples: ["Pipeline notifications (using existing constructs)", "GitHub Actions", "Feature flags"]
+      type: "chore({scope})"
+
+  - question: "What's the appropriate scope for infrastructure code?"
+    new_construct: "Use construct name (e.g., drift-detection, cost-alerts)"
+    existing_construct: "Use construct name (e.g., service, cloudfront)"
+    multiple_constructs: "Use 'infra' for broad infrastructure changes"
+    ci_cd_only: "Use 'deployment' for pipeline/CI changes without new code"
+    tooling_only: "Use 'tools' for developer tooling"
 
   - question: "Edge case unclear?"
     feat_vs_chore_infrastructure: "See types/chore.yaml for detailed edge cases"
