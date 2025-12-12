@@ -329,3 +329,38 @@ Skill: conventional-commits
 - When in doubt about splitting, present options to the user
 - Keep related changes together (e.g., feature + its tests)
 - Process commits in logical dependency order
+
+## Commit Scope Discipline
+
+When changes span multiple unrelated concerns, split them into separate commits with distinct purposes.
+
+**Why this matters:**
+- Each commit tells a story; mixed changes obscure that story
+- Easier to review, revert, and cherry-pick individual changes
+- Git history becomes a useful documentation tool
+
+**When to split:**
+- Feature work mixed with unrelated cleanup → Separate commits
+- Documentation updates unrelated to code changes → Separate commits
+- Configuration changes alongside feature changes → Separate commits
+
+**When NOT to split:**
+- Feature + its tests → Same commit (atomic change)
+- Bug fix + documentation of the fix → Same commit
+- Refactoring that enables a feature → Same commit (if tightly coupled)
+
+**Example:**
+```
+# Bad: Mixed concerns in one commit
+git commit -m "feat(auth): Add login and update backlog docs"
+
+# Good: Separate commits with clear purposes
+git commit -m "feat(auth): Add OAuth login flow"
+git commit -m "docs(project): Update backlog with completed tasks"
+```
+
+**Process:**
+1. Before committing, identify distinct concerns in staged changes
+2. Present split options to user via AskUserQuestion if multiple concerns detected
+3. Let user choose which groupings to commit
+4. Create commits in logical order (dependencies first)
