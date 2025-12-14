@@ -9,8 +9,21 @@ Commit-msg hooks validate commit messages before finalizing the commit.
 **For:** Projects following Conventional Commits specification
 
 **Validates:**
+
 - Commit message format: `type(scope): subject`
-- Valid commit types (feat, fix, docs, etc.)
+- Valid commit types (auto-detected from config or default English types)
+
+**Features:**
+
+- Auto-detects types from `conventional-commits` skill config
+- Supports custom types (Korean, etc.)
+- Falls back to standard Conventional Commits if no config found
+
+**Config detection order:**
+
+1. `.claude/config/conventional-commits/main.yaml` (split config)
+2. `.claude/config/conventional-commits.yaml` (single file)
+3. Default English types (feat, fix, docs, etc.)
 
 **Use when:** Team uses Conventional Commits for changelog generation or semantic versioning.
 
@@ -21,6 +34,7 @@ Commit-msg hooks validate commit messages before finalizing the commit.
 **For:** Teams using Claude Code's conventional-commits skill
 
 **Validates:**
+
 - Presence of `Skill: conventional-commits` footer in commit message
 - Ensures all commits are created via the skill, not manually
 
@@ -97,19 +111,19 @@ fi
 
 ## Valid Commit Types
 
-| Type | Description |
-|------|-------------|
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `docs` | Documentation changes |
-| `style` | Code style changes (formatting) |
-| `refactor` | Code refactoring |
-| `perf` | Performance improvement |
-| `test` | Adding or updating tests |
-| `build` | Build system changes |
-| `ci` | CI/CD changes |
-| `chore` | Other changes |
-| `revert` | Revert previous commit |
+| Type       | Description                     |
+| ---------- | ------------------------------- |
+| `feat`     | New feature                     |
+| `fix`      | Bug fix                         |
+| `docs`     | Documentation changes           |
+| `style`    | Code style changes (formatting) |
+| `refactor` | Code refactoring                |
+| `perf`     | Performance improvement         |
+| `test`     | Adding or updating tests        |
+| `build`    | Build system changes            |
+| `ci`       | CI/CD changes                   |
+| `chore`    | Other changes                   |
+| `revert`   | Revert previous commit          |
 
 ## Bypassing (Emergency)
 
