@@ -13,9 +13,11 @@ When the user requests to create a commit or generate a commit message:
 
 1. **Read the commit rules configuration** (minimal-context loading):
     - **Always load main config first**:
-        - **First**, check if `.claude/config/conventional-commits.yaml` exists (project-specific)
-        - **If not found**, fall back to `.claude/skills/conventional-commits/commit-rules.yaml` (default)
+        - **First**, check if `.claude/config/conventional-commits/main.yaml` exists (split config pattern)
+        - **If not found**, check if `.claude/config/conventional-commits.yaml` exists (single file pattern)
+        - **If neither found**, fall back to `.claude/skills/conventional-commits/commit-rules.yaml` (default)
         - Main config contains: quick reference, complete type decision tree, scope patterns
+    - **IMPORTANT**: Always check for split config directory pattern first, as it takes priority
     - **Load detailed files only when needed** (5-10% of commits):
         - **types/*.yaml** - Load when type unclear after decision tree (feat vs chore edge cases)
         - **scopes/*.yaml** - Load when scope unclear for multiple file changes
@@ -99,8 +101,15 @@ When the user requests to create a commit or generate a commit message:
         - Examples: frontend, backend, infra, config, monorepo, tools
         - Scope describes the LOCATION/AREA of the change (which package? which subsystem?)
         - Match file paths against the `patterns` in each scope definition
+        - **IMPORTANT**: Scope is determined by FILE PATH patterns, NOT semantic interpretation
     - Format: `{type}({scope}): {subject}` — e.g., `ci(tools): Fix workflow syntax`
     - Consider the monorepo structure: packages/frontend, packages/backend, packages/infra
+
+    **When no scope pattern matches:**
+    - If file paths don't match any defined scope patterns, **ASK the user** what scope to use
+    - Suggest adding a new scope to the config if appropriate
+    - Do NOT silently pick a scope based on semantic interpretation
+    - Example: If `packages/tokens/` doesn't match any pattern, ask: "어떤 스코프를 사용할까요?"
 
 7. **Generate the commit message(s)**:
     - Follow the format pattern specified in the YAML rules
