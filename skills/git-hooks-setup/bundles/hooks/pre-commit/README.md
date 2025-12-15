@@ -26,6 +26,32 @@ Pre-commit hooks run before each commit to validate code quality.
 
 ---
 
+### `with-stylelint.sh`
+
+**For:** Projects with CSS/design system that enforce design tokens
+
+**Checks:**
+- Auto-fix formatting (Prettier)
+- Auto-fix linting (ESLint)
+- CSS linting (Stylelint)
+- Type checking (TypeScript)
+
+**Required npm scripts:**
+```json
+{
+  "scripts": {
+    "format": "prettier --write .",
+    "lint": "eslint --fix .",
+    "lint:css": "stylelint 'src/**/*.css'",
+    "type-check": "tsc --noEmit"
+  }
+}
+```
+
+**Use with:** `stylelint-declaration-strict-value` plugin to enforce design token usage.
+
+---
+
 ### `monorepo.sh`
 
 **For:** npm/pnpm/yarn workspaces, Lerna, Nx monorepos

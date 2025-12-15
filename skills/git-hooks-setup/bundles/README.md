@@ -40,6 +40,7 @@ bundles/
 ├── hooks/                    # OPTIONAL: Pick what you need
 │   ├── pre-commit/
 │   │   ├── basic.sh          # Simple TS/JS projects
+│   │   ├── with-stylelint.sh # Projects with CSS/design tokens
 │   │   ├── monorepo.sh       # Workspace-aware hooks
 │   │   └── README.md
 │   ├── pre-push/
@@ -72,6 +73,24 @@ git config core.hooksPath .githooks
 - Config-based commit message validation (supports any language)
 
 **Requires:** `.claude/config/conventional-commits/main.yaml` with `types_quick` and `scopes_quick`
+
+### Design System / CSS Project
+
+```bash
+cp -r bundles/base/.githooks/ .githooks/
+cp bundles/hooks/pre-commit/with-stylelint.sh .githooks/pre-commit
+cp bundles/hooks/commit-msg/conventional-config.sh .githooks/commit-msg
+chmod +x .githooks/pre-commit .githooks/commit-msg
+git config core.hooksPath .githooks
+```
+
+**What you get:**
+- Auto-fix formatting and linting on commit
+- CSS linting with Stylelint (enforces design token usage)
+- Type checking before commit
+- Config-based commit message validation
+
+**Requires:** `stylelint` and `stylelint-declaration-strict-value` npm packages
 
 ### AWS CDK Infrastructure Project
 
