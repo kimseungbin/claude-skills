@@ -302,7 +302,75 @@ Everyone knows it's a PR from the GitHub context. Start directly with the first 
 
 This applies to PR descriptions only. Markdown files in the repository may still use H1 headings as appropriate.
 
-### 3.8. Avoid Checkbox Overuse
+### 3.8. Interactive Concept Explanations
+
+**When introducing technical terms or concepts that reviewers might not be familiar with, ask the user if they want explanatory callouts.**
+
+#### When to Identify Explainable Concepts
+
+Look for terms/concepts that may need explanation:
+
+1. **New Features/APIs**: GitHub Commit Status, Lambda@Edge, CodePipeline notifications
+2. **Infrastructure Concepts**: Drift detection, Blue/Green deployment, Task Definitions
+3. **Project-Specific Patterns**: Feature flags, cross-account notifications, workspace migrations
+4. **Acronyms/Jargon**: WAF, ALB, SSM, ECR (unless already well-known in context)
+
+#### How to Ask
+
+Before creating the PR, use `AskUserQuestion` to offer callout options:
+
+```
+I noticed some concepts that reviewers might benefit from having explained:
+
+1. **GitHub Commit Status** - How CI/CD reports build status to GitHub
+2. **Grouped Slack Notifications** - Sending multiple messages with same threadId
+
+Would you like me to add explanatory callouts for any of these?
+```
+
+**Question format:**
+- Header: "Callouts"
+- Options: List each identified concept
+- Multi-select: true (user can choose multiple)
+- Always include "None needed" option implicitly (user can select none)
+
+#### Callout Format
+
+Use GitHub-flavored markdown callouts (`> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`):
+
+```markdown
+> [!NOTE]
+> **GitHub Commit Status란?**
+>
+> GitHub Commit Status는 CI/CD 파이프라인이 특정 커밋에 대한 빌드/배포 상태를 GitHub에 보고하는 기능입니다.
+>
+> **표시 위치:**
+> - PR 페이지의 커밋 목록에서 각 커밋 옆에 ✅ / ❌ / 🟡 아이콘으로 표시
+> - 커밋 상세 페이지에서 "Status checks" 섹션에 표시
+>
+> **이 기능의 효과:**
+> - CodePipeline 콘솔에 가지 않고도 GitHub에서 배포 상태 즉시 확인
+```
+
+**Callout types:**
+- `[!NOTE]` - General explanations, background information
+- `[!TIP]` - Best practices, recommendations
+- `[!IMPORTANT]` - Critical information reviewers must understand
+- `[!WARNING]` - Potential risks or gotchas
+
+#### Placement
+
+Place callouts in the **Summary section**, immediately after the bullet-point summary. This ensures reviewers see the context before diving into details.
+
+#### When NOT to Ask
+
+Skip the interactive question if:
+- All concepts are already well-documented in the project
+- The PR is a simple bug fix with no new concepts
+- Previous PRs have already established the terminology
+- The target audience (reviewers) are domain experts
+
+### 3.9. Avoid Checkbox Overuse
 
 **Checkboxes are for task lists, not for selecting single options.**
 

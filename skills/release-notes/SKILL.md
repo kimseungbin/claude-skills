@@ -1,6 +1,6 @@
 ---
 name: release-notes
-description: Draft production release notes by analyzing commits between staging and prod branches. Use when user requests release notes or prepares a production release.
+description: Draft production release notes by analyzing commits between staging and the latest release tag. Use when user requests release notes or prepares a production release.
 ---
 
 # Release Notes
@@ -13,17 +13,26 @@ When the user requests release notes or asks about pending production changes:
 
 1. **Identify commits pending release**:
    ```bash
-   # Fetch latest from remote
-   git fetch origin prod staging
+   # Fetch latest from remote (including tags)
+   git fetch origin staging --tags
 
-   # Show merge commits only (first-parent) between prod and staging
-   git log --oneline --first-parent origin/prod..origin/staging
+   # Find the latest stable release tag (exclude pre-release tags like -qa.*, -rc.*)
+   LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | grep -v '\-' | head -1)
+   echo "Latest release: $LATEST_TAG"
+
+   # Show merge commits only (first-parent) between latest tag and staging
+   git log --oneline --first-parent ${LATEST_TAG}..origin/staging
    ```
 
    **If user specifies a target commit:**
    - Use the specified commit instead of staging HEAD
-   - Compare `origin/prod..<commit-hash>` instead of `origin/prod..origin/staging`
+   - Compare `${LATEST_TAG}..<commit-hash>` instead of `${LATEST_TAG}..origin/staging`
    - Store the commit hash for use when creating the release
+
+   **If no stable tags exist:**
+   - This is likely the first release
+   - Use `git log --oneline --first-parent origin/staging` to list all commits
+   - Or ask user for a starting point
 
 2. **Gather PR details for each merge commit**:
    - Extract PR numbers from commit messages (e.g., `(#123)`)
@@ -242,9 +251,11 @@ When the user requests release notes or asks about pending production changes:
 ```
 User: "abc1234 커밋 기준으로 릴리스 노트 작성해줘"
 
-1. Fetch and compare using specific commit:
-   git fetch origin prod staging
-   git log --oneline --first-parent origin/prod..abc1234
+1. Fetch and find latest tag, then compare using specific commit:
+   git fetch origin staging --tags
+   LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | grep -v '\-' | head -1)
+   # Latest release: v1.1.0
+   git log --oneline --first-parent v1.1.0..abc1234
 
    Output:
    abc1234 feat(auth): Enable OAuth2 for production (#250)
@@ -288,9 +299,11 @@ User: "abc1234 커밋 기준으로 릴리스 노트 작성해줘"
 ```
 User: "릴리스 노트 작성해줘"
 
-1. Fetch and compare branches:
-   git fetch origin prod staging
-   git log --oneline --first-parent origin/prod..origin/staging
+1. Fetch and find latest tag:
+   git fetch origin staging --tags
+   LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | grep -v '\-' | head -1)
+   # Latest release: v1.0.0
+   git log --oneline --first-parent v1.0.0..origin/staging
 
    Output:
    630d538 feat(infra): Add ServiceConstruct and migrate Partner service (#236)
@@ -391,8 +404,11 @@ User: "릴리스 노트 작성해줘"
 ```
 User: "운영 배포 대기 중인 변경사항은?"
 
-1. Compare branches:
-   git log --oneline --first-parent origin/prod..origin/staging
+1. Find latest tag and compare:
+   git fetch origin staging --tags
+   LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | grep -v '\-' | head -1)
+   # Latest release: v1.1.0
+   git log --oneline --first-parent v1.1.0..origin/staging
 
    Output:
    abc1234 feat(auth): Enable OAuth2 for production (#250)
@@ -514,7 +530,8 @@ User: "운영 배포 대기 중인 변경사항은?"
 ## Project Configuration Location
 
 This skill uses project-specific configuration for:
-- Branch names (prod, staging, master)
+- Branch names (staging, master)
+- Tag pattern for identifying releases
 - Feature flag file location
 - Environment enum values
 
@@ -523,9 +540,13 @@ This skill uses project-specific configuration for:
 ```yaml
 # Branch configuration
 branches:
-  production: prod
   staging: staging
   development: master
+
+# Tag pattern for identifying stable releases
+# Stable releases match 'v*' but exclude pre-release tags (e.g., -qa.*, -rc.*)
+tag_pattern: 'v*'
+exclude_prerelease: true  # Excludes tags containing '-' (e.g., v1.0.0-qa.1)
 
 # Feature flags file
 feature_flags_path: feature-flags.yaml

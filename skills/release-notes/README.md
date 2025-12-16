@@ -6,7 +6,7 @@ Draft production-focused release notes by analyzing pending commits and filterin
 
 This skill provides intelligent release note generation that:
 
-- **Analyzes commits**: Compares staging and prod branches to find pending changes
+- **Analyzes commits**: Compares staging branch against the latest release tag to find pending changes
 - **Filters for production**: Excludes DEV/QA-only changes, dev tooling, and documentation
 - **Checks feature flags**: Identifies changes gated by flags not enabled for production
 - **Categorizes changes**: Groups by features, fixes, improvements, and infrastructure
@@ -27,7 +27,11 @@ Use this skill when:
 ### 1. Identify Pending Changes
 
 ```bash
-git log --oneline --first-parent origin/prod..origin/staging
+# Find the latest stable release tag (exclude pre-release tags)
+LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | grep -v '\-' | head -1)
+
+# Compare from latest tag to staging
+git log --oneline --first-parent ${LATEST_TAG}..origin/staging
 ```
 
 Shows merge commits (PRs) not yet released to production.
@@ -124,9 +128,12 @@ Create `.claude/config/release-notes.yaml`:
 ```yaml
 # Branch names
 branches:
-  production: prod
   staging: staging
   development: master
+
+# Tag pattern for identifying stable releases
+tag_pattern: 'v*'
+exclude_prerelease: true  # Excludes tags containing '-' (e.g., v1.0.0-qa.1)
 
 # Feature flags location
 feature_flags_path: feature-flags.yaml
