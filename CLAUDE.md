@@ -2,6 +2,10 @@
 
 This repository contains shared Claude Code skills designed for reuse across multiple projects.
 
+## Default Behaviors
+
+**Committing changes:** Always use the `commit-expert` subagent when the user asks to commit, create commits, or generate commit messages. Do not use the conventional-commits skill directly - delegate to the subagent for context isolation and enhanced features.
+
 ## Repository Structure
 
 ```
