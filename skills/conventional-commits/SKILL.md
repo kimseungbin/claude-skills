@@ -13,11 +13,9 @@ When the user requests to create a commit or generate a commit message:
 
 1. **Read the commit rules configuration** (minimal-context loading):
     - **Always load main config first**:
-        - **First**, check if `.claude/config/conventional-commits/main.yaml` exists (split config pattern)
-        - **If not found**, check if `.claude/config/conventional-commits.yaml` exists (single file pattern)
-        - **If neither found**, fall back to `.claude/skills/conventional-commits/commit-rules.yaml` (default)
+        - **First**, check if `.claude/config/conventional-commits/main.yaml` exists (project-specific)
+        - **If not found**, fall back to `.claude/skills/conventional-commits/commit-rules.yaml` (default)
         - Main config contains: quick reference, complete type decision tree, scope patterns
-    - **IMPORTANT**: Always check for split config directory pattern first, as it takes priority
     - **Load detailed files only when needed** (5-10% of commits):
         - **types/*.yaml** - Load when type unclear after decision tree (feat vs chore edge cases)
         - **scopes/*.yaml** - Load when scope unclear for multiple file changes
@@ -186,30 +184,33 @@ This skill is a **git submodule** shared across multiple projects. Files in `.cl
 
 **Priority order:**
 
-1. **Project-specific rules** (ALWAYS CREATE THIS): `.claude/config/conventional-commits.yaml` (checked first)
+1. **Project-specific rules** (ALWAYS CREATE THIS): `.claude/config/conventional-commits/main.yaml` (checked first)
 2. **Default rules** (READ-ONLY): `.claude/skills/conventional-commits/commit-rules.yaml` (fallback, generic defaults)
 
 **Configuration Pattern:**
 
 - `.claude/skills/conventional-commits/` → Symlink to submodule (READ-ONLY, shared across projects)
-- `.claude/config/conventional-commits.yaml` → Real file in project repo (WRITABLE, project-specific)
+- `.claude/config/conventional-commits/` → Directory in project repo (WRITABLE, project-specific)
 
 **When user requests project-specific commit rules:**
 
-1. Check if `.claude/config/conventional-commits.yaml` exists
-2. If NOT exists, create it with project-specific scopes, types, and conventions
+1. Check if `.claude/config/conventional-commits/main.yaml` exists
+2. If NOT exists, create the directory and main.yaml with project-specific scopes, types, and conventions
 3. If EXISTS, update it with new rules
 4. NEVER modify `commit-rules.yaml` in the skill directory (it's a submodule!)
 
-**Split Configuration Pattern** (recommended for large projects):
+**Split Configuration Pattern:**
 
-Projects with extensive rules (500+ lines) can use the split configuration pattern to reduce context loading:
+Projects use the split configuration pattern to reduce context loading:
 
 1. **Copy template structure**:
    ```bash
+   # Create config directory
+   mkdir -p .claude/config/conventional-commits
+
    # Copy main config
    cp .claude/skills/conventional-commits/templates/main.yaml \
-      .claude/config/conventional-commits.yaml
+      .claude/config/conventional-commits/main.yaml
 
    # Copy detailed files (optional, load on-demand)
    cp -r .claude/skills/conventional-commits/templates/types \
@@ -231,13 +232,6 @@ Projects with extensive rules (500+ lines) can use the split configuration patte
    - 67% context reduction (load ~168 lines instead of 515 lines)
    - Main config contains complete type decision tree
    - Detailed files loaded only when needed (5-10% of commits)
-
-**Monolithic Configuration** (simple, all-in-one):
-
-For smaller projects or simpler workflows, use a single configuration file:
-- Copy from `commit-rules.yaml` or `commit-rules.template.yaml`
-- Customize types, scopes, and conventions
-- All rules in one file (easier to manage for small projects)
 
 **Example projects:**
 
@@ -273,7 +267,7 @@ Projects can enforce that all commits are created using this skill by validating
 - Subject line length and format
 
 **Quick setup:**
-Add footer validation to `.claude/config/conventional-commits.yaml` and create commit-msg hook in `.git/hooks/commit-msg`.
+Add footer validation to `.claude/config/conventional-commits/main.yaml` and create commit-msg hook in `.git/hooks/commit-msg`.
 
 **For complete details:** See [hooks/commit-msg.md](hooks/commit-msg.md)
 
