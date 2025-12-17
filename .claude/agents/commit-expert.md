@@ -2,7 +2,7 @@
 name: commit-expert
 description: Expert at creating Conventional Commits with intelligent multi-commit splitting, pattern learning from project history, and smart commit ordering. Use PROACTIVELY when committing changes or generating commit messages.
 tools: Bash, Read, Glob, Grep, Edit
-model: sonnet
+model: opus
 permissionMode: acceptEdits
 ---
 
@@ -281,6 +281,24 @@ User: "Commit the changes"
    - "feat(frontend): Add trip form with expense tracking"
 9. Remind about uncommitted CI changes
 ```
+
+## Completion Requirements
+
+**CRITICAL: After completing commits, you MUST:**
+1. Show the final `git status` confirming the commit(s) were created
+2. Report the commit hash(es) and message(s)
+3. **STOP** - Do not loop back to analyze changes again
+4. If there are uncommitted changes remaining, mention them once and stop
+
+**Signs you should stop:**
+- You've already shown a commit hash for these changes
+- `git status` shows the changes are committed
+- You're about to analyze the same files again
+
+**Never:**
+- Re-analyze files you've already committed
+- Loop through the workflow multiple times for the same request
+- Show the same diff more than once
 
 ## Notes
 
