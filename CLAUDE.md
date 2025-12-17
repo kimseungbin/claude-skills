@@ -44,11 +44,16 @@ claude-skills/
 ## Available Skills
 
 ### conventional-commits
-**When to use:** User requests to commit changes or generate commit messages
+**Status:** Configuration only - use `commit-expert` subagent instead
 
-Automatically creates properly formatted Conventional Commits with intelligent multi-commit splitting. Uses implementation guides (infrastructure, frontend, backend, fullstack) for domain-specific decision trees.
+Provides configuration files and implementation guides for commit generation. The `commit-expert` subagent reads from this skill's config files but provides better context isolation and pattern learning.
 
-**Invoke:** `Skill(conventional-commits)` or `/commit` command
+**Contains:**
+- `commit-rules.yaml` - Default commit rules configuration
+- `templates/` - Split configuration templates for context optimization
+- `infrastructure.md`, `frontend.md`, etc. - Implementation guides
+
+**Do not invoke directly** - use `/commit` or the `commit-expert` subagent
 
 ---
 
@@ -144,13 +149,11 @@ Enhanced commit generation with:
 - Smart commit ordering (deps → features → tests → docs)
 - All conventional-commits skill features (multi-commit splitting, implementation guides)
 
-**Invoke:** Automatic delegation or `/commit` command
-
-**Note:** This is the recommended approach for commit generation. The `conventional-commits` skill is kept for backward compatibility.
+**Invoke:** `/commit` command or `Task(subagent_type="commit-expert")`
 
 ## Available Commands
 
-- **commit**: Invokes the commit-expert subagent (with skill fallback)
+- **commit**: Invokes the commit-expert subagent
 - **create-pr**: Invokes the pull-request-management skill
 - **refactor-claude-md**: Invokes the claude-md-refactoring skill
 

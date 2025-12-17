@@ -1,11 +1,15 @@
 ---
 name: Conventional Commits
-description: Create commits following Conventional Commits specification with intelligent multi-commit splitting and interactive selection. Use when user requests to commit changes or generate commit messages.
+description: Configuration and implementation guides for commit generation. Use commit-expert subagent instead of invoking directly.
 ---
 
 # Conventional Commits
 
-This skill generates commit messages following the [Conventional Commits](https://www.conventionalcommits.org/) specification, with rules defined in `.claude/skills/conventional-commits/commit-rules.yaml`.
+> **DEPRECATED AS EXECUTABLE SKILL:** Use the `commit-expert` subagent instead.
+> This skill now serves as configuration and reference only.
+> Invoke: `Task(subagent_type="commit-expert")` or `/commit` command
+
+This skill provides configuration files and implementation guides for commit generation following the [Conventional Commits](https://www.conventionalcommits.org/) specification. The `commit-expert` subagent reads from these files but provides better context isolation and pattern learning.
 
 ## Instructions
 
