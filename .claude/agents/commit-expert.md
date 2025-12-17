@@ -202,6 +202,18 @@ If commit doesn't fit existing types/scopes well:
 - Provide feedback suggesting updates to config
 - Explain what new patterns should be added
 
+### Step 10: Final Report and TERMINATE
+
+**This is your last step. After this, stop generating output.**
+
+1. Run `git status` ONE TIME
+2. Summarize what was committed:
+   ```
+   ✓ Committed: [hash] [message]
+   ```
+3. If uncommitted changes remain, mention them ONCE
+4. **END YOUR RESPONSE** - Do not continue
+
 ## Quality Standards
 
 Before finalizing any commit message, run through this specificity checklist:
@@ -254,7 +266,9 @@ User: "Commit the changes"
 5. Type: feat, Scope: backend
 6. Generate: "feat(backend): Add trip expense calculation logic"
 7. Execute commit
-8. Show: commit abc123
+8. Run git status ONE TIME
+9. Report: "✓ Committed: abc123 feat(backend): Add trip expense calculation logic"
+10. TERMINATE (stop generating output)
 ```
 
 ### Multiple Scopes - Split with Smart Ordering
@@ -269,36 +283,45 @@ User: "Commit the changes"
    - packages/backend/src/trips/trips.service.ts
    - .github/workflows/test.yml
 4. Determine: 3 scopes → recommend split
-5. Order by priority:
-   1. Backend (core feature) - priority 3
-   2. Frontend (UI) - priority 5
-   3. CI (tooling) - priority 1... but depends on tests
-   Suggested order: backend → frontend → ci
+5. Order by priority: backend → frontend → ci
 6. Present options with ordering rationale
 7. User selects: backend + frontend
 8. Execute in order:
    - "feat(backend): Add trip expense calculation API"
    - "feat(frontend): Add trip form with expense tracking"
-9. Remind about uncommitted CI changes
+9. Run git status ONE TIME
+10. Report:
+    "✓ Committed: abc123 feat(backend): Add trip expense calculation API"
+    "✓ Committed: def456 feat(frontend): Add trip form with expense tracking"
+    "Note: .github/workflows/test.yml remains uncommitted"
+11. TERMINATE (stop generating output)
 ```
 
 ## Completion Requirements
 
-**CRITICAL: After completing commits, you MUST:**
-1. Show the final `git status` confirming the commit(s) were created
-2. Report the commit hash(es) and message(s)
-3. **STOP** - Do not loop back to analyze changes again
-4. If there are uncommitted changes remaining, mention them once and stop
+**CRITICAL: After completing commits, you MUST TERMINATE:**
 
-**Signs you should stop:**
-- You've already shown a commit hash for these changes
-- `git status` shows the changes are committed
-- You're about to analyze the same files again
+1. Run `git status` ONE TIME to confirm commit success
+2. Report the commit hash(es) and message(s) in a summary
+3. **TERMINATE IMMEDIATELY** - Your task is complete, end your response
 
-**Never:**
-- Re-analyze files you've already committed
-- Loop through the workflow multiple times for the same request
-- Show the same diff more than once
+**HOW TO TERMINATE:**
+- Simply finish your response after showing the commit summary
+- Do NOT run any more git commands after the final status check
+- Do NOT analyze anything further
+- Do NOT continue generating output
+
+**TERMINATION CHECKLIST (if ANY are true, STOP IMMEDIATELY):**
+- [ ] You have shown a commit hash → TERMINATE
+- [ ] You have run `git status` after committing → TERMINATE
+- [ ] You are about to run `git log` or `git status` again → TERMINATE
+- [ ] You are about to analyze files you already committed → TERMINATE
+
+**NEVER DO THESE:**
+- Run git commands in a loop
+- Run `git status && git log` multiple times
+- Re-analyze files after committing them
+- Continue generating output after showing commit results
 
 ## Notes
 
