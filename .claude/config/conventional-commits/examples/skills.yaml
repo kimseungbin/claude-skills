@@ -1,0 +1,82 @@
+# Examples: Skill-related commits for claude-skills repository
+
+description: "Real-world commit examples for skill changes"
+
+# New skill examples
+new_skill:
+  - commit: "feat(skills): Add nestjs-patterns skill"
+    files:
+      - "skills/nestjs-patterns/SKILL.md"
+      - "skills/nestjs-patterns/README.md"
+    explanation: "New skill uses 'skills' scope for initial commit"
+
+  - commit: "feat(skills): Add cdk-expert skill with MCP integration"
+    files:
+      - "skills/cdk-expert/SKILL.md"
+      - "skills/cdk-expert/docs/**"
+    explanation: "Comprehensive new skill with documentation"
+
+# Skill enhancement examples
+skill_enhancement:
+  - commit: "feat(conventional-commits): Add frontend implementation guide"
+    files:
+      - "skills/conventional-commits/frontend.md"
+    explanation: "Adding implementation guide is a feature"
+
+  - commit: "feat(cdk-expert): Add CloudFormation drift detection workflow"
+    files:
+      - "skills/cdk-expert/docs/troubleshooting/drift-detection.md"
+      - "skills/cdk-expert/SKILL.md"
+    explanation: "New capability within existing skill"
+
+  - commit: "feat(agents): Add commit-expert subagent with history analysis"
+    files:
+      - ".claude/agents/commit-expert.md"
+    explanation: "New subagent is a feature"
+
+# Skill documentation examples
+skill_documentation:
+  - commit: "docs(pull-request-management): Add Korean template conventions"
+    files:
+      - "skills/pull-request-management/docs/korean-conventions.md"
+    explanation: "Adding documentation to skill"
+
+  - commit: "docs(cdk-expert): Add troubleshooting guide"
+    files:
+      - "skills/cdk-expert/docs/troubleshooting/troubleshooting.md"
+    explanation: "Documentation within skill scope"
+
+  - commit: "docs(git-hooks-setup): Add implementation examples"
+    files:
+      - "skills/git-hooks-setup/examples/**"
+    explanation: "Examples are documentation"
+
+# Skill refactoring examples
+skill_refactoring:
+  - commit: "refactor(pull-request-management): Reorganize docs into task-oriented structure"
+    files:
+      - "skills/pull-request-management/docs/**"
+    explanation: "Restructuring documentation files"
+
+  - commit: "refactor(cdk-expert): Extract reference content to separate files"
+    files:
+      - "skills/cdk-expert/SKILL.md"
+      - "skills/cdk-expert/docs/reference/**"
+    explanation: "Moving content from SKILL.md to dedicated files"
+
+  - commit: "refactor(pull-request-management): Rename skill.md to SKILL.md"
+    files:
+      - "skills/pull-request-management/SKILL.md"
+    explanation: "File renaming for consistency"
+
+# Skill fix examples
+skill_fix:
+  - commit: "fix(conventional-commits): Fix YAML syntax in specificity guide"
+    files:
+      - "skills/conventional-commits/templates/guides/specificity.yaml"
+    explanation: "Fixing broken YAML"
+
+  - commit: "fix(cdk-expert): Correct decision tree for resource replacement"
+    files:
+      - "skills/cdk-expert/docs/safe-changes/refactoring-decision-tree.md"
+    explanation: "Fixing incorrect logic in guide"

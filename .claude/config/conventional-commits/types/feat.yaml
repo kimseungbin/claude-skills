@@ -1,0 +1,54 @@
+# Type: feat - Feature commits for claude-skills repository
+
+description: "New skill, subagent, command, or significant capability"
+
+# When to use feat in this repository
+when_to_use:
+  - "Adding a new skill to skills/ directory"
+  - "Adding a new subagent to .claude/agents/"
+  - "Adding a new slash command"
+  - "Adding a new implementation guide to existing skill"
+  - "Adding significant new capability to existing skill"
+
+# When NOT to use feat
+when_not_to_use:
+  - "Adding documentation to existing feature → docs"
+  - "Restructuring skill files → refactor"
+  - "Adding examples or guides → docs"
+  - "Fixing broken behavior → fix"
+
+# Decision tree for feat
+decision_tree:
+  new_skill:
+    scope: "skills or specific skill name"
+    example: "feat(skills): Add nestjs-patterns skill"
+
+  new_subagent:
+    scope: "agents"
+    example: "feat(agents): Add commit-expert subagent"
+
+  new_command:
+    scope: "commands"
+    example: "feat(commands): Add refactor-claude-md command"
+
+  new_implementation_guide:
+    scope: "skill name"
+    example: "feat(conventional-commits): Add frontend implementation guide"
+
+  new_capability:
+    scope: "skill name"
+    example: "feat(cdk-expert): Add CloudFormation drift detection"
+
+# Common mistakes
+anti_patterns:
+  - wrong: "feat(docs): Add README"
+    correct: "docs(skill-name): Add README"
+    reason: "Adding documentation is docs, not feat"
+
+  - wrong: "feat(project): Update CLAUDE.md"
+    correct: "docs(project): Update CLAUDE.md"
+    reason: "Updating docs is docs type"
+
+  - wrong: "feat(skills): Reorganize skill structure"
+    correct: "refactor(skills): Reorganize skill structure"
+    reason: "Reorganizing without new capability is refactor"

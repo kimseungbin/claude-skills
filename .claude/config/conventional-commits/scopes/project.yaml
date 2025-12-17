@@ -1,0 +1,86 @@
+# Scopes: Project-level scopes for claude-skills repository
+
+description: "Scope patterns for non-skill commits"
+
+# Project-level scopes
+scopes:
+  agents:
+    patterns:
+      - ".claude/agents/**"
+    description: "Subagent definitions"
+    examples:
+      - "feat(agents): Add commit-expert subagent"
+      - "refactor(agents): Update subagent system prompt"
+      - "docs(agents): Add usage examples"
+
+  commands:
+    patterns:
+      - ".claude/commands/**"
+      - "commands/**"
+    description: "Slash command definitions"
+    examples:
+      - "feat(commands): Add refactor-claude-md command"
+      - "docs(commands): Update command descriptions"
+
+  project:
+    patterns:
+      - "CLAUDE.md"
+      - "README.md"
+      - ".gitignore"
+      - ".claude/config/**"
+      - ".claude/settings*.json"
+    description: "Project-level files and configuration"
+    examples:
+      - "docs(project): Update CLAUDE.md with new skills"
+      - "chore(project): Add .gitignore"
+      - "chore(project): Add conventional-commits config"
+
+  backlog:
+    patterns:
+      - "docs/backlog/**"
+    description: "Backlog items and task tracking"
+    examples:
+      - "chore(backlog): Add task for missing README"
+      - "docs(backlog): Update task completion status"
+
+  docs:
+    patterns:
+      - "docs/**"
+    description: "General documentation (excluding backlog)"
+    note: "Use more specific scope if applicable (backlog, project)"
+    examples:
+      - "docs(docs): Add configuration guide"
+      - "docs(docs): Add getting-started guide"
+
+# Scope selection for project files
+decision_tree:
+  - question: "What type of file?"
+    answers:
+      subagent_definition: "agents"
+      slash_command: "commands"
+      claude_md_or_readme: "project"
+      gitignore_or_config: "project"
+      backlog_items: "backlog"
+      other_docs: "docs"
+
+# Common patterns
+common_patterns:
+  new_subagent:
+    type: "feat"
+    scope: "agents"
+    example: "feat(agents): Add code-reviewer subagent"
+
+  update_claude_md:
+    type: "docs"
+    scope: "project"
+    example: "docs(project): Document new skill in CLAUDE.md"
+
+  add_config:
+    type: "chore"
+    scope: "project"
+    example: "chore(project): Add project-level commit config"
+
+  new_backlog_item:
+    type: "chore"
+    scope: "backlog"
+    example: "chore(backlog): Add task for missing documentation"

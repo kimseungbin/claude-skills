@@ -1,0 +1,107 @@
+# Scopes: Individual skills for claude-skills repository
+
+description: "Scope patterns for skill-related commits"
+
+# Rule: Use specific skill name when changes are within one skill
+# Rule: Use 'skills' when changes span multiple skills
+
+# Individual skill scopes
+individual_skills:
+  cdk-expert:
+    patterns:
+      - "skills/cdk-expert/**"
+    description: "AWS CDK infrastructure expert skill"
+    examples:
+      - "feat(cdk-expert): Add CloudFormation drift detection"
+      - "docs(cdk-expert): Add troubleshooting guide"
+      - "refactor(cdk-expert): Reorganize docs structure"
+
+  claude-md-refactoring:
+    patterns:
+      - "skills/claude-md-refactoring/**"
+    description: "CLAUDE.md refactoring skill"
+    examples:
+      - "feat(claude-md-refactoring): Add sequential refactoring mode"
+      - "docs(claude-md-refactoring): Add decision tree"
+
+  conventional-commits:
+    patterns:
+      - "skills/conventional-commits/**"
+    description: "Conventional commits skill"
+    examples:
+      - "feat(conventional-commits): Add frontend implementation guide"
+      - "fix(conventional-commits): Fix YAML syntax in specificity guide"
+      - "refactor(conventional-commits): Extract templates to split config"
+
+  git-hooks-setup:
+    patterns:
+      - "skills/git-hooks-setup/**"
+    description: "Git hooks setup skill"
+    examples:
+      - "feat(git-hooks-setup): Add copiable bundles"
+      - "docs(git-hooks-setup): Add implementation examples"
+
+  git-strategy:
+    patterns:
+      - "skills/git-strategy/**"
+    description: "Git branching strategy skill"
+    examples:
+      - "docs(git-strategy): Add rollback procedures"
+
+  maintaining-documentation:
+    patterns:
+      - "skills/maintaining-documentation/**"
+    description: "Documentation maintenance skill"
+    examples:
+      - "feat(maintaining-documentation): Add docs/ organization strategy"
+      - "docs(maintaining-documentation): Add implementation guides"
+
+  nestjs-patterns:
+    patterns:
+      - "skills/nestjs-patterns/**"
+    description: "NestJS patterns skill"
+    examples:
+      - "feat(nestjs-patterns): Add repository pattern guide"
+
+  pull-request-management:
+    patterns:
+      - "skills/pull-request-management/**"
+    description: "Pull request management skill"
+    examples:
+      - "feat(pull-request-management): Add deployment impact analysis"
+      - "docs(pull-request-management): Add Korean template conventions"
+      - "refactor(pull-request-management): Extract reference content"
+
+  skill-creator:
+    patterns:
+      - "skills/skill-creator/**"
+    description: "Skill creator skill"
+    examples:
+      - "feat(skill-creator): Add hybrid pattern support"
+
+  test-symlink-skill:
+    patterns:
+      - "skills/test-symlink-skill/**"
+    description: "Test skill for symlink verification"
+    examples:
+      - "feat(test-symlink-skill): Add symlink test"
+
+# Aggregate scope
+skills:
+  when_to_use:
+    - "Changes span 2+ skills"
+    - "Adding new skill (initial commit)"
+    - "Cross-cutting changes affecting all skills"
+  patterns:
+    - "skills/**"
+  examples:
+    - "feat(skills): Add nestjs-patterns skill"
+    - "refactor(skills): Standardize SKILL.md format across all skills"
+    - "docs(skills): Update skill README template"
+
+# Scope selection decision tree
+decision_tree:
+  - question: "How many skills are affected?"
+    one_skill: "Use the skill name (e.g., cdk-expert)"
+    multiple_skills: "Use 'skills'"
+    new_skill: "Use 'skills' for initial commit, then skill name"

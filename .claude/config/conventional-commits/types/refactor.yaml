@@ -1,0 +1,63 @@
+# Type: refactor - Restructuring commits for claude-skills repository
+
+description: "Restructure files without changing behavior"
+
+# When to use refactor in this repository
+when_to_use:
+  - "Moving content between files"
+  - "Splitting large SKILL.md into separate files"
+  - "Extracting sections to dedicated guides"
+  - "Reorganizing directory structure"
+  - "Renaming files for consistency"
+  - "Consolidating duplicate content"
+
+# When NOT to use refactor
+when_not_to_use:
+  - "Adding new content → docs or feat"
+  - "Fixing incorrect content → fix"
+  - "Updating wording without moving → docs"
+
+# Common refactor scenarios in skills repository
+scenarios:
+  extract_to_separate_file:
+    description: "Moving section from SKILL.md to its own file"
+    example: "refactor(cdk-expert): Extract troubleshooting to separate guide"
+
+  reorganize_structure:
+    description: "Changing directory layout"
+    example: "refactor(pull-request-management): Reorganize docs into task-oriented structure"
+
+  split_large_file:
+    description: "Breaking up monolithic file"
+    example: "refactor(conventional-commits): Split commit-rules into templates"
+
+  rename_for_consistency:
+    description: "Standardizing naming"
+    example: "refactor(pull-request-management): Rename skill.md to SKILL.md"
+
+  consolidate_content:
+    description: "Merging related content"
+    example: "refactor(skills): Consolidate duplicate configuration examples"
+
+# refactor vs docs distinction
+refactor_vs_docs:
+  refactor:
+    - "File structure changes"
+    - "Content location changes"
+    - "Directory reorganization"
+    - "File renaming"
+  docs:
+    - "Content additions"
+    - "Wording improvements"
+    - "New examples"
+    - "Typo fixes"
+
+# Common mistakes
+anti_patterns:
+  - wrong: "refactor(cdk-expert): Add new section"
+    correct: "docs(cdk-expert): Add new section"
+    reason: "Adding content is docs, not refactor"
+
+  - wrong: "refactor(skills): Fix typo"
+    correct: "docs(skills): Fix typo"
+    reason: "Typo fixes are docs"

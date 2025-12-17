@@ -1,0 +1,125 @@
+# Conventional Commits Configuration for claude-skills repository
+# Split configuration pattern - detailed files in same directory
+
+project: claude-skills
+description: "Shared Claude Code skills repository"
+
+# Format specification
+format:
+  pattern: "{type}({scope}): {subject}"
+  max_subject_length: 72
+  max_body_line_length: 100
+
+# Quick reference - most common types (80% of commits)
+# For detailed decision trees, see types/ directory
+types_quick:
+  feat: "New skill, subagent, command, or capability"
+  fix: "Bug fix in skill logic or documentation"
+  docs: "Documentation changes only"
+  refactor: "Restructure without behavior change"
+  chore: "Maintenance, config, backlog"
+
+# Quick reference - most common scopes (80% of commits)
+# For detailed patterns, see scopes/ directory
+scopes_quick:
+  # Use skill name for single skill changes
+  conventional-commits: "Conventional commits skill"
+  pull-request-management: "PR management skill"
+  cdk-expert: "CDK expert skill"
+  # Use general scope for cross-cutting changes
+  skills: "Multiple skills"
+  agents: "Subagent definitions"
+  project: "Project-level files"
+
+# Footer conventions
+footer:
+  optional:
+    - "BREAKING CHANGE: description"
+    - "Refs #123"
+
+# COMPLETE Type Decision Tree (90% of commits decided here)
+type_decision_tree:
+  - question: "What are you doing?"
+    answers:
+      adding_new_skill_or_feature: "feat - New skill, subagent, command, implementation guide"
+      fixing_bug_or_error: "fix - Correcting broken behavior in skill or docs"
+      changing_structure: "refactor - Reorganizing files, extracting content"
+      updating_docs_only: "docs - README, SKILL.md, guides (no logic change)"
+      maintenance_work: "chore - Config, backlog, dependencies"
+
+  - question: "Skills repository - what component?"
+    skill_logic:
+      description: "Skill workflow, decision trees, instructions"
+      type: "feat or fix (depending on new vs fix)"
+    skill_docs:
+      description: "README, examples, guides within a skill"
+      type: "docs({skill-name})"
+    project_docs:
+      description: "Top-level CLAUDE.md, README.md"
+      type: "docs(project)"
+    subagents:
+      description: "Agent definitions in .claude/agents/"
+      type: "feat(agents) or refactor(agents)"
+    commands:
+      description: "Slash commands in commands/"
+      type: "feat(commands) or docs(commands)"
+
+# Scope Decision (check these patterns first)
+scope_decision:
+  - question: "What files changed?"
+    single_skill: "Use skill name (conventional-commits, cdk-expert, etc.)"
+    multiple_skills: "Use 'skills'"
+    subagents: "Use 'agents'"
+    commands: "Use 'commands'"
+    project_files: "Use 'project'"
+    backlog: "Use 'backlog'"
+    docs_directory: "Use 'docs'"
+
+# When to load detailed files (10% of commits)
+load_detailed_files:
+  - condition: "Type still unclear after decision tree"
+    action: "See types/*.yaml for edge cases"
+
+  - condition: "Scope unclear for changes spanning multiple areas"
+    action: "See scopes/*.yaml for detailed patterns"
+
+  - condition: "Need similar commit example"
+    action: "See examples/*.yaml for pattern matching"
+
+  - condition: "Quality check needed"
+    action: "See guides/specificity.yaml for title validation"
+
+# File references - load these only when needed (relative to this directory)
+detailed_docs:
+  types:
+    path: "types/"
+    files:
+      - "feat.yaml - When to use feat for skills repo"
+      - "docs.yaml - docs vs refactor for documentation"
+      - "refactor.yaml - Restructuring skills"
+      - "chore.yaml - Maintenance tasks"
+
+  scopes:
+    path: "scopes/"
+    files:
+      - "skills.yaml - Individual skill scopes"
+      - "project.yaml - Project-level scopes"
+
+  examples:
+    path: "examples/"
+    files:
+      - "skills.yaml - Skill-related commit examples"
+      - "documentation.yaml - Documentation commit examples"
+
+  guides:
+    path: "guides/"
+    files:
+      - "specificity.yaml - Title quality checklist"
+
+# Subject conventions
+subject_conventions:
+  - "Use imperative mood: 'Add' not 'Added'"
+  - "Capitalize first letter"
+  - "No period at end"
+  - "Name the specific skill or component"
+  - "For quality check, see guides/specificity.yaml"

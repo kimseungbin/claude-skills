@@ -1,0 +1,106 @@
+# Guide: Title Specificity for claude-skills repository
+
+description: "Quality checklist for commit message titles in this repository"
+
+# Specificity checklist
+specificity_checklist:
+  question_1:
+    check: "Does the title name the specific skill or component?"
+    good_examples:
+      - "feat(cdk-expert): Add CloudFormation drift detection"
+      - "docs(pull-request-management): Add Korean template guide"
+      - "refactor(conventional-commits): Extract templates to split config"
+    bad_examples:
+      - "feat(skills): Add feature"
+      - "docs(project): Update docs"
+      - "refactor(skills): Refactor"
+    why_bad: "Too vague - doesn't specify which skill or what changed"
+
+  question_2:
+    check: "Does the title use specific verbs (Add, Extract, Fix, Reorganize)?"
+    good_examples:
+      - "feat(agents): Add commit-expert subagent"
+      - "refactor(cdk-expert): Extract troubleshooting to separate guide"
+      - "fix(conventional-commits): Correct YAML syntax"
+    bad_examples:
+      - "feat(agents): Update agent"
+      - "refactor(cdk-expert): Change structure"
+      - "fix(conventional-commits): Fix issue"
+    why_bad: "Generic verbs don't convey what action was taken"
+
+  question_3:
+    check: "Can you understand the change without reading the body?"
+    good_examples:
+      - "feat(git-hooks-setup): Add copiable bundles for ready-to-use hooks"
+      - "docs(maintaining-documentation): Add docs/ organization strategy"
+      - "refactor(pull-request-management): Reorganize into task-oriented structure"
+    bad_examples:
+      - "feat(git-hooks-setup): Add bundles"
+      - "docs(maintaining-documentation): Add strategy"
+      - "refactor(pull-request-management): Reorganize"
+    why_bad: "Requires reading body to understand the change"
+
+  question_4:
+    check: "For skill changes, does it describe the capability affected?"
+    good_examples:
+      - "feat(cdk-expert): Add resource replacement safety checks"
+      - "docs(conventional-commits): Add frontend implementation guide"
+      - "fix(skill-creator): Correct template path resolution"
+    bad_examples:
+      - "feat(cdk-expert): Add checks"
+      - "docs(conventional-commits): Add guide"
+      - "fix(skill-creator): Fix bug"
+    why_bad: "Doesn't specify which capability or what kind of guide/fix"
+
+  question_5:
+    check: "Does it use imperative mood (Add not Added)?"
+    good_examples:
+      - "feat(skills): Add nestjs-patterns skill"
+      - "docs(project): Update CLAUDE.md"
+      - "fix(agents): Correct tool permissions"
+    bad_examples:
+      - "feat(skills): Added nestjs-patterns skill"
+      - "docs(project): Updated CLAUDE.md"
+      - "fix(agents): Corrected tool permissions"
+    why_bad: "Conventional commits use imperative mood"
+
+# Skills repository specific patterns
+skills_repo_patterns:
+  good_patterns:
+    - "feat(skills): Add {skill-name} skill"
+    - "feat({skill-name}): Add {capability} support"
+    - "feat(agents): Add {agent-name} subagent"
+    - "docs({skill-name}): Add {topic} guide"
+    - "refactor({skill-name}): Extract {component} to separate file"
+    - "fix({skill-name}): Correct {specific-issue}"
+    - "chore(project): Add {config-type} configuration"
+
+  bad_patterns:
+    - "feat(skills): Add skill"
+    - "feat({skill-name}): Update"
+    - "feat(agents): New agent"
+    - "docs({skill-name}): Add docs"
+    - "refactor({skill-name}): Refactor"
+    - "fix({skill-name}): Fix bug"
+    - "chore(project): Update config"
+
+# Quality rubric
+quality_rubric:
+  excellent: "5/5 checks passed - clear, specific, actionable"
+  good: "4/5 checks passed - minor improvements possible"
+  acceptable: "3/5 checks passed - could be more specific"
+  needs_improvement: "≤2/5 checks - rewrite with specific details"
+
+# Common improvements for this repository
+improvement_examples:
+  - before: "feat(skills): Add new skill"
+    after: "feat(skills): Add nestjs-patterns skill with repository pattern guide"
+
+  - before: "docs(project): Update CLAUDE.md"
+    after: "docs(project): Document commit-expert subagent in CLAUDE.md"
+
+  - before: "refactor(cdk-expert): Reorganize docs"
+    after: "refactor(cdk-expert): Reorganize docs into task-oriented structure"
+
+  - before: "chore(backlog): Add task"
+    after: "chore(backlog): Add task for missing pull-request-management README"

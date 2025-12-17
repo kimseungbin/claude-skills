@@ -1,0 +1,85 @@
+# Examples: Documentation commits for claude-skills repository
+
+description: "Real-world commit examples for documentation changes"
+
+# Project documentation examples
+project_documentation:
+  - commit: "docs(project): Update CLAUDE.md with new skills"
+    files:
+      - "CLAUDE.md"
+    explanation: "Adding skill documentation to main CLAUDE.md"
+
+  - commit: "docs(project): Add setup instructions to README"
+    files:
+      - "README.md"
+    explanation: "User-facing documentation in README"
+
+  - commit: "docs(project): Document Available Subagents section"
+    files:
+      - "CLAUDE.md"
+    explanation: "Adding new section to project docs"
+
+# Backlog documentation examples
+backlog_documentation:
+  - commit: "chore(backlog): Add task for missing README"
+    files:
+      - "docs/backlog/pending/01-readme-skill-name.md"
+      - "docs/backlog/README.md"
+    explanation: "Adding new backlog item is chore"
+
+  - commit: "docs(backlog): Update task completion status"
+    files:
+      - "docs/backlog/README.md"
+    explanation: "Updating status descriptions"
+
+  - commit: "chore(backlog): Move completed task to completed/"
+    files:
+      - "docs/backlog/pending/10-task.md -> docs/backlog/completed/10-task.md"
+    explanation: "Moving files is maintenance"
+
+# General docs examples
+general_docs:
+  - commit: "docs(docs): Add configuration guide"
+    files:
+      - "docs/configuration.md"
+    explanation: "New documentation file in docs/"
+
+  - commit: "docs(docs): Add getting-started guide"
+    files:
+      - "docs/getting-started.md"
+    explanation: "User-facing guide"
+
+# Multi-file documentation examples
+multi_file_documentation:
+  - commit: "docs(pull-request-management): Add README with quick reference"
+    files:
+      - "skills/pull-request-management/README.md"
+    explanation: "Skill README is docs with skill scope"
+
+  - commit: "docs(maintaining-documentation): Add docs/ organization strategy"
+    files:
+      - "skills/maintaining-documentation/SKILL.md"
+      - "skills/maintaining-documentation/docs-strategy.md"
+    explanation: "Documentation about documentation strategy"
+
+# Documentation vs refactor distinction examples
+docs_vs_refactor:
+  docs_examples:
+    - commit: "docs(cdk-expert): Add new troubleshooting section"
+      reason: "Adding content"
+
+    - commit: "docs(skills): Fix typos in README files"
+      reason: "Content correction"
+
+    - commit: "docs(project): Improve setup instructions clarity"
+      reason: "Wording improvement"
+
+  refactor_examples:
+    - commit: "refactor(project): Move Architecture section to README"
+      reason: "Moving content between files"
+
+    - commit: "refactor(cdk-expert): Split SKILL.md into smaller guides"
+      reason: "Restructuring files"
+
+    - commit: "refactor(skills): Reorganize all skill READMEs"
+      reason: "Structure change across multiple skills"

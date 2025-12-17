@@ -1,0 +1,66 @@
+# Type: chore - Maintenance commits for claude-skills repository
+
+description: "Maintenance, config, backlog, and housekeeping tasks"
+
+# When to use chore in this repository
+when_to_use:
+  - "Updating .gitignore"
+  - "Adding or updating config files"
+  - "Backlog management (adding tasks, updating status)"
+  - "Updating settings files"
+  - "Removing obsolete files"
+  - "Dependency-related changes (if any)"
+
+# When NOT to use chore
+when_not_to_use:
+  - "Adding new capability → feat"
+  - "Documentation content changes → docs"
+  - "Restructuring files → refactor"
+  - "Fixing bugs → fix"
+
+# Common chore scenarios in skills repository
+scenarios:
+  gitignore:
+    scope: "project"
+    example: "chore(project): Add .gitignore for IDE files"
+
+  config_files:
+    scope: "project"
+    example: "chore(project): Add conventional-commits config"
+
+  backlog_management:
+    scope: "backlog"
+    examples:
+      - "chore(backlog): Add task for missing README"
+      - "chore(backlog): Update task completion status"
+
+  cleanup:
+    scope: "project or skill name"
+    examples:
+      - "chore(project): Remove tracked IDE files"
+      - "chore(skills): Remove deprecated examples"
+
+  settings:
+    scope: "project"
+    example: "chore(project): Update Claude settings"
+
+# chore vs docs for backlog
+chore_vs_docs_backlog:
+  chore:
+    - "Adding new backlog items"
+    - "Updating task status (pending → completed)"
+    - "Removing obsolete tasks"
+  docs:
+    - "Improving backlog item descriptions"
+    - "Adding acceptance criteria detail"
+    - "Clarifying task requirements"
+
+# Common mistakes
+anti_patterns:
+  - wrong: "chore(cdk-expert): Add troubleshooting guide"
+    correct: "docs(cdk-expert): Add troubleshooting guide"
+    reason: "Adding documentation content is docs"
+
+  - wrong: "chore(skills): Add new skill"
+    correct: "feat(skills): Add new skill"
+    reason: "Adding skills is a feature"

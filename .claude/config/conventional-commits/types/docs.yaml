@@ -1,0 +1,67 @@
+# Type: docs - Documentation commits for claude-skills repository
+
+description: "Documentation changes with no logic changes"
+
+# When to use docs in this repository
+when_to_use:
+  - "Adding or updating README.md files"
+  - "Adding or updating SKILL.md content (not workflow logic)"
+  - "Adding examples, guides, or reference documentation"
+  - "Fixing typos in documentation"
+  - "Improving documentation clarity"
+  - "Adding implementation guides (documentation, not new logic)"
+
+# When NOT to use docs
+when_not_to_use:
+  - "Changing skill workflow logic → feat or fix"
+  - "Restructuring documentation files → refactor"
+  - "Adding new skill capability → feat"
+
+# docs vs refactor distinction
+docs_vs_refactor:
+  docs:
+    - "Content changes within existing files"
+    - "Adding new documentation files"
+    - "Improving wording, examples, clarity"
+  refactor:
+    - "Moving content between files"
+    - "Splitting large files into smaller ones"
+    - "Reorganizing directory structure"
+    - "Extracting sections to separate files"
+
+# Scope patterns for docs
+scope_patterns:
+  skill_documentation:
+    scope: "skill name"
+    examples:
+      - "docs(cdk-expert): Add troubleshooting guide"
+      - "docs(conventional-commits): Update type decision tree"
+      - "docs(pull-request-management): Add Korean template examples"
+
+  project_documentation:
+    scope: "project"
+    examples:
+      - "docs(project): Update CLAUDE.md with new skills"
+      - "docs(project): Add setup instructions to README"
+
+  backlog_documentation:
+    scope: "backlog"
+    examples:
+      - "docs(backlog): Add task for missing README"
+      - "docs(backlog): Update completion status"
+
+  general_docs:
+    scope: "docs"
+    examples:
+      - "docs(docs): Add configuration guide"
+      - "docs(docs): Add getting-started guide"
+
+# Common mistakes
+anti_patterns:
+  - wrong: "docs(skills): Add new skill"
+    correct: "feat(skills): Add new skill"
+    reason: "Adding a skill is a feature, not documentation"
+
+  - wrong: "docs(project): Move content to README"
+    correct: "refactor(project): Move content from CLAUDE.md to README"
+    reason: "Moving content is restructuring, not documenting"
