@@ -29,6 +29,9 @@ source "$LIB_DIR/output.sh"
 
 print_header "Pre-commit Checks"
 
+# Save list of staged files to re-add after auto-fix
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
+
 #############################################
 # 1. Auto-fix code formatting
 #############################################
@@ -36,7 +39,8 @@ print_step "1/3" "Auto-fixing code formatting..."
 
 if npm run format 2>&1; then
     print_success_indent "Code formatting fixed"
-    git add -u
+    # Re-add only originally staged files
+    echo "$STAGED_FILES" | xargs -r git add
 else
     print_error_indent "Code formatting failed"
     echo -e "${YELLOW}Run 'npm run format' to see errors${NC}"
@@ -52,7 +56,8 @@ print_step "2/3" "Auto-fixing linting issues..."
 
 if npm run lint 2>&1; then
     print_success_indent "Linting passed"
-    git add -u
+    # Re-add only originally staged files
+    echo "$STAGED_FILES" | xargs -r git add
 else
     print_error_indent "Linting failed"
     echo -e "${YELLOW}Run 'npm run lint' to see errors${NC}"
