@@ -7,6 +7,8 @@ This repository contains shared Claude Code skills designed for reuse across mul
 ```
 claude-skills/
 ├── .claude/
+│   ├── agents/                     # Subagents (isolated context)
+│   │   └── commit-expert.md        # Enhanced commit generation
 │   ├── commands/                   # Local commands (copied for testing in this repo)
 │   │   ├── commit.md               # Copied from ../../commands/commit.md
 │   │   ├── create-pr.md            # Copied from ../../commands/create-pr.md
@@ -125,9 +127,26 @@ Comprehensive PR creation and management with template compliance, confidence-ba
 
 **Invoke:** `Skill(pull-request-management)` or `/create-pr` command
 
+## Available Subagents
+
+Subagents provide isolated context windows, separate from the main conversation. Use them for complex tasks that benefit from dedicated focus.
+
+### commit-expert
+**When to use:** Creating commits with pattern learning and smart ordering
+
+Enhanced commit generation with:
+- Context isolation (separate from main conversation)
+- Commit history analysis (learns project's existing patterns)
+- Smart commit ordering (deps → features → tests → docs)
+- All conventional-commits skill features (multi-commit splitting, implementation guides)
+
+**Invoke:** Automatic delegation or `/commit` command
+
+**Note:** This is the recommended approach for commit generation. The `conventional-commits` skill is kept for backward compatibility.
+
 ## Available Commands
 
-- **commit**: Invokes the conventional-commits skill
+- **commit**: Invokes the commit-expert subagent (with skill fallback)
 - **create-pr**: Invokes the pull-request-management skill
 - **refactor-claude-md**: Invokes the claude-md-refactoring skill
 

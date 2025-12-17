@@ -5,15 +5,15 @@ This backlog tracks improvements and missing components for the skills repositor
 ## Quick Status
 
 **Review Date:** November 15, 2024
-**Total Tasks:** 10
-**Pending:** 9
+**Total Tasks:** 11
+**Pending:** 10
 **Completed:** 1
 
 ## Organization
 
 This backlog is organized into two directories:
 
-- **`pending/`** - Tasks not yet implemented (9 items)
+- **`pending/`** - Tasks not yet implemented (10 items)
 - **`completed/`** - Completed tasks (1 item)
 
 ## Pending Tasks
@@ -38,7 +38,7 @@ Documentation files needed for user-facing skill information:
    - Priority: High | Time: 1.5 hours
    - Missing user-facing documentation
 
-### Medium Priority (2 tasks)
+### Medium Priority (3 tasks)
 
 Configuration documentation for project-specific customization:
 
@@ -49,6 +49,12 @@ Configuration documentation for project-specific customization:
 6. **[Add Configuration Section to nestjs-patterns](pending/06-config-section-nestjs-patterns.md)**
    - Priority: Medium | Time: 45 minutes
    - Missing project config documentation
+
+New feature - Claude Code subagent:
+
+11. **[Create commit-expert Subagent](pending/11-commit-expert-subagent.md)**
+    - Priority: Medium
+    - Replace conventional-commits skill with isolated subagent
 
 ### Low Priority (3 tasks)
 
@@ -76,6 +82,7 @@ Template files for easier project setup:
 | pull-request-management | 1 task | #04 README |
 | cdk-expert | 1 task | #07 Config template |
 | git-strategy | 1 task | #09 Config template |
+| conventional-commits | 1 task | #11 Subagent replacement |
 
 ## Estimated Total Time
 
