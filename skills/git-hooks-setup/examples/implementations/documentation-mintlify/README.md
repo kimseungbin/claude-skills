@@ -48,9 +48,9 @@ Real-world git hooks implementation from the AWS SMB Competency case studies pro
 
 **Checks**:
 
-1. **Conventional Commits Skill Enforcement** (blocking)
-    - Requires `Skill: conventional-commits` footer tag in commit message
-    - Ensures all commits use the conventional-commits skill
+1. **Commit Expert Agent Enforcement** (blocking)
+    - Requires `Agent: commit-expert` footer tag in commit message
+    - Ensures all commits use the commit-expert agent
     - Blocks direct `git commit` usage
     - Encourages consistent commit format across team
     - Time: <1s
@@ -121,21 +121,21 @@ if git show :"$FILE" | grep -qE '(Cloudfront|cloudfront|Cloud Front)'; then
 fi
 ```
 
-### Why Enforce Conventional Commits Skill?
+### Why Enforce Commit Expert Agent?
 
-**Problem**: Need consistent commit message format across team, but direct `git commit` bypasses the skill.
+**Problem**: Need consistent commit message format across team, but direct `git commit` bypasses the agent.
 
-**Solution**: commit-msg hook validates presence of `Skill: conventional-commits` footer.
+**Solution**: commit-msg hook validates presence of `Agent: commit-expert` footer.
 
 **Pattern Used**:
 
 ```bash
-if ! echo "$COMMIT_MSG" | grep -q "Skill: conventional-commits"; then
+if ! echo "$COMMIT_MSG" | grep -q "Agent: commit-expert"; then
     echo "❌ COMMIT BLOCKED"
-    echo "Required footer tag missing: 'Skill: conventional-commits'"
+    echo "Required footer tag missing: 'Agent: commit-expert'"
     echo ""
-    echo "✅ Use: Skill(conventional-commits)"
     echo "✅ Use: /commit command"
+    echo "✅ Use: Task(subagent_type=\"commit-expert\")"
     echo "❌ DO NOT use: git commit directly"
     exit 1
 fi
@@ -244,19 +244,19 @@ Use HTML entity: &lt;$100M instead of <$100M
 ❌ COMMIT BLOCKED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-This commit was not created using the conventional-commits skill.
+This commit was not created using the commit-expert agent.
 
-Required footer tag missing: 'Skill: conventional-commits'
+Required footer tag missing: 'Agent: commit-expert'
 
 ┌─────────────────────────────────────────────────────┐
 │  HOW TO FIX:                                        │
 ├─────────────────────────────────────────────────────┤
-│  ✅ Use: Skill(conventional-commits)                │
 │  ✅ Use: /commit command                            │
+│  ✅ Use: Task(subagent_type="commit-expert")        │
 │  ❌ DO NOT use: git commit directly                 │
 └─────────────────────────────────────────────────────┘
 
-The skill ensures:
+The agent ensures:
   • Proper conventional commit format (type(scope): subject)
   • Intelligent multi-commit splitting
   • Follows project-specific commit rules
@@ -277,7 +277,7 @@ smb/
 │   └── commit-msg              # Conventional commits enforcement
 ├── .claude/
 │   ├── config/
-│   │   └── conventional-commits.yaml  # Project-specific commit rules
+│   │   └── commit-expert/             # Project-specific commit rules
 │   ├── skills/                 # Symlinks to claude-skills submodule
 │   └── commands/               # Copied from claude-skills/commands/
 ├── claude-skills/              # Git submodule with shared skills
@@ -304,7 +304,7 @@ smb/
     - Clear error messages with fix instructions
     - Saves debugging time on Mintlify build failures
 
-2. **Skill enforcement improves commit quality** ✅
+2. **Agent enforcement improves commit quality** ✅
     - Consistent commit message format
     - Intelligent multi-commit splitting
     - Project-specific commit rules enforced automatically
@@ -381,15 +381,15 @@ nvm use 22
 - ✅ Commits with unescaped HTML entities (blocked by pre-commit)
 - ✅ Commits with large files (warning only)
 - ✅ Commits with AWS service typos (warning only)
-- ✅ Direct `git commit` without skill footer (blocked by commit-msg)
-- ✅ Commits using conventional-commits skill (allowed)
+- ✅ Direct `git commit` without agent footer (blocked by commit-msg)
+- ✅ Commits using commit-expert agent (allowed)
 - ✅ Hook bypass with `--no-verify` (works for emergencies)
 - ✅ Performance measurement (<3s total)
 
 **Real-world validation**:
 
 - Pre-commit hook caught HTML entity errors in CLAUDE.md during documentation update
-- Commit-msg hook successfully enforces skill usage across all commits
+- Commit-msg hook successfully enforces agent usage across all commits
 - No false positives in blocking checks
 - Warnings provide useful guidance without blocking workflow
 

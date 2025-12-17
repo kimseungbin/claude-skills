@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# Commit-msg hook to enforce conventional-commits skill usage
+# Commit-msg hook to enforce commit-expert agent usage
 #
-# PURPOSE: Validate that commits are created via Claude's conventional-commits skill
+# PURPOSE: Validate that commits are created via Claude's commit-expert agent
 # USE CASE: Teams using Claude Code who want to ensure consistent commit quality
 #
 # Installation:
@@ -12,11 +12,11 @@
 #   4. git config core.hooksPath .githooks
 #
 # INTEGRATION:
-#   1. Add footer requirement to .claude/config/conventional-commits.yaml:
+#   1. Add footer requirement to .claude/config/commit-expert/main.yaml:
 #
 #      conventions:
 #        footer:
-#          - "REQUIRED: Always add 'Skill: conventional-commits' to mark skill usage"
+#          - "REQUIRED: Always add 'Agent: commit-expert' to mark agent usage"
 #
 # Bypass (emergency only):
 #   git commit --no-verify -m "emergency: Critical fix"
@@ -45,26 +45,26 @@ COMMIT_MSG_FILE="$1"
 # Read the commit message
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 
-# Check if commit message has the skill marker
-if ! echo "$COMMIT_MSG" | grep -q "Skill: conventional-commits"; then
+# Check if commit message has the agent marker
+if ! echo "$COMMIT_MSG" | grep -q "Agent: commit-expert"; then
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo -e "${RED}${SYM_CROSS:-✗} COMMIT BLOCKED${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "This commit was not created using the conventional-commits skill."
+    echo "This commit was not created using the commit-expert agent."
     echo ""
-    echo "Required footer tag missing: 'Skill: conventional-commits'"
+    echo "Required footer tag missing: 'Agent: commit-expert'"
     echo ""
     echo "┌─────────────────────────────────────────────────────┐"
     echo "│  HOW TO FIX:                                        │"
     echo "├─────────────────────────────────────────────────────┤"
-    echo "│  ${SYM_CHECK:-✓} Use: Skill(conventional-commits)                │"
-    echo "│  ${SYM_CHECK:-✓} Use: SlashCommand(/commit)                      │"
+    echo "│  ${SYM_CHECK:-✓} Use: /commit command                            │"
+    echo "│  ${SYM_CHECK:-✓} Use: Task(subagent_type="commit-expert")        │"
     echo "│  ${SYM_CROSS:-✗} DO NOT use: git commit directly                 │"
     echo "└─────────────────────────────────────────────────────┘"
     echo ""
-    echo "The skill ensures:"
+    echo "The agent ensures:"
     echo "  - Proper conventional commit format (type(scope): subject)"
     echo "  - Intelligent multi-commit splitting"
     echo "  - Follows project-specific rules"

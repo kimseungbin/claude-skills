@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# commit-msg hook - Enforce conventional-commits skill usage
+# commit-msg hook - Enforce commit-expert agent usage
 #
-# PURPOSE: Validate that commits are created via the conventional-commits skill
+# PURPOSE: Validate that commits are created via the commit-expert agent
 # TRIGGER: After commit message is written, before commit is finalized
 # USE CASE: Ensure all commits follow project's conventional commit standards
 #
 # INTEGRATION:
-# 1. Add footer requirement to .claude/config/conventional-commits.yaml:
+# 1. Add footer requirement to .claude/config/commit-expert/main.yaml:
 #
 #    conventions:
 #      footer:
-#        - "REQUIRED: Always add 'Skill: conventional-commits' to mark skill usage"
+#        - "REQUIRED: Always add 'Agent: commit-expert' to mark agent usage"
 #
 # 2. Update examples to include footer:
 #
@@ -20,14 +20,14 @@
 #        body: |
 #          Changes description.
 #
-#          Skill: conventional-commits
+#          Agent: commit-expert
 #
 # 3. Install this hook:
 #    - Copy to .git/hooks/commit-msg
 #    - Make executable: chmod +x .git/hooks/commit-msg
 #
 # TESTING:
-# - Valid: git commit -m "feat: Add feature\n\nSkill: conventional-commits"  ✅
+# - Valid: git commit -m "feat: Add feature\n\nAgent: commit-expert"  ✅
 # - Invalid: git commit -m "feat: Add feature"  ❌ Blocked
 #
 # BYPASS (Emergency only):
@@ -39,26 +39,26 @@ COMMIT_MSG_FILE="$1"
 # Read the commit message
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 
-# Check if commit message has the skill marker
-if ! echo "$COMMIT_MSG" | grep -q "Skill: conventional-commits"; then
+# Check if commit message has the agent marker
+if ! echo "$COMMIT_MSG" | grep -q "Agent: commit-expert"; then
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "❌ COMMIT BLOCKED"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "This commit was not created using the conventional-commits skill."
+    echo "This commit was not created using the commit-expert agent."
     echo ""
-    echo "Required footer tag missing: 'Skill: conventional-commits'"
+    echo "Required footer tag missing: 'Agent: commit-expert'"
     echo ""
     echo "┌─────────────────────────────────────────────────────┐"
     echo "│  HOW TO FIX:                                        │"
     echo "├─────────────────────────────────────────────────────┤"
-    echo "│  ✅ Use: Skill(conventional-commits)                │"
-    echo "│  ✅ Use: SlashCommand(/commit)                      │"
+    echo "│  ✅ Use: /commit command                            │"
+    echo "│  ✅ Use: Task(subagent_type="commit-expert")        │"
     echo "│  ❌ DO NOT use: git commit directly                 │"
     echo "└─────────────────────────────────────────────────────┘"
     echo ""
-    echo "The skill ensures:"
+    echo "The agent ensures:"
     echo "  • Proper conventional commit format (type(scope): subject)"
     echo "  • Intelligent multi-commit splitting"
     echo "  • Follows project-specific rules"

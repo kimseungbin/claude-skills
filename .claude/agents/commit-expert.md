@@ -181,7 +181,7 @@ Format: `{type}({scope}): {subject}`
 - Wrap at 100 characters
 
 **Footer conventions:**
-- Add `Skill: conventional-commits` footer
+- Add `Agent: commit-expert` footer
 - Breaking changes: `BREAKING CHANGE: description`
 - Issue references: `Refs #123` or `Closes #123`
 - Deployment safety (infrastructure): `Safe-To-Deploy: manual-deletion-planned`

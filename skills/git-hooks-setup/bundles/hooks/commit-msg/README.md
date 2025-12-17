@@ -31,14 +31,14 @@ Commit-msg hooks validate commit messages before finalizing the commit.
 
 ### `skill-enforcement.sh`
 
-**For:** Teams using Claude Code's conventional-commits skill
+**For:** Teams using Claude Code's commit-expert agent
 
 **Validates:**
 
-- Presence of `Skill: conventional-commits` footer in commit message
-- Ensures all commits are created via the skill, not manually
+- Presence of `Agent: commit-expert` footer in commit message
+- Ensures all commits are created via the agent, not manually
 
-**Use when:** You want to ensure consistent commit quality by requiring the skill.
+**Use when:** You want to ensure consistent commit quality by requiring the agent.
 
 ## Installation
 
