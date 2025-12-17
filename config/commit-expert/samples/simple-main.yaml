@@ -1,0 +1,65 @@
+# Simple Project Configuration
+# For small projects with basic commit conventions
+# Copy to: .claude/config/commit-expert/main.yaml
+
+project: your-project-name
+description: "Small project with simple structure"
+
+# Format specification
+format:
+  pattern: "{type}({scope}): {subject}"
+  max_subject_length: 72
+  max_body_line_length: 100
+
+# Quick reference - standard types
+types_quick:
+  feat: "New feature or capability"
+  fix: "Bug fix"
+  refactor: "Code change (neither bug fix nor feature)"
+  docs: "Documentation only"
+  chore: "Maintenance, tooling, dependencies"
+
+# Simple scopes for small projects
+scopes_quick:
+  app: "Application code"
+  config: "Configuration files"
+  docs: "Documentation"
+
+# Footer conventions
+footer:
+  required: []
+  optional:
+    - "BREAKING CHANGE: description"
+    - "Refs #123 or Closes #123"
+
+# Type Decision Tree
+type_decision_tree:
+  - question: "What are you doing?"
+    answers:
+      adding_new_capability: "feat"
+      fixing_bug: "fix"
+      changing_code_structure: "refactor"
+      updating_docs_only: "docs"
+      updating_dependencies: "chore"
+
+# Scope Decision
+scope_decision:
+  - question: "What files changed?"
+    app_code: "app"
+    config_files: "config"
+    documentation: "docs"
+
+# Subject line conventions
+subject_conventions:
+  - "Use imperative mood: 'Add feature' not 'Added feature'"
+  - "Capitalize first letter"
+  - "No period at end"
+  - "Be specific"
+
+# Setup
+setup:
+  note: "Minimal config for simple projects"
+  steps:
+    - "Copy this file to .claude/config/commit-expert/main.yaml"
+    - "Update project name and scopes"
+    - "Commit config"

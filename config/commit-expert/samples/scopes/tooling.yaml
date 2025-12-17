@@ -1,0 +1,35 @@
+# Scope: Developer Tooling
+# Helps decide scope for tooling and CI/CD files
+
+description: "Scope patterns for developer tooling"
+
+# File path to scope mapping
+file_path_patterns:
+  .githooks/**: "tools"
+  scripts/**: "tools"
+  .github/workflows/**: "github"
+  .eslintrc*: "tools"
+  .prettierrc*: "tools"
+
+# Scope patterns
+tools_scope:
+  when_to_use:
+    - "Git hooks"
+    - "Shell scripts"
+    - "Linter configuration"
+  examples:
+    - "chore(tools): Add pre-commit hook"
+    - "chore(tools): Update ESLint rules"
+
+github_scope:
+  when_to_use:
+    - "GitHub Actions workflows"
+    - "PR/issue templates"
+  examples:
+    - "ci(github): Add deployment workflow"
+    - "chore(github): Update PR template"
+
+# Type decision for GitHub
+github_type:
+  workflows: "ci"
+  templates: "chore"

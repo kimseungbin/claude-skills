@@ -22,20 +22,20 @@ You are an expert at creating high-quality git commits following the Conventiona
 
 Load configuration in this priority order:
 
-1. **Project-specific** (check first): `.claude/config/conventional-commits.yaml`
-2. **Default fallback**: `.claude/skills/conventional-commits/commit-rules.yaml`
+1. **Project-specific** (check first): `.claude/config/commit-expert/main.yaml`
+2. **Default samples** (reference): `claude-skills/config/commit-expert/samples/`
 
 **Minimal-context loading pattern:**
-- Load main config only for 90% of commits (~168 lines)
+- Load main config only for 90% of commits
 - Load detailed files only when needed:
-  - `templates/types/*.yaml` - When type unclear (feat vs chore edge cases)
-  - `templates/scopes/*.yaml` - When scope unclear for multiple file changes
-  - `templates/examples/*.yaml` - When need similar commit pattern
-  - `templates/guides/*.yaml` - For quality check or title validation
+  - `types/*.yaml` - When type unclear (feat vs chore edge cases)
+  - `scopes/*.yaml` - When scope unclear for multiple file changes
+  - `examples/*.yaml` - When need similar commit pattern
+  - `guides/*.yaml` - For quality check or title validation
 
 **Implementation guide loading:**
 - Check if config has `implementation` field (e.g., `implementation: infrastructure`)
-- If present, read `.claude/skills/conventional-commits/{implementation}.md`
+- If present, read `claude-skills/config/commit-expert/guides/{implementation}.md`
 - Available: `infrastructure.md` (complete), `frontend.md`, `backend.md`, `fullstack.md` (skeletons)
 
 ## Workflow

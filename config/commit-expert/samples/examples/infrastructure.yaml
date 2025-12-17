@@ -1,0 +1,50 @@
+# Example Commits: Infrastructure
+# Real-world commit examples for CDK/IaC projects
+
+description: "Example commits for infrastructure changes"
+
+# Feature additions (feat)
+feat_examples:
+  - message: "feat(main): Add profile microservice"
+    body: "Add new profile service with ECS, ALB, CloudFront"
+
+  - message: "feat(service): Add auto-scaling support"
+    body: "Implement CPU and memory-based auto-scaling for ECS"
+
+  - message: "feat(cloudfront): Add WAF rate limiting"
+    body: "Add WAF rule to limit requests per IP"
+
+# Bug fixes (fix)
+fix_examples:
+  - message: "fix(config): Correct memory limit for auth service"
+    body: "Fix OOM errors by increasing memory from 512MB to 1024MB"
+
+  - message: "fix(cloudfront): Correct WAF rule priority causing blocks"
+    body: "Fix WAF rule ordering that was blocking legitimate traffic"
+
+  - message: "fix(service): Fix health check path for profile service"
+    body: "Correct ALB health check from /health to /api/health"
+
+# Refactoring (refactor)
+refactor_examples:
+  - message: "refactor(service): Extract ServiceInfraConstruct"
+    body: "Separate build infrastructure from runtime service"
+
+  - message: "refactor(config): Optimize Fargate resource allocation"
+    body: "Adjust CPU/memory for better cost efficiency"
+
+# Chore (tooling and deployment)
+chore_examples:
+  - message: "chore(deployment): Add Slack notifications for pipeline"
+    body: "Implement cross-account notification system"
+
+  - message: "chore(tools): Add git pre-push hooks"
+    body: "Prevent dangerous infrastructure deployments"
+
+  - message: "chore(monorepo): Update aws-cdk-lib to v2.100.0"
+    body: "Update CDK to latest stable version"
+
+# Documentation (docs)
+docs_examples:
+  - message: "docs(project): Update CLAUDE.md with construct hierarchy"
+    body: "Document new construct organization after refactoring"

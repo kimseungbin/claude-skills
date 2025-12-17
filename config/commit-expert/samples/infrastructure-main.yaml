@@ -1,0 +1,159 @@
+# Infrastructure Project Configuration
+# For CDK, Terraform, Pulumi, and other IaC projects
+# Copy to: .claude/config/commit-expert/main.yaml
+
+project: your-infrastructure-project
+description: "Infrastructure as Code project"
+implementation: infrastructure  # Loads guides/infrastructure.md
+
+# Format specification
+format:
+  pattern: "{type}({scope}): {subject}"
+  max_subject_length: 72
+  max_body_line_length: 100
+
+# Quick reference - IaC-focused types
+# For detailed decision trees, see types/ directory
+types_quick:
+  feat: "New infrastructure capability (Lambda, CDK constructs)"
+  fix: "Bug fix in infrastructure code"
+  refactor: "Code restructuring without behavior change"
+  docs: "Documentation only"
+  chore: "Config/workflow changes without new code"
+
+# Infrastructure scopes - update for your project
+# For detailed patterns, see scopes/ directory
+scopes_quick:
+  service:
+    description: "Core service construct (ECS, Lambda)"
+    patterns:
+      - "lib/**/service*.ts"
+      - "lib/**/lambda*.ts"
+  cloudfront:
+    description: "CDN/caching construct"
+    patterns:
+      - "lib/**/cloudfront*.ts"
+      - "lib/**/cdn*.ts"
+  database:
+    description: "Database constructs (RDS, DynamoDB)"
+    patterns:
+      - "lib/**/database*.ts"
+      - "lib/**/rds*.ts"
+      - "lib/**/dynamodb*.ts"
+  config:
+    description: "Configuration files"
+    patterns:
+      - "cdk.json"
+      - "*.config.ts"
+      - "config/**"
+  deployment:
+    description: "CI/CD and deployment pipelines"
+    patterns:
+      - ".github/workflows/**"
+      - "scripts/deploy*"
+  tools:
+    description: "Developer tooling"
+    patterns:
+      - "scripts/**"
+      - "*.config.js"
+  project:
+    description: "Project documentation"
+    patterns:
+      - "README*.md"
+      - "CLAUDE.md"
+      - ".claude/**"
+
+# Footer conventions - includes deployment safety
+footer:
+  required: []
+  optional:
+    - "BREAKING CHANGE: description"
+    - "Refs #123 or Closes #123"
+  deployment_safety:
+    note: "Required when pre-push hook detects resource replacement"
+    fields:
+      - "Safe-To-Deploy: manual-deletion-planned"
+      - "Analyzed-By: <your-name>"
+      - "Services: <service-list>"
+    reference: "hooks/pre-push.md"
+
+# Type Decision Tree - Infrastructure focus
+type_decision_tree:
+  - question: "What are you doing?"
+    answers:
+      adding_new_capability: "feat"
+      fixing_bug: "fix"
+      changing_code_structure: "refactor"
+      updating_docs_only: "docs"
+      updating_dependencies: "chore"
+
+  - question: "Infrastructure - does it involve production code?"
+    yes_serves_applications:
+      description: "New code that apps depend on"
+      examples: ["New microservice", "Redis cluster", "CloudFront"]
+      type: "feat({construct-scope})"
+    yes_serves_operations:
+      description: "Operational code (Lambda + CDK)"
+      examples: ["Drift detection", "Cost alerts", "Automation"]
+      type: "feat({construct-scope})"
+    no_config_only:
+      description: "Config/workflow without new Lambda/CDK"
+      examples: ["Pipeline notifications", "GitHub Actions", "Flags"]
+      type: "chore({scope})"
+
+  - question: "Scope for infrastructure code?"
+    new_construct: "Use construct name (e.g., drift-detection)"
+    existing_construct: "Use construct name (e.g., service)"
+    multiple_constructs: "Use 'infra' for broad changes"
+    ci_cd_only: "Use 'deployment'"
+    tooling_only: "Use 'tools'"
+
+# Scope Decision
+scope_decision:
+  - question: "What files changed?"
+    single_construct: "Use construct name"
+    single_service: "Use service name"
+    multiple_services: "Use parent scope (main, infra)"
+    config_only: "Use config"
+    docs_only: "Use project"
+
+  - question: "Still unclear?"
+    patterns: "See scopes/infrastructure.yaml"
+
+# When to load detailed files
+load_detailed_files:
+  - condition: "Type unclear (feat vs chore for infra)"
+    action: "See types/chore.yaml"
+  - condition: "Scope unclear"
+    action: "See scopes/infrastructure.yaml"
+  - condition: "Need deployment footer"
+    action: "See hooks/pre-push.md"
+  - condition: "Quality check"
+    action: "See guides/specificity.yaml"
+
+# Subject line conventions
+subject_conventions:
+  - "Use imperative mood: 'Add feature' not 'Added feature'"
+  - "Capitalize first letter"
+  - "No period at end"
+  - "Be specific: name constructs, not files"
+  - "For quality check, see guides/specificity.yaml"
+
+# Body conventions - include AWS details
+body_conventions:
+  - "Separate from subject with blank line"
+  - "Explain what and why, not how"
+  - "Include resource ARNs/names if relevant"
+  - "Document config changes (CIDR, instance types)"
+  - "Include migration steps if required"
+
+# Setup instructions
+setup:
+  note: "Configure for your IaC project"
+  steps:
+    - "1. Copy this file to .claude/config/commit-expert/main.yaml"
+    - "2. Copy types/, scopes/, examples/, guides/ directories"
+    - "3. Update scopes_quick with your construct names"
+    - "4. Review guides/infrastructure.md for decision trees"
+    - "5. Set up pre-push hook if using deployment safety"
+    - "6. Commit config files"

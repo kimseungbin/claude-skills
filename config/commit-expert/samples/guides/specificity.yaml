@@ -1,0 +1,56 @@
+# Guide: Title Specificity
+# Quality checklist for commit message titles
+
+description: "Quality checklist for commit message titles"
+
+# Specificity checklist
+checklist:
+  - check: "Does the title name specific components/services?"
+    good: "feat(service): Add auto-scaling support"
+    bad: "feat(service): Update code"
+
+  - check: "Does it avoid generic verbs like 'update', 'change'?"
+    good: "feat(cloudfront): Add WAF rate limiting"
+    bad: "feat(cloudfront): Update WAF"
+
+  - check: "Can you understand what changed without reading the body?"
+    good: "feat(main): Add profile microservice"
+    bad: "feat(main): Add service"
+
+  - check: "Does it specify which service if multiple exist?"
+    good: "fix(config): Correct memory limit for auth service"
+    bad: "fix(config): Correct memory limit"
+
+  - check: "Does it use imperative mood?"
+    good: "feat(service): Add auto-scaling"
+    bad: "feat(service): Added auto-scaling"
+
+# Length guidelines
+length:
+  max: 72
+  ideal: "50-70 characters"
+
+# Common issues
+common_issues:
+  vague_verbs:
+    bad: "update configuration"
+    good: "increase memory limit to 1024MB"
+
+  missing_component:
+    bad: "Add caching"
+    good: "Add CloudFront caching for static assets"
+
+  file_names:
+    bad: "Update index.ts"
+    good: "Extract ServiceInfraConstruct"
+
+# Improvement patterns
+improvements:
+  - before: "feat(service): Add caching"
+    after: "feat(service): Add Redis cluster for session storage"
+
+  - before: "fix(config): Update memory"
+    after: "fix(config): Increase memory limit to 1024MB for auth service"
+
+  - before: "refactor(service): Refactor code"
+    after: "refactor(service): Extract ServiceInfraConstruct"

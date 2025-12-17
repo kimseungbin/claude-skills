@@ -9,13 +9,11 @@ description: "Documentation changes with no code changes"
 # - Needs clarification on docs vs refactor edge cases
 # - Wants to confirm correct scope for documentation
 
-# Common scopes with docs in infrastructure projects
+# Common scopes with docs
 scopes:
   project: "Project-wide documentation (CLAUDE.md, README.md)"
-  skill: "Skill documentation (.claude/skills/**)"
-  backlog: "Backlog and task documentation (docs/BACKLOG.md)"
-  features: "Feature documentation (docs/features/**)"
-  refactoring: "Refactoring task documentation (docs/refactoring/**)"
+  config: "Configuration documentation"
+  features: "Feature documentation"
 
 # Edge cases - docs vs other types
 edge_cases:
@@ -43,28 +41,14 @@ edge_cases:
     decision: "docs(features): Document two-phase deployment pattern"
     rationale: "Documentation-only"
 
-# Examples from infrastructure projects
+# Examples
 examples:
   project_documentation:
     - message: "docs(project): Update CLAUDE.md with new construct hierarchy"
-      description: "Updated codebase guide for Claude Code"
+      description: "Updated codebase guide"
 
     - message: "docs(project): Add troubleshooting section to README"
       description: "Enhanced project README"
-
-  skill_documentation:
-    - message: "docs(skill): Add LLM reading scenarios to conventional-commits"
-      description: "Improved skill documentation"
-
-    - message: "docs(skill): Document pre-push hook rationale"
-      description: "Added hooks/README.md"
-
-  backlog_documentation:
-    - message: "docs(backlog): Add Feature #18 for two-phase deployment"
-      description: "Documented new feature in backlog"
-
-    - message: "docs(refactoring): Update TODO-06 with implementation status"
-      description: "Updated refactoring task status"
 
   inline_documentation:
     - message: "docs(service): Fix typo in TaskDefinition comment"
@@ -108,7 +92,6 @@ docs_vs_refactor:
     - "Documentation directories (docs/)"
     - "README files"
     - "CLAUDE.md updates"
-    - "Skill documentation"
     - "Comment-only changes in code (typo fixes, clarifications)"
 
   not_pure_documentation:
@@ -116,30 +99,6 @@ docs_vs_refactor:
     - "Adding TypeScript types → refactor or feat"
     - "Adding code with documentation → feat or refactor"
     - "Changing code logic (even with doc updates) → feat/fix/refactor"
-
-# Infrastructure-specific guidance
-infrastructure_guidance:
-  question: "Does this change CloudFormation output?"
-  no: "Use docs if only documentation changed"
-  yes: "Use appropriate code type (feat/fix/refactor/chore)"
-
-  documentation_files:
-    project_level:
-      - "CLAUDE.md"
-      - "README.md"
-      - "CONTRIBUTING.md"
-
-    feature_documentation:
-      - "docs/features/**/*.md"
-      - "docs/BACKLOG.md"
-
-    refactoring_tasks:
-      - "docs/refactoring/**/*.md"
-
-    skill_documentation:
-      - ".claude/skills/**/README.md"
-      - ".claude/skills/**/SKILL.md"
-      - ".claude/skills/**/*.md"
 
 # When to commit docs separately
 separate_commits:

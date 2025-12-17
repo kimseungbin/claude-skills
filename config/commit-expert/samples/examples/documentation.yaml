@@ -1,0 +1,37 @@
+# Example Commits: Documentation
+# Real-world documentation commit examples
+
+description: "Example commits for documentation changes"
+
+# Project documentation (docs(project))
+project_docs:
+  - message: "docs(project): Update CLAUDE.md with new construct hierarchy"
+    body: "Document ServiceInfraConstruct and ServiceAppConstruct split"
+
+  - message: "docs(project): Add troubleshooting section to README"
+    body: "Add common issues and solutions for deployment"
+
+  - message: "docs(project): Add QA environment setup guide"
+    body: "Document complete setup process"
+
+# Feature documentation (docs(features))
+feature_docs:
+  - message: "docs(features): Add Feature #18 for two-phase deployment"
+    body: "Document two-phase deployment pattern"
+
+  - message: "docs(features): Update implementation status"
+    body: "Mark blue-green deployment as deferred"
+
+# Anti-patterns
+antipatterns:
+  - bad: "docs(service): Refactor and update comments"
+    why: "Mixes code refactoring with documentation"
+    good: "Split: refactor(service) + docs(project)"
+
+  - bad: "docs(service): Add JSDoc comments"
+    why: "JSDoc is code change, not pure documentation"
+    good: "refactor(service): Add JSDoc documentation"
+
+  - bad: "docs(project): Update documentation"
+    why: "Too vague"
+    good: "docs(project): Add deployment troubleshooting guide"

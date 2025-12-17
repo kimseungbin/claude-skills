@@ -1,0 +1,33 @@
+# Scope: Documentation
+# Helps decide scope for documentation files
+
+description: "Scope patterns for documentation files"
+
+# File path to scope mapping
+file_path_patterns:
+  CLAUDE.md: "project"
+  README.md: "project"
+  docs/features/**: "features"
+  docs/**: "project"
+
+# Scope patterns
+project_scope:
+  when_to_use:
+    - "CLAUDE.md changes"
+    - "README.md changes"
+    - "Architecture documentation"
+  examples:
+    - "docs(project): Update CLAUDE.md with construct hierarchy"
+    - "docs(project): Add deployment guide"
+
+features_scope:
+  when_to_use:
+    - "Feature documentation"
+    - "Feature specifications"
+  examples:
+    - "docs(features): Document new API endpoints"
+
+# Inline documentation note
+inline_docs:
+  jsdoc_comments: "Use refactor, not docs"
+  typo_in_comment: "Can use docs type"

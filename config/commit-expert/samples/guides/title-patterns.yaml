@@ -1,0 +1,58 @@
+# Guide: Title Patterns
+# Good and bad commit title patterns
+
+description: "Good and bad commit title patterns"
+
+# Verb patterns
+verbs:
+  adding:
+    good: ["feat(service): Add auto-scaling support"]
+    bad: ["feat(service): Implement auto-scaling"]
+    principle: "Use 'Add' for new capabilities"
+
+  fixing:
+    good: ["fix(config): Correct memory limit for auth service"]
+    bad: ["fix(config): Update memory"]
+    principle: "Use 'Correct', 'Fix', 'Resolve' for bugs"
+
+  refactoring:
+    good: ["refactor(service): Extract ServiceInfraConstruct"]
+    bad: ["refactor(service): Update construct"]
+    principle: "Use 'Extract', 'Consolidate', 'Move', 'Rename'"
+
+  docs:
+    good: ["docs(project): Update CLAUDE.md with construct hierarchy"]
+    bad: ["docs(project): Update docs"]
+    principle: "Specify which documentation and what aspect"
+
+# Naming patterns
+naming:
+  specific_components:
+    good: "feat(service): Add Redis cluster for session storage"
+    bad: "feat(service): Add caching"
+
+  avoid_file_names:
+    good: "refactor(service): Extract ServiceInfraConstruct"
+    bad: "refactor(service): Update index.ts"
+
+# Anti-patterns
+antipatterns:
+  too_generic:
+    examples: ["feat(main): Update code", "fix(config): Fix configuration"]
+    fix: "Add specific component names and actions"
+
+  wrong_type:
+    examples: ["feat(deployment): Add pipeline notifications"]
+    fix: "Should be chore (deployment monitoring, not feature)"
+
+  past_tense:
+    examples: ["feat(service): Added auto-scaling"]
+    fix: "Use imperative: Add, not Added"
+
+# Quality indicators
+high_quality:
+  - "Specific component named"
+  - "Action verb is precise"
+  - "Can understand without reading body"
+  - "Imperative mood"
+  - "Appropriate scope"

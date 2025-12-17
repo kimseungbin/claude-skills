@@ -1,0 +1,34 @@
+# Scope: Infrastructure
+# Helps decide scope for CDK/IaC code
+
+description: "Scope patterns for infrastructure code"
+
+# File path to scope mapping
+file_path_patterns:
+  lib/main-stack.ts: "main"
+  lib/constructs/service/**: "service"
+  lib/constructs/cloudfront/**: "cloudfront"
+  lib/constructs/network.ts: "network"
+  packages/infra/src/constructs/**: "infra"
+
+# Decision tree
+scope_decision:
+  single_file: "Use construct name from file path"
+  multiple_same_construct: "Use construct name"
+  multiple_different_constructs: "Use parent scope (main/infra)"
+
+# Common scopes
+construct_scopes:
+  service: "ECS/Lambda service constructs"
+  cloudfront: "CloudFront and CDN"
+  network: "VPC and networking"
+  iam: "IAM roles and policies"
+  main: "Multiple services or cross-construct"
+  deployment: "CI/CD pipeline"
+
+# Examples
+examples:
+  - "feat(service): Add auto-scaling support"
+  - "feat(cloudfront): Add WAF protection"
+  - "fix(network): Correct subnet CIDR"
+  - "refactor(main): Consolidate service deployment"

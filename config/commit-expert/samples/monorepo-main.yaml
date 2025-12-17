@@ -1,0 +1,155 @@
+# Monorepo Project Configuration
+# For multi-package projects with complex structure
+# Copy to: .claude/config/commit-expert/main.yaml
+
+project: your-project-name
+description: "Monorepo with multiple packages"
+
+# Format specification
+format:
+  pattern: "{type}({scope}): {subject}"
+  max_subject_length: 72
+  max_body_line_length: 100
+
+# Quick reference - common types
+# For detailed decision trees, see types/ directory
+types_quick:
+  feat: "New feature or capability"
+  fix: "Bug fix"
+  refactor: "Code change (neither bug fix nor feature)"
+  perf: "Performance improvement"
+  test: "Adding or updating tests"
+  docs: "Documentation changes"
+  style: "Code style changes (formatting)"
+  build: "Build system or dependency changes"
+  ci: "CI/CD configuration changes"
+  chore: "Maintenance tasks"
+
+# Monorepo scopes - update for your project
+# For detailed patterns, see scopes/ directory
+scopes_quick:
+  frontend:
+    description: "Frontend package"
+    patterns:
+      - "packages/frontend/**"
+  backend:
+    description: "Backend package"
+    patterns:
+      - "packages/backend/**"
+  shared:
+    description: "Shared libraries/types"
+    patterns:
+      - "packages/shared/**"
+  monorepo:
+    description: "Workspace root, affects multiple packages"
+    patterns:
+      - "package.json"
+      - "tsconfig.base.json"
+      - "packages/*/package.json"
+  tools:
+    description: "Developer tooling (CI, scripts, Docker)"
+    patterns:
+      - "scripts/**"
+      - ".github/workflows/**"
+      - "Dockerfile"
+      - "docker-compose*.yml"
+  config:
+    description: "Configuration files"
+    patterns:
+      - ".eslintrc*"
+      - ".prettierrc*"
+      - "*.config.js"
+  project:
+    description: "Project documentation and Claude config"
+    patterns:
+      - "CLAUDE.md"
+      - ".claude/**"
+      - "README*.md"
+
+# Footer conventions
+footer:
+  required: []
+  optional:
+    - "BREAKING CHANGE: description"
+    - "Refs #123 or Closes #123"
+    - "Co-authored-by: Name <email>"
+
+# Type Decision Tree
+type_decision_tree:
+  - question: "What are you doing?"
+    answers:
+      adding_new_capability: "feat"
+      fixing_bug: "fix"
+      changing_code_structure: "refactor"
+      improving_performance: "perf"
+      adding_tests: "test"
+      updating_docs_only: "docs"
+      formatting_code: "style"
+      changing_build_deps: "build"
+      updating_ci_cd: "ci"
+      maintenance_tasks: "chore"
+
+  - question: "Edge case unclear?"
+    feat_vs_chore: "See types/chore.yaml"
+    docs_vs_refactor: "See types/docs.yaml"
+    refactor_vs_feat: "See types/refactor.yaml"
+
+# Scope Decision
+scope_decision:
+  - question: "What files changed?"
+    single_package: "Use package name (frontend, backend, shared)"
+    multiple_packages: "Use monorepo"
+    config_files: "Use config"
+    ci_cd_files: "Use tools"
+    documentation: "Use project"
+
+  - question: "Still unclear?"
+    patterns: "See scopes/*.yaml for detailed patterns"
+
+# When to load detailed files
+load_detailed_files:
+  - condition: "Type still unclear after decision tree"
+    action: "See types/*.yaml"
+  - condition: "Scope unclear for multiple file changes"
+    action: "See scopes/*.yaml"
+  - condition: "Need similar commit example"
+    action: "See examples/*.yaml"
+  - condition: "Quality check needed"
+    action: "See guides/specificity.yaml"
+
+# Subject line conventions
+subject_conventions:
+  - "Use imperative mood: 'Add feature' not 'Added feature'"
+  - "Capitalize first letter"
+  - "No period at end"
+  - "Be specific: name components, not just files"
+  - "For quality check, see guides/specificity.yaml"
+
+# Body conventions
+body_conventions:
+  - "Separate from subject with blank line"
+  - "Explain what and why, not how"
+  - "Use bullet points for multiple changes"
+  - "Wrap at max_body_line_length"
+
+# Multi-commit splitting guidance
+splitting_guidance:
+  when_to_split:
+    - "Changes affect 2+ different packages"
+    - "Mix of different types (feat + fix, feat + test)"
+    - "Test-only changes separable from implementation"
+    - "Config/tooling changes separable from features"
+  when_not_to_split:
+    - "Single feature with its tests"
+    - "Related changes that should be atomic"
+    - "Changes too small to meaningfully separate"
+
+# Setup instructions
+setup:
+  note: "Configure for your monorepo structure"
+  steps:
+    - "1. Copy this file to .claude/config/commit-expert/main.yaml"
+    - "2. Copy types/, scopes/, examples/, guides/ directories"
+    - "3. Update scopes_quick with your package names"
+    - "4. Add project-specific examples to examples/"
+    - "5. Commit config files"

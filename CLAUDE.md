@@ -4,7 +4,7 @@ This repository contains shared Claude Code skills designed for reuse across mul
 
 ## Default Behaviors
 
-**Committing changes:** Always use the `commit-expert` subagent when the user asks to commit, create commits, or generate commit messages. Do not use the conventional-commits skill directly - delegate to the subagent for context isolation and enhanced features.
+**Committing changes:** Always use the `commit-expert` subagent when the user asks to commit, create commits, or generate commit messages.
 
 ## Repository Structure
 
@@ -13,21 +13,35 @@ claude-skills/
 ├── .claude/
 │   ├── agents/                     # Subagents (isolated context)
 │   │   └── commit-expert.md        # Enhanced commit generation
-│   ├── commands/                   # Local commands (copied for testing in this repo)
-│   │   ├── commit.md               # Copied from ../../commands/commit.md
-│   │   ├── create-pr.md            # Copied from ../../commands/create-pr.md
-│   │   └── refactor-claude-md.md   # Copied from ../../commands/refactor-claude-md.md
+│   ├── commands/                   # Local commands (copied for testing)
+│   │   ├── commit.md
+│   │   ├── create-pr.md
+│   │   └── refactor-claude-md.md
 │   └── skills/                     # Local skills (symlinked from skills/)
-│       ├── conventional-commits@
 │       └── claude-md-refactoring@
-├── commands/                       # Example slash commands (source files)
+├── commands/                       # Slash commands (source files)
 │   ├── commit.md
 │   ├── create-pr.md
 │   └── refactor-claude-md.md
-├── skills/                         # Shared skills directory (10 skills total)
+├── config/                         # Agent configuration (not skills)
+│   └── commit-expert/              # Config for commit-expert agent
+│       ├── README.md               # Setup guide
+│       ├── samples/                # Sample configurations
+│       │   ├── simple-main.yaml    # Small project config
+│       │   ├── monorepo-main.yaml  # Multi-package config
+│       │   ├── infrastructure-main.yaml
+│       │   ├── types/              # Type decision helpers
+│       │   ├── scopes/             # Scope decision helpers
+│       │   ├── examples/           # Commit examples
+│       │   └── guides/             # Quality guides
+│       └── guides/                 # Implementation guides
+│           ├── infrastructure.md   # CDK/Terraform patterns
+│           ├── frontend.md         # React/Vue (skeleton)
+│           ├── backend.md          # Express/NestJS (skeleton)
+│           └── fullstack.md        # Next.js (skeleton)
+├── skills/                         # Shared skills directory (9 skills)
 │   ├── cdk-expert/
 │   ├── claude-md-refactoring/
-│   ├── conventional-commits/
 │   ├── git-hooks-setup/
 │   ├── git-strategy/
 │   ├── maintaining-documentation/
@@ -42,20 +56,6 @@ claude-skills/
 **Note:** In this repo, `.claude/commands/` contains **copied files** (not symlinks). When using this repo as a submodule in other projects, users should **copy** commands, not symlink them. Commands do not support symlinks in Claude Code.
 
 ## Available Skills
-
-### conventional-commits
-**Status:** Configuration only - use `commit-expert` subagent instead
-
-Provides configuration files and implementation guides for commit generation. The `commit-expert` subagent reads from this skill's config files but provides better context isolation and pattern learning.
-
-**Contains:**
-- `commit-rules.yaml` - Default commit rules configuration
-- `templates/` - Split configuration templates for context optimization
-- `infrastructure.md`, `frontend.md`, etc. - Implementation guides
-
-**Do not invoke directly** - use `/commit` or the `commit-expert` subagent
-
----
 
 ### maintaining-documentation
 **When to use:** After making code changes that affect project structure, architecture, or behavior
@@ -147,7 +147,11 @@ Enhanced commit generation with:
 - Context isolation (separate from main conversation)
 - Commit history analysis (learns project's existing patterns)
 - Smart commit ordering (deps → features → tests → docs)
-- All conventional-commits skill features (multi-commit splitting, implementation guides)
+- Multi-commit splitting and implementation guides
+
+**Configuration:**
+- Samples: `claude-skills/config/commit-expert/samples/` (reference templates)
+- Project-specific: `.claude/config/commit-expert/main.yaml` (copy from samples)
 
 **Invoke:** `/commit` command or `Task(subagent_type="commit-expert")`
 
@@ -227,9 +231,9 @@ Skills should be generic and reusable. For project-specific customizations, use 
 ```bash
 # User says: "For this project, all commits must include PROJ-XXX ticket numbers"
 
-# Create config file
-mkdir -p .claude/config
-cat > .claude/config/conventional-commits.yaml <<EOF
+# Create config directory and file
+mkdir -p .claude/config/commit-expert
+cat > .claude/config/commit-expert/main.yaml <<EOF
 project: my-project
 ticket_format: "PROJ-{number}"
 required_ticket: true
@@ -237,7 +241,7 @@ EOF
 
 # Commit
 git add .claude/config/
-git commit -m "Add project-specific commit rules"
+git commit -m "chore(config): Add project-specific commit rules"
 ```
 
 ### Designing Skills with Config Support

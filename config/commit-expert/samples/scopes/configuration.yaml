@@ -1,0 +1,43 @@
+# Scope: Configuration and Workspace
+# Helps decide scope for config and workspace files
+
+description: "Scope patterns for configuration, types, and workspace files"
+
+# File path to scope mapping
+file_path_patterns:
+  src/config/**: "config"
+  types/**: "types"
+  package.json: "monorepo"
+  tsconfig.json: "monorepo"
+  packages/*/package.json: "monorepo"
+
+# Scope patterns
+config_scope:
+  when_to_use:
+    - "Changes to ConfigService"
+    - "Configuration data or defaults"
+    - "Environment configuration"
+  examples:
+    - "fix(config): Correct memory limit for auth service"
+    - "refactor(config): Consolidate environment defaults"
+
+types_scope:
+  when_to_use:
+    - "TypeScript type definitions"
+    - "Enums and interfaces"
+  examples:
+    - "refactor(types): Add ServiceConfig interface"
+
+monorepo_scope:
+  when_to_use:
+    - "Workspace configuration"
+    - "Dependency updates affecting multiple packages"
+  examples:
+    - "chore(monorepo): Update aws-cdk-lib to v2.100.0"
+
+deps_scope:
+  when_to_use:
+    - "Dependency-only updates"
+  examples:
+    - "chore(deps): Update @aws-sdk packages"
+    - "fix(deps): Patch security vulnerability"
