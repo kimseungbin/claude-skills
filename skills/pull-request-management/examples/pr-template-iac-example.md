@@ -13,7 +13,6 @@
 - Expandable `<details>` sections for guidance
 - Environment analysis table with feature flag support
 - Deployment impact decision tree
-- CloudFormation change set integration
 - No checkbox anti-patterns
 - No redundant `# Pull Request` heading (GitHub context provides this)
 
@@ -241,6 +240,7 @@ Low Impact 체크
 | partner | ✅ / ❌ | |
 | solution | ✅ / ❌ | |
 | profile | ✅ / ❌ | |
+| edge-gateway | ✅ / ❌ | |
 | 공통 인프라 | ✅ / ❌ | |
 | 배포 파이프라인 | ✅ / ❌ |
 
@@ -258,11 +258,6 @@ Low Impact 체크
 <!-- 어떻게 구현했는지 기술적인 세부사항을 설명해주세요 -->
 
 
-# CloudFormation Change Set
-<!-- create-change-set.yaml 워크플로우가 자동으로 생성하여 PR에 코멘트로 추가합니다 -->
-
-Change Set: (GitHub Actions가 자동으로 생성)
-
 # 리소스 영향 분석 (Resource Impact)
 <!-- 해당하는 영향도를 선택하고 구체적인 내용을 작성해주세요 -->
 
@@ -278,7 +273,6 @@ Change Set: (GitHub Actions가 자동으로 생성)
 
 - [ ] `npm run build` 성공
 - [ ] `npm run cdk synth` 성공
-- [ ] CloudFormation Change Set 검토 완료
 - [ ] 보안 영향 검토 완료 (해당시)
 - [ ] 다른 팀에 영향 공유 완료 (해당시)
 
@@ -347,7 +341,6 @@ aws logs tail /ecs/<service-name> --follow
 - [ ] 리소스 증가/변경으로 인한 비용 영향을 검토했습니다
 - [ ] 보안 관련 변경사항이 있다면 보안 검토를 받았습니다
 - [ ] 다른 서비스에 영향을 주는 변경이라면 관련팀에 알렸습니다
-- [ ] CloudFormation Change Set을 검토했습니다
 
 # 추가 정보 (Additional Notes)
 <!-- 리뷰어가 알아야 할 추가 정보를 적어주세요 -->
@@ -359,9 +352,7 @@ aws logs tail /ecs/<service-name> --follow
 
 이 프로젝트는 **CDK Pipeline 자동 배포**를 사용합니다:
 
-1. **PR 생성 시**: `create-change-set.yaml` 워크플로우가 CloudFormation Change Set을 생성하고 PR에 코멘트를 추가합니다
-2. **PR 승인 및 병합**:
-   - 리뷰어가 승인 후 PR을 병합합니다
-   - 또는 코멘트로 배포 실행: `/deploy <changeset-name>`
+1. **PR 생성 시**: GitHub Actions가 lint, build, cdk synth를 자동 검증합니다
+2. **PR 승인 및 병합**: 리뷰어가 승인 후 PR을 병합합니다
 3. **자동 배포**: CDK Pipeline이 자동으로 배포를 시작합니다 (CodePipeline)
 4. **배포 후 검증**: 위의 "배포 후 검증 계획" 섹션의 항목들을 확인하고 PR에 결과를 코멘트로 공유합니다
