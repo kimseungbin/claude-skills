@@ -184,25 +184,20 @@ Low Impact 체크
 
 </details>
 
-# 배포 대상 환경 (Target Environment)
-
-**이 PR의 배포 대상:** 검증 (STAGING) / 운영 (PRODUCTION)
-
-## 환경별 배포 영향 분석
+# 환경별 배포 영향 분석 (Environment Deployment Impact)
 
 <!--
-  각 변경사항이 어느 환경에 배포되는지 분석해주세요.
+  각 변경사항이 어느 환경에 영향을 주는지 분석해주세요.
+  서비스 인프라 변경사항만 포함하세요 (코드 품질, ESLint, 문서 변경 등은 제외).
 
-  배포 여부:
-  - ✅ YES: 이 변경사항이 해당 환경에 배포됨 (이미 배포됨 포함)
-  - ❌ NO: Feature flag로 인해 코드는 배포되지만 기능은 비활성
-  - 🚫 NEVER: 해당 환경에는 절대 배포되지 않음 (예: DEV 전용 리소스)
+  환경 영향:
+  - ✅: 이 변경사항이 해당 환경에 영향을 줌
+  - ❌: Feature flag로 인해 코드는 배포되지만 기능은 비활성
+  - 🚫: 해당 환경에는 배포되지 않음 (예: DEV 전용 리소스)
 
   FF (Feature Flag):
   - ✅: Feature flag로 제어됨
   - ❌: Feature flag 없음
-
-  문서화 변경이나 코드 외 변경사항은 테이블을 사용하지 마세요.
 -->
 
 | 변경사항 | 개발 | 검증 | 운영 | FF | 사유 |
@@ -216,11 +211,9 @@ Low Impact 체크
 
 | 변경사항 | 개발 | 검증 | 운영 | FF | 사유 |
 |---------|------|------|------|----|----|
-| SSM Parameter Store 마이그레이션 | ✅ YES | ❌ NO | ❌ NO | ✅ | `ssm-parameter-secrets: [dev, qa]`<br>검증/운영은 코드만 배포, 기능 비활성 |
-| 태그 기반 QA 배포 | ✅ YES | ✅ YES | ✅ YES | ❌ | QA만 trigger 변경, 다른 환경은 코드만 추가 |
-| 태그 기반 PROD 배포 | ✅ YES | ✅ YES | ❌ NO | ❌ | 코드는 배포되지만 PROD는 향후 활성화 예정 |
-| Cross-account SNS topic | ✅ YES | 🚫 NEVER | 🚫 NEVER | ❌ | DEV 계정 전용 리소스<br>다른 환경은 자체 SNS topic 사용 |
-| Bug fix (API 오류) | ✅ YES | ✅ YES | ✅ YES | ❌ | 모든 환경 적용 |
+| SSM Parameter Store 마이그레이션 | ✅ | ❌ | ❌ | ✅ | `ssm-parameter-secrets: [dev, qa]` |
+| CloudFront 캐시 정책 변경 | ✅ | ✅ | ✅ | ❌ | 모든 환경 적용 |
+| Cross-account SNS topic | ✅ | 🚫 | 🚫 | ❌ | DEV 계정 전용 리소스 |
 
 # 영향받는 서비스 (Affected Services)
 <!--
