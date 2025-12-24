@@ -119,7 +119,7 @@ Categorize commits by type:
 
 **CRITICAL: Prioritize Runtime Impact Over Documentation/Tooling**
 
-When analyzing commits for PR titles and summaries, prioritize by business impact:
+See [README.md](README.md#quick-decision-tree-for-pr-titles) for the quick decision tree. When analyzing commits for PR titles and summaries, prioritize by business impact:
 
 1. **Runtime/Service Changes** (HIGHEST PRIORITY)
    - New services enabled
@@ -374,34 +374,9 @@ Skip the interactive question if:
 
 **Checkboxes are for task lists, not for selecting single options.**
 
-Many PR templates misuse checkboxes for single-choice selections (environment, impact level, yes/no questions). This creates confusion and visual clutter.
-
-For complete guidance on checkbox alternatives, emoji usage, and visual hierarchy patterns, see [README.md](README.md#checkbox-alternatives).
-
-**When TO Use Checkboxes:**
-
-✅ **Actual task lists (pre-flight checks)**
-```markdown
-## Pre-deployment Tests
-
-- [x] `npm run lint:check` passed
-- [x] `npm run build` succeeded
-- [x] `npm run cdk synth` succeeded
-- [ ] CloudFormation Change Set reviewed
-- [ ] Security impact reviewed
-```
-
-✅ **Post-deployment verification**
-```markdown
-## Verification Steps
-
-- [ ] ECS Service status: RUNNING
-- [ ] Target Group health: Healthy
-- [ ] CloudWatch Logs: No errors
-- [ ] API endpoints responding
-```
-
-**Why:** These are actual TODO items requiring completion
+- Use checkboxes only for actual TODO items (pre-flight checks, verification steps)
+- For single selections (impact level, yes/no), use emoji or direct text
+- See [README.md](README.md#checkbox-alternatives) for alternatives and emoji guide
 
 ### 4. Fill Out PR Template Sections
 
@@ -454,145 +429,26 @@ For sections requiring domain knowledge or judgment (40-80% confidence):
 
 **ALWAYS provide detailed reasoning for deployment impact. Never just check a box.**
 
-**Step 1: Identify Changed Files**
+**Workflow:**
 
-```bash
-git diff <base>..<head> --name-only | grep -E "task-definition|config.data|fargate|service"
-```
+1. **Identify Changed Files**
+   ```bash
+   git diff <base>..<head> --name-only | grep -E "task-definition|config.data|fargate|service"
+   ```
 
-**Step 2: Check ACTUAL Changes (Not Just File Names)**
+2. **Check ACTUAL Changes (Not Just File Names)**
+   ```bash
+   git diff <base>..<head> lib/constructs/service/task-definition.ts
+   git diff <base>..<head> src/config/config.data.ts | grep -E "cpu|memory|env|desired"
+   ```
 
-```bash
-# Check if actual VALUES changed
-git diff <base>..<head> lib/constructs/service/task-definition.ts
-git diff <base>..<head> src/config/config.data.ts | grep -E "cpu|memory|env|desired"
-```
+3. **Categorize Based on ACTUAL Changes**
+   - Refer to the PR template's `<details>` section for High/Medium/Low criteria
+   - The PR template contains the decision tree and common examples
 
-**Step 3: Categorize Based on ACTUAL Changes**
+**Key Rule:** Always run `git diff <base>..<head> -- <file>` before determining impact. File names alone are misleading.
 
-**High Impact - Task Definition Changes:**
-
-```bash
-# Look for actual VALUE changes in:
-- CPU: FargateCpu.CPU_256 → FargateCpu.CPU_512
-- Memory: FargateMemory.MEMORY_512 → FargateMemory.MEMORY_1024
-- Environment variables: new env vars, changed values
-- Container image, ports, volumes
-- Task/Execution roles
-```
-
-**Medium Impact - Scaling/Network Changes:**
-
-```bash
-# Look for:
-- desiredCount: 4 → 2 (task count change, NOT task definition)
-- minCapacity/maxCapacity changes
-- ALB rules, Security Groups
-- Auto-scaling policies
-```
-
-**Low Impact - Code Refactoring:**
-
-```bash
-# Look for:
-- Import path changes (same values, different location)
-- File moves without value changes
-- Documentation updates
-```
-
-**Common Mistakes to Avoid:**
-
-❌ **Wrong:**
-
-```markdown
-- [x] High Impact
-
-Reasoning: task-definition.ts file changed
-```
-
-→ Checking file name only, not actual diff content
-
-✅ **Correct:**
-
-```markdown
-- [x] Medium Impact
-
-Reasoning:
-
-- src/config/config.data.ts (fd282d1): desiredCount 4→2, minCapacity 4→2
-- This changes task COUNT, not task DEFINITION
-- ECS will scale down existing tasks, no new task deployment needed
-```
-
----
-
-❌ **Wrong:**
-
-```markdown
-- [x] High Impact
-
-Reasoning: Fargate CPU enum file modified
-```
-
-→ File moved, values unchanged
-
-✅ **Correct:**
-
-```markdown
-- [x] Low Impact
-
-Reasoning:
-
-- lib/constructs/service/fargate-cpu.ts → src/config/types/fargate.types.ts
-- File relocation only, no value changes
-- Import paths updated, compiled output identical
-```
-
-**Example (Medium-High Confidence with Proper Analysis):**
-
-```markdown
-## Deployment Impact
-
-🟡 **Medium Impact**
-
-**영향도 분석:**
-
-- 🟡 Medium Impact: src/config/config.data.ts에서 desiredCount 4→2 변경 (fd282d1)
-    - Auto-scaling 조정, Task Definition은 변경 없음
-    - 기존 Task 유지, 점진적 스케일 다운
-- 🟢 Low Impact: lib/constructs/service/fargate-cpu.ts → src/config/types/fargate.types.ts 이동 (e3bf8b3)
-    - 파일 구조 변경, 실제 값 변경 없음
-
-**Confidence:** 90% (git diff 확인 완료, 실제 값 변경 내역 확인)
-```
-
-**Emoji Guide for Deployment Impact:**
-- 🔴 High Impact: ECS service redeployment required
-- 🟡 Medium Impact: Resource updates, no downtime
-- 🟢 Low Impact: Metadata only
-
-**Example (Medium-Low Confidence):**
-
-```markdown
-## Deployment Impact
-
-- [ ] High Impact
-- [ ] Medium Impact
-- [ ] Low Impact
-
-**⚠️ Unable to determine with confidence (40%)**
-
-**Recommendation:** This PR template asks to categorize deployment impact, but I cannot
-determine this with sufficient confidence. Consider updating the template to include:
-
-1. More specific guidance on what constitutes each impact level
-2. Examples of common change types and their impact levels
-3. A decision tree or flowchart
-4. Links to infrastructure documentation
-
-**Temporary approach:** Please manually select the impact level, or let me suggest a
-template improvement.
-```
+**When uncertain (<60% confidence):** Ask the user or leave section for manual review with explanation.
 
 #### 4.3. Low Confidence Sections
 
@@ -834,59 +690,9 @@ Some projects may include supplementary guideline files:
 
 ### Config File Pattern (Optional)
 
-For AI-specific PR assistance rules, projects can create:
+For AI-specific PR assistance rules, projects can create `.claude/config/pull-request-management.yaml`.
 
-**`.claude/config/pull-request-management.yaml`**
-
-```yaml
-# Project-specific PR rules
-project: fe-infra
-repository: wishket/fe-infra
-
-# Branch strategy
-branches:
-    development: master
-    staging: stag
-    production: prod
-
-# Auto-fill rules
-auto_fill:
-    # Automatically detect deployment impact based on file patterns
-    deployment_impact:
-        high:
-            - 'lib/**/task-definition.ts'
-            - 'lib/**/service/index.ts'
-        medium:
-            - 'lib/**/load-balancer.ts'
-            - 'lib/**/cloudfront.ts'
-        low:
-            - '**/*.md'
-            - '**/README*'
-
-    # Automatically detect affected services based on file paths
-    affected_services:
-        auth: ['**/auth/**', '**/account-service/**']
-        yozm: ['**/yozm/**', '**/yozm-service/**']
-        support: ['**/support/**']
-
-# Confidence thresholds
-confidence:
-    high: 80 # Fill out directly
-    medium: 60 # Fill with explanation
-    low: 40 # Suggest template update
-
-# Required checks before PR creation
-# Note: lint is NOT included - enforced by pre-push hook and GitHub Actions
-pre_flight_checks:
-    - npm run build
-    - npm run cdk synth
-```
-
-**When to create this config:**
-
-- User specifies project-specific PR rules
-- Repeated patterns emerge across multiple PRs
-- Template sections require custom logic
+See [README.md](README.md#config-file-pattern-optional) for the full config schema and examples.
 
 ## Template Update Workflow
 
