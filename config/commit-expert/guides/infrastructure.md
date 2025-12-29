@@ -25,9 +25,10 @@ Code Change Made
 │  └─ YES → fix(scope)
 │      ✅ Misconfigured resource, failing deployment
 │
-├─ Changes CODE STRUCTURE only?
+├─ Changes CODE STRUCTURE only? (lib/, bin/, src/, types/)
 │  └─ YES → refactor(scope)
 │      ✅ Extract method, rename, reorganize
+│      ❌ NOT for: .github/workflows/ → ci(github)
 │
 ├─ CI/CD PIPELINE infrastructure?
 │  └─ YES → chore(deployment)
@@ -105,3 +106,4 @@ ci(tools): Add CloudFormation drift detection workflow
 ❌ `feat(deployment): Add notifications` - Should be chore
 ❌ `feat(infra): Add Lambda` - Too vague, use specific scope
 ❌ `refactor(main): Update` - Describe WHAT was refactored
+❌ `refactor(ci): Update workflows` - Use ci() for .github/workflows changes, not refactor
