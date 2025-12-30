@@ -3,6 +3,7 @@ name: Deployment Issue
 about: Document deployment failures, CI/CD problems, or infrastructure deployment issues
 title: ""
 labels: deployment-issue, retrospective
+assignees: ""
 ---
 
 <!--

@@ -3,6 +3,7 @@ name: Refactoring
 about: Document code refactoring or technical debt cleanup
 title: ""
 labels: refactoring, tech-debt
+assignees: ""
 ---
 
 <!--

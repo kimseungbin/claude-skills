@@ -3,6 +3,7 @@ name: Fix
 about: Document a bug fix or issue resolution
 title: ""
 labels: fix, bug
+assignees: ""
 ---
 
 <!--

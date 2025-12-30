@@ -17,11 +17,13 @@ Interactively configure and create GitHub issue templates for a project.
    - Feature (planned features)
    - Refactoring (tech debt)
    - Fix (bug fixes)
-3. **Use AskUserQuestion tool** for each selected type to customize:
+3. **Use AskUserQuestion tool** for general settings:
+   - Default assignee (GitHub username)
+4. **Use AskUserQuestion tool** for each selected type to customize:
    - Labels to apply
    - Metadata fields
-4. Create `.github/ISSUE_TEMPLATE/` directory if needed
-5. Generate customized templates with Claude instructions as HTML comments
+5. Create `.github/ISSUE_TEMPLATE/` directory if needed
+6. Generate customized templates with Claude instructions as HTML comments
 
 ## Important
 

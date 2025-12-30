@@ -3,6 +3,7 @@ name: Incident
 about: Document runtime incidents, outages, or service failures
 title: ""
 labels: incident
+assignees: ""
 ---
 
 <!--
