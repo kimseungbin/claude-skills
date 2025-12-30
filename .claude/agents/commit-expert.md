@@ -143,14 +143,23 @@ Option 4: "Combine all into one commit"
 What are you doing?
 ├─ Adding NEW capability → feat
 ├─ Fixing BROKEN behavior → fix
+│  └─ Note: "broken" = doesn't work as intended, causes errors
+├─ IMPROVING existing behavior (not broken) → chore
+│  └─ Examples: better error messages, smarter defaults, edge case handling
 ├─ Changing CODE STRUCTURE → refactor
 ├─ Updating docs ONLY → docs
 ├─ Updating DEPENDENCIES → chore(deps) or chore(monorepo)
+├─ Build/CI/hooks improvements → chore or ci
+│  └─ chore(git-hooks), ci(workflows), chore(build)
 └─ Infrastructure project - what does it serve?
    ├─ FOR applications → feat
    ├─ FOR deployment → chore(deployment)
    └─ FOR development → chore(tools)
 ```
+
+**fix vs chore clarification:**
+- `fix`: Something was BROKEN and now works (bug, error, crash)
+- `chore`: Something WORKED but now works BETTER (improvement, enhancement to tooling)
 
 **SCOPE** (where the change is):
 
