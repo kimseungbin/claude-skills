@@ -1,0 +1,50 @@
+# GitHub Issue Writer - Sample Configuration
+# Copy to: .claude/config/github-issue-writer.yaml
+
+# Default labels to suggest
+labels:
+  - incident
+  - retrospective
+  - postmortem
+
+# Sections to include (in order)
+sections:
+  - summary
+  - timeline
+  - root_cause
+  - solution
+  - retrospective
+  - related_docs
+  - references
+
+# Metadata fields
+metadata:
+  - date
+  - environment
+  - status
+  - severity  # optional: P0, P1, P2, etc.
+
+# Environment options
+environments:
+  - production
+  - staging
+  - development
+
+# Status options
+statuses:
+  - resolved
+  - mitigated
+  - investigating
+  - monitoring
+
+# Title format
+title_format: "[Incident] {component} - {brief_description}"
+
+# Enable mermaid diagrams
+mermaid_diagrams: true
+
+# Enable GitHub callouts
+github_callouts: true
+
+# Enable collapsible appendix
+collapsible_appendix: true

@@ -1,0 +1,52 @@
+# GitHub Issue Writer - Feature Request Template
+# Copy to: .claude/config/github-issue-writer.yaml
+
+# Issue type
+type: feature
+
+# Default labels
+labels:
+  - feature
+  - enhancement
+
+# Sections to include (in order)
+sections:
+  - summary
+  - problem_statement
+  - proposed_solution
+  - alternatives_considered
+  - implementation_plan
+  - acceptance_criteria
+  - related_docs
+
+# Metadata fields
+metadata:
+  - date
+  - priority  # P0, P1, P2, P3
+  - effort    # S, M, L, XL
+
+# Priority options
+priorities:
+  - P0 - Critical
+  - P1 - High
+  - P2 - Medium
+  - P3 - Low
+
+# Effort estimates
+efforts:
+  - S - Small (< 1 day)
+  - M - Medium (1-3 days)
+  - L - Large (1-2 weeks)
+  - XL - Extra Large (> 2 weeks)
+
+# Title format
+title_format: "[Feature] {component} - {brief_description}"
+
+# Enable mermaid diagrams (for architecture/flow)
+mermaid_diagrams: true
+
+# Enable GitHub callouts
+github_callouts: true
+
+# Enable collapsible appendix
+collapsible_appendix: true

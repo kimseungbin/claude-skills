@@ -5,6 +5,12 @@
       "source": "./plugins/korean-technical-translator",
       "description": "Translate English technical content to Korean with project-specific dictionaries",
       "version": "1.0.0"
+    },
+    {
+      "name": "github-issue-writer",
+      "source": "./plugins/github-issue-writer",
+      "description": "Write structured GitHub issues (incidents, deployments, features) with mermaid diagrams",
+      "version": "1.0.0"
     }
   ]
 }
