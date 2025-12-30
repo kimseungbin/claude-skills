@@ -1,0 +1,10 @@
+{
+  "marketplace": [
+    {
+      "name": "korean-technical-translator",
+      "source": "./plugins/korean-technical-translator",
+      "description": "Translate English technical content to Korean with project-specific dictionaries",
+      "version": "1.0.0"
+    }
+  ]
+}
