@@ -1,0 +1,78 @@
+# Korean Technical Translator - Sample Configuration
+# Copy this file to: .claude/config/korean-technical-translator.yaml
+
+project: my-project
+
+# Style preference
+# - formal: 합니다체 (recommended for documentation)
+# - casual: 해요체
+style: formal
+
+# Custom dictionary entries
+# English term -> Korean translation
+dictionary:
+  # Git terminology
+  "repository": "저장소"
+  "branch": "브랜치"
+  "commit": "커밋"
+  "merge": "병합"
+  "pull request": "풀 리퀘스트"
+  "push": "푸시"
+  "clone": "클론"
+  "fork": "포크"
+
+  # Development workflow
+  "issue": "이슈"
+  "workflow": "워크플로우"
+  "deployment": "배포"
+  "environment": "환경"
+  "pipeline": "파이프라인"
+  "build": "빌드"
+  "test": "테스트"
+
+  # Architecture
+  "backend": "백엔드"
+  "frontend": "프론트엔드"
+  "server": "서버"
+  "client": "클라이언트"
+  "database": "데이터베이스"
+  "cache": "캐시"
+
+# Terms to always keep in English
+keep_english:
+  - "API"
+  - "SDK"
+  - "REST"
+  - "GraphQL"
+  - "Docker"
+  - "Kubernetes"
+  - "GitHub"
+  - "npm"
+  - "yarn"
+  - "pnpm"
+
+# Domain-specific terminology (optional)
+# Uncomment and customize sections relevant to your project
+domains:
+  # AWS
+  # aws:
+  #   "Lambda": "Lambda"
+  #   "S3 bucket": "S3 버킷"
+  #   "EC2 instance": "EC2 인스턴스"
+  #   "CloudFormation": "CloudFormation"
+
+  # React/Frontend
+  # frontend:
+  #   "component": "컴포넌트"
+  #   "props": "props"
+  #   "state": "상태"
+  #   "hook": "훅"
+  #   "render": "렌더링"
+
+  # NestJS/Backend
+  # backend:
+  #   "controller": "컨트롤러"
+  #   "service": "서비스"
+  #   "module": "모듈"
+  #   "middleware": "미들웨어"
+  #   "guard": "가드"

@@ -1,0 +1,8 @@
+{
+  "name": "korean-technical-translator",
+  "description": "Translate English technical terms to Korean with project-specific dictionaries",
+  "version": "1.0.0",
+  "author": {
+    "name": "kimseungbin"
+  }
+}
