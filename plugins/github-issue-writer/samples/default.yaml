@@ -37,8 +37,8 @@ statuses:
   - investigating
   - monitoring
 
-# Title format
-title_format: "[Incident] {component} - {brief_description}"
+# Title format (labels handle categorization, no prefix needed)
+title_format: "{component} - {brief_description}"
 
 # Enable mermaid diagrams
 mermaid_diagrams: true

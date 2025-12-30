@@ -1,7 +1,7 @@
 ---
 name: Incident
 about: Document runtime incidents, outages, or service failures
-title: "[Incident] "
+title: ""
 labels: incident
 ---
 

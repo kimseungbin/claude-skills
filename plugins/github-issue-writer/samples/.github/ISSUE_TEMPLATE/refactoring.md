@@ -1,7 +1,7 @@
 ---
 name: Refactoring
 about: Document code refactoring or technical debt cleanup
-title: "[Refactor] "
+title: ""
 labels: refactoring, tech-debt
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: Feature
 about: Plan and document a new feature or enhancement
-title: "[Feature] "
+title: ""
 labels: feature
 ---
 

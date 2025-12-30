@@ -40,7 +40,7 @@ labels: [incident, retrospective]
 metadata: [date, environment, status, severity]
 mermaid_diagrams: true
 github_callouts: true
-title_format: "[Incident] {component} - {brief_description}"
+title_format: "{component} - {brief_description}"
 ```
 
 See `samples/` for complete examples.

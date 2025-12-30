@@ -1,7 +1,7 @@
 ---
 name: Fix
 about: Document a bug fix or issue resolution
-title: "[Fix] "
+title: ""
 labels: fix, bug
 ---
 

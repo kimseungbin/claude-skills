@@ -17,13 +17,13 @@ Write well-structured GitHub issues for incidents, deployment issues, or feature
 
 ## Issue Types
 
-| Type | Use Case | Title Prefix |
-|------|----------|--------------|
-| Incident | Runtime issues, outages | `[Incident]` |
-| Deployment Issue | CI/CD, deployment failures | `[Deployment]` |
-| Feature | Planned features, backlog | `[Feature]` |
-| Refactoring | Tech debt, code cleanup | `[Refactor]` |
-| Fix | Bug fixes | `[Fix]` |
+| Type | Use Case |
+|------|----------|
+| Incident | Runtime issues, outages |
+| Deployment Issue | CI/CD, deployment failures |
+| Feature | Planned features, backlog |
+| Refactoring | Tech debt, code cleanup |
+| Fix | Bug fixes |
 
 ## Formatting
 
