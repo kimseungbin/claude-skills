@@ -131,7 +131,9 @@ my-plugins-repo/
 ```json
 {
   "name": "my-plugins-repo",
-  "owner": "your-github-username",
+  "owner": {
+    "name": "your-github-username"
+  },
   "plugins": [
     {
       "name": "plugin-one",

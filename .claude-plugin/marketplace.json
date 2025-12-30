@@ -1,6 +1,8 @@
 {
   "name": "claude-skills",
-  "owner": "kimseungbin",
+  "owner": {
+    "name": "kimseungbin"
+  },
   "plugins": [
     {
       "name": "korean-technical-translator",
