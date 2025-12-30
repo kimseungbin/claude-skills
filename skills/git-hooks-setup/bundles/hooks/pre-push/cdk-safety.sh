@@ -70,11 +70,19 @@ echo ""
 print_step "1/5" "Building and linting..."
 
 # Build TypeScript
-if ! npm run build > /dev/null 2>&1; then
+BUILD_OUTPUT=$(mktemp)
+if ! npm run build > "$BUILD_OUTPUT" 2>&1; then
     print_error_indent "TypeScript compilation failed"
-    echo -e "${YELLOW}Run 'npm run build' to see errors${NC}"
+    echo ""
+    # Extract and display only the error lines (TS errors contain ": error TS")
+    grep -E "(: error TS|error TS[0-9]+:)" "$BUILD_OUTPUT" | head -20 | while IFS= read -r line; do
+        echo -e "  ${RED}$line${NC}"
+    done
+    echo ""
+    rm -f "$BUILD_OUTPUT"
     exit 1
 fi
+rm -f "$BUILD_OUTPUT"
 print_success_indent "TypeScript compilation passed"
 
 # Run linter
