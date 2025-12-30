@@ -1,7 +1,7 @@
 {
   "name": "github-issue-writer",
   "description": "Write structured GitHub issues (incidents, deployments, features) with mermaid diagrams",
-  "version": "1.0.2",
+  "version": "1.1.1",
   "author": {
     "name": "kimseungbin"
   }

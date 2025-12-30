@@ -2,11 +2,11 @@
 
 Write structured GitHub issues with mermaid diagrams and callouts.
 
-## Usage
+## Getting Started
 
 ```
-Skill(github-issue-writer)        # Write an issue
-Skill(setup-issue-templates)      # Setup templates for your project
+Skill(setup-issue-templates)      # First: setup templates for your project
+Skill(github-issue-writer)        # Then: write issues
 ```
 
 ## Supported Types
@@ -21,29 +21,11 @@ Skill(setup-issue-templates)      # Setup templates for your project
 
 ## Features
 
+- Issue templates in `.github/ISSUE_TEMPLATE/`
+- Priority selection via labels (`priority-p0` to `priority-p3`)
 - Mermaid diagrams for visualizing flows
 - GitHub callouts (`[!WARNING]`, `[!TIP]`, `[!IMPORTANT]`)
 - Collapsible `<details>` for technical deep-dives
-
-## Template Priority
-
-1. `.github/ISSUE_TEMPLATE/` - Uses existing GitHub templates if found
-2. `.claude/config/github-issue-writer.yaml` - Plugin config
-3. Built-in sections - Default structure
-
-## Configuration
-
-Create `.claude/config/github-issue-writer.yaml`:
-
-```yaml
-labels: [incident, retrospective]
-metadata: [date, environment, status, severity]
-mermaid_diagrams: true
-github_callouts: true
-title_format: "{component} - {brief_description}"
-```
-
-See `samples/` for complete examples.
 
 ## Authors
 
