@@ -118,7 +118,8 @@ Use a plugin marketplace to index multiple plugins:
 
 ```
 my-plugins-repo/
-├── marketplace.json
+├── .claude-plugin/
+│   └── marketplace.json    # Required location
 └── plugins/
     ├── plugin-one/
     │   └── .claude-plugin/
@@ -126,13 +127,16 @@ my-plugins-repo/
         └── .claude-plugin/
 ```
 
-**marketplace.json:**
+**.claude-plugin/marketplace.json:**
 ```json
 {
-  "marketplace": [
+  "name": "my-plugins-repo",
+  "owner": "your-github-username",
+  "plugins": [
     {
       "name": "plugin-one",
       "source": "./plugins/plugin-one",
+      "description": "Plugin description",
       "version": "1.0.0"
     }
   ]

@@ -1,5 +1,7 @@
 {
-  "marketplace": [
+  "name": "claude-skills",
+  "owner": "kimseungbin",
+  "plugins": [
     {
       "name": "korean-technical-translator",
       "source": "./plugins/korean-technical-translator",
