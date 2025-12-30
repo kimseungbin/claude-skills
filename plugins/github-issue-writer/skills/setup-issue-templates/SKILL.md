@@ -1,7 +1,7 @@
 ---
 name: setup-issue-templates
 description: Interactive setup for GitHub issue templates
-allowed-tools: Read, Glob, Write, Bash
+allowed-tools: Read, Glob, Write, Bash, AskUserQuestion
 ---
 
 # Setup Issue Templates
@@ -10,29 +10,27 @@ Interactively configure and create GitHub issue templates for a project.
 
 ## Workflow
 
-1. Check if `.github/ISSUE_TEMPLATE/` already exists
-2. Ask which issue types are needed (incident, deployment, feature)
-3. For each selected type, ask about customization:
+1. Check if `.github/ISSUE_TEMPLATE/` already exists using Glob
+2. **Use AskUserQuestion tool** to ask which issue types are needed:
+   - Incident (runtime issues)
+   - Deployment Issue (CI/CD failures)
+   - Feature (planned features)
+   - Refactoring (tech debt)
+3. **Use AskUserQuestion tool** for each selected type to customize:
    - Labels to apply
-   - Metadata fields (priority, severity, effort, etc.)
-   - Additional sections
-4. Generate customized templates in `.github/ISSUE_TEMPLATE/`
+   - Metadata fields
+4. Create `.github/ISSUE_TEMPLATE/` directory if needed
+5. Generate customized templates with Claude instructions as HTML comments
 
-## Questions to Ask
+## Important
 
-### Issue Types
-- Which types: Incident, Deployment Issue, Feature (multi-select)
+You MUST use the `AskUserQuestion` tool for interactive questions. Do NOT just describe what to do - actually ask the user using the tool.
 
-### Per-Type Customization
-- **Labels:** Default labels for this issue type
-- **Metadata:** Which fields to include (date, environment, priority, effort)
-- **Sections:** Any project-specific sections to add
+## Template Files
 
-## Template Structure
-
-Create in `.github/ISSUE_TEMPLATE/`:
-- `incident.md` - Runtime issues
-- `deployment-issue.md` - CI/CD failures
-- `feature.md` - Feature planning
-
-Include Claude instructions as HTML comments in each template.
+| Type | Filename |
+|------|----------|
+| Incident | `incident.md` |
+| Deployment Issue | `deployment-issue.md` |
+| Feature | `feature.md` |
+| Refactoring | `refactoring.md` |
