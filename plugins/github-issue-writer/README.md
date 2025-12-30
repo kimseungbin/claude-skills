@@ -17,6 +17,7 @@ Skill(setup-issue-templates)      # Setup templates for your project
 | Deployment Issue | CI/CD, deployment failures |
 | Feature | Planned features, backlog |
 | Refactoring | Tech debt, code cleanup |
+| Fix | Bug fixes |
 
 ## Features
 

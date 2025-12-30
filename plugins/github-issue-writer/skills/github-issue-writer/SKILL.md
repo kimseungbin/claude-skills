@@ -23,6 +23,7 @@ Write well-structured GitHub issues for incidents, deployment issues, or feature
 | Deployment Issue | CI/CD, deployment failures | `[Deployment]` |
 | Feature | Planned features, backlog | `[Feature]` |
 | Refactoring | Tech debt, code cleanup | `[Refactor]` |
+| Fix | Bug fixes | `[Fix]` |
 
 ## Formatting
 

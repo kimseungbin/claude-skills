@@ -16,6 +16,7 @@ Interactively configure and create GitHub issue templates for a project.
    - Deployment Issue (CI/CD failures)
    - Feature (planned features)
    - Refactoring (tech debt)
+   - Fix (bug fixes)
 3. **Use AskUserQuestion tool** for each selected type to customize:
    - Labels to apply
    - Metadata fields
@@ -34,3 +35,4 @@ You MUST use the `AskUserQuestion` tool for interactive questions. Do NOT just d
 | Deployment Issue | `deployment-issue.md` |
 | Feature | `feature.md` |
 | Refactoring | `refactoring.md` |
+| Fix | `fix.md` |
