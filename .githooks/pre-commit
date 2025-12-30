@@ -2,6 +2,7 @@
 
 # Auto-bump plugin patch versions when plugin files change
 # Updates both plugin.json and marketplace.json
+# Skips if version was already manually bumped
 
 set -e
 
@@ -13,11 +14,6 @@ PLUGINS_TO_BUMP=""
 
 # Check each staged file to see if it's in a plugin directory
 for file in $STAGED_FILES; do
-    if [[ $file == plugins/*/plugin.json ]] || [[ $file == .claude-plugin/marketplace.json ]]; then
-        # Skip if it's the plugin.json or marketplace.json itself (avoid loops)
-        continue
-    fi
-
     if [[ $file == plugins/*/* ]]; then
         # Extract plugin name
         plugin_name=$(echo "$file" | cut -d'/' -f2)
@@ -35,8 +31,17 @@ for plugin_name in $PLUGINS_TO_BUMP; do
     plugin_json="plugins/$plugin_name/.claude-plugin/plugin.json"
 
     if [[ -f "$plugin_json" ]]; then
-        # Get current version
+        # Get current version in working tree
         current_version=$(grep -o '"version": *"[^"]*"' "$plugin_json" | grep -o '[0-9]*\.[0-9]*\.[0-9]*')
+
+        # Get version from last commit (HEAD)
+        head_version=$(git show HEAD:"$plugin_json" 2>/dev/null | grep -o '"version": *"[^"]*"' | grep -o '[0-9]*\.[0-9]*\.[0-9]*' || echo "")
+
+        # Skip if version was already manually bumped
+        if [[ -n "$head_version" && "$current_version" != "$head_version" ]]; then
+            echo "Skipping $plugin_name: version already bumped ($head_version → $current_version)"
+            continue
+        fi
 
         if [[ -n "$current_version" ]]; then
             # Parse version components
@@ -54,7 +59,6 @@ for plugin_name in $PLUGINS_TO_BUMP; do
             marketplace_json=".claude-plugin/marketplace.json"
             if [[ -f "$marketplace_json" ]]; then
                 # Update the version for this specific plugin in marketplace.json
-                # Using a more targeted sed to only update the right plugin
                 python3 -c "
 import json
 with open('$marketplace_json', 'r') as f:
