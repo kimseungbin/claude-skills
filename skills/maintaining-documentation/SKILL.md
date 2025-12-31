@@ -221,7 +221,7 @@ grep -rn "keyword" CLAUDE.md README.md docs/
 
 **CRITICAL:** Include both code and documentation changes in the same commit.
 
-Use the `/commit` command or `conventional-commits` skill:
+Use the `commit-expert` subagent:
 
 ```
 type(scope): Brief description

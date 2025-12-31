@@ -134,7 +134,6 @@ if ! echo "$COMMIT_MSG" | grep -q "Agent: commit-expert"; then
     echo "❌ COMMIT BLOCKED"
     echo "Required footer tag missing: 'Agent: commit-expert'"
     echo ""
-    echo "✅ Use: /commit command"
     echo "✅ Use: Task(subagent_type=\"commit-expert\")"
     echo "❌ DO NOT use: git commit directly"
     exit 1
@@ -251,7 +250,6 @@ Required footer tag missing: 'Agent: commit-expert'
 ┌─────────────────────────────────────────────────────┐
 │  HOW TO FIX:                                        │
 ├─────────────────────────────────────────────────────┤
-│  ✅ Use: /commit command                            │
 │  ✅ Use: Task(subagent_type="commit-expert")        │
 │  ❌ DO NOT use: git commit directly                 │
 └─────────────────────────────────────────────────────┘

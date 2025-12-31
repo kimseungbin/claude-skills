@@ -47,8 +47,8 @@ Create a Claude Code subagent at `.claude/agents/commit-expert.md` that:
 7. Quality Standards (50 lines)
 8. Examples (20 lines)
 
-### Command Update
-Update `.claude/commands/commit.md` to use subagent
+### Invocation
+Users invoke directly via `Task(subagent_type="commit-expert")`
 
 ### Documentation Update
 Update `CLAUDE.md` to document the new subagent
@@ -68,7 +68,7 @@ Gradual migration:
 - [ ] System prompt includes all 9 workflow steps
 - [ ] History analysis feature implemented
 - [ ] Smart commit ordering feature implemented
-- [ ] `/commit` command updated to use subagent
+- [x] Subagent invokable via `Task(subagent_type="commit-expert")`
 - [ ] CLAUDE.md documents the new subagent
 - [ ] Skill kept for fallback (gradual migration)
 - [ ] Tested on single-scope and multi-scope commits
@@ -78,4 +78,4 @@ Gradual migration:
 - `skills/conventional-commits/SKILL.md` - Source for workflow
 - `skills/conventional-commits/templates/main.yaml` - Decision trees
 - `skills/conventional-commits/templates/guides/specificity.yaml` - Quality standards
-- `.claude/commands/commit.md` - Command to update
+- `.claude/agents/commit-expert.md` - The implemented subagent

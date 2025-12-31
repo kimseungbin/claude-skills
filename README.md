@@ -19,7 +19,6 @@ Claude Code skills are specialized prompt templates that extend Claude's capabil
 
 This repository also includes example slash commands in the `commands/` directory:
 
-- **commit** - Invokes the conventional-commits skill
 - **refactor-claude-md** - Invokes the claude-md-refactoring skill
 
 **IMPORTANT: Commands must be copied, not symlinked!** Unlike skills, slash commands do not support symlinks in Claude Code. Commands in `.claude/commands/` must be regular files. This repository uses copied commands in `.claude/commands/` for this reason.
@@ -227,13 +226,10 @@ chmod +x .git/hooks/post-checkout
 claude-skills/
 ├── .claude/
 │   ├── commands/                   # Copied commands (for testing in this repo)
-│   │   ├── commit.md               # Copied from ../../commands/commit.md
 │   │   └── refactor-claude-md.md   # Copied from ../../commands/refactor-claude-md.md
 │   └── skills/                     # Symlinked skills (for testing in this repo)
-│       ├── conventional-commits@   # → ../../skills/conventional-commits
 │       └── claude-md-refactoring@  # → ../../skills/claude-md-refactoring
 ├── commands/                       # Example slash commands (source files)
-│   ├── commit.md                   # Command that invokes conventional-commits skill
 │   └── refactor-claude-md.md       # Command that invokes claude-md-refactoring skill
 ├── docs/                           # Documentation
 │   ├── configuration.md            # Project-specific configuration guide

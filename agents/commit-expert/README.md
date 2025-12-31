@@ -65,12 +65,9 @@ git commit -m "chore(config): Add commit-expert subagent and configuration"
 
 ## Usage
 
-Invoke the subagent using the `/commit` command or directly:
+Invoke the subagent directly:
 
 ```bash
-# Via command
-/commit
-
 # Via Task tool
 Task(subagent_type="commit-expert")
 ```

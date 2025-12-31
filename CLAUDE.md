@@ -14,13 +14,11 @@ claude-skills/
 │   ├── agents/                     # Subagents (isolated context)
 │   │   └── commit-expert.md        # Enhanced commit generation
 │   ├── commands/                   # Local commands (copied for testing)
-│   │   ├── commit.md
 │   │   ├── create-pr.md
 │   │   └── refactor-claude-md.md
 │   └── skills/                     # Local skills (symlinked from skills/)
 │       └── claude-md-refactoring@
 ├── commands/                       # Slash commands (source files)
-│   ├── commit.md
 │   ├── create-pr.md
 │   └── refactor-claude-md.md
 ├── config/                         # Agent configuration (not skills)
@@ -153,11 +151,10 @@ Enhanced commit generation with:
 - Samples: `claude-skills/config/commit-expert/samples/` (reference templates)
 - Project-specific: `.claude/config/commit-expert/main.yaml` (copy from samples)
 
-**Invoke:** `/commit` command or `Task(subagent_type="commit-expert")`
+**Invoke:** `Task(subagent_type="commit-expert")`
 
 ## Available Commands
 
-- **commit**: Invokes the commit-expert subagent
 - **create-pr**: Invokes the pull-request-management skill
 - **refactor-claude-md**: Invokes the claude-md-refactoring skill
 

@@ -83,9 +83,6 @@ If you want to use the example commands from this repository:
 ```bash
 # Copy commands to your project (not symlinked)
 cp claude-skills/commands/*.md .claude/commands/
-
-# Or copy selectively
-cp claude-skills/commands/commit.md .claude/commands/
 ```
 
 **Why copy instead of symlink?**
