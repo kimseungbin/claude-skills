@@ -76,80 +76,17 @@ Wait for user response before continuing.
 
 ### Step 4: Execute Refactoring
 
-Once approved, execute based on the refactoring type:
+Execute based on destination. Always update CLAUDE.md after moving content.
 
-#### For Moving to README.md
+| Destination | Key Actions | Example |
+|-------------|-------------|---------|
+| README.md | Adapt to human-friendly tone, <50 lines/section | Example 1 |
+| docs/ | Create `docs/GUIDE.md`, link from README | Example 2 |
+| Skill | Create `.claude/skills/[name]/SKILL.md` with frontmatter (kebab-case) | Example 2 |
+| Condense | Imperative tone, remove narrative | Example 3 |
+| Remove | Verify no unique info lost | - |
 
-1. Read README.md to understand current structure
-2. Identify appropriate section (or create new section)
-3. Adapt tone to be human-friendly (add context, explain "why")
-4. Keep it brief and scannable (< 50 lines per section)
-5. Add content to README.md
-6. Update CLAUDE.md:
-    - Remove human-oriented parts
-    - Keep brief AI instruction if needed
-    - Add cross-reference to README.md if helpful
-
-See `examples.md` Example 1 for before/after transformation.
-
-#### For Moving to docs/
-
-1. Check if docs/ directory exists (create if needed)
-2. Determine appropriate location:
-    - Standalone guide: `docs/GUIDE_NAME.md`
-    - Categorized: `docs/category/guide-name.md`
-    - Planning: `docs/features/`, `docs/refactoring/`
-3. Adapt content for detailed documentation:
-    - Keep comprehensive step-by-step instructions
-    - Include examples, templates, troubleshooting
-    - Add table of contents for long documents
-4. Create or update the docs file
-5. Update README.md to link to the new guide
-6. Update CLAUDE.md:
-    - Replace verbose section with brief instruction
-    - Reference the docs/ file for details
-
-See `examples.md` Example 2 for before/after transformation.
-
-#### For Extracting to Skill
-
-1. Determine skill name (kebab-case, descriptive)
-2. Create `.claude/skills/[skill-name]/` directory
-3. Create `SKILL.md` with proper frontmatter:
-    ```yaml
-    ---
-    name: skill-name
-    description: |
-        Clear description of what this skill does and when Claude should use it.
-        Include trigger keywords.
-    ---
-    ```
-4. Move content to skill, organizing into sections
-5. Update CLAUDE.md to reference the skill with brief context
-6. Create supporting files if needed (examples, templates)
-
-**Skill naming conventions**:
-
-- Use kebab-case: `cdk-setup`, `tdd-workflow`, `playwright-testing`
-- Be specific and descriptive
-- Reflect the domain/task clearly
-
-#### For Condensing/Rewriting
-
-1. Extract key actionable instructions
-2. Remove narrative explanations
-3. Use imperative tone ("Do X", "Use Y when Z")
-4. Keep file paths, commands, constraints
-5. Link to README.md or skills for details
-
-See `examples.md` Example 3 for tone transformation examples.
-
-#### For Removing Content
-
-1. Verify content exists in README.md
-2. Check no unique information will be lost
-3. Remove from CLAUDE.md
-4. Optionally add brief cross-reference
+See `examples.md` for detailed before/after transformations.
 
 ### Step 5: Verify Changes
 
