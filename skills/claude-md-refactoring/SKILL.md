@@ -24,17 +24,29 @@ You are helping refactor CLAUDE.md to make it focused and useful for Claude Code
     - Key features summary
     - Links to detailed documentation in docs/
 
-- **docs/**: Detailed documentation for humans (comprehensive guides)
-    - Multi-page how-to guides (e.g., ADDING_NEW_ENVIRONMENT.md)
-    - Comprehensive architectural documentation
-    - Planning documents (backlogs, roadmaps, feature specs)
-    - Reference materials organized by topic
-    - Use subdirectories for categorization (docs/features/, docs/refactoring/)
+- **Inline comments**: First choice for code documentation
+    - Explain complex logic, edge cases, non-obvious decisions
+    - Keep close to the code it describes
+
+- **docs/**: For content that can't be inline
+    - Covers broader scope than a single file
+    - Requires diagrams (Mermaid, architecture drawings)
+    - Not directly related to code (processes, decisions)
+    - Use subdirectories for categorization (docs/features/, docs/guides/)
 
 - **Skills**: Step-by-step guidance for AI execution
     - Multi-step workflows (30+ lines) that Claude executes
     - Complex how-to guides for Claude Code to follow
     - Reference materials with examples for tool usage
+
+### CLAUDE.md as Index
+
+CLAUDE.md should act as a concise pointer to detailed content elsewhere:
+- Skills for executable workflows
+- docs/ for comprehensive guides
+- README.md for human context
+
+Keep instructions brief with references, not inline content. A well-structured CLAUDE.md is a navigation hub, not a documentation dump.
 
 ### Content Classification (Quick Reference)
 
