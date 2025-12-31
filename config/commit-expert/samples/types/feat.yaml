@@ -19,6 +19,14 @@ scopes:
 
 # Edge cases - feat vs other types
 edge_cases:
+  - scenario: "Enhancing skill workflow with new interactive steps"
+    decision: "feat(skill-name): Add issue type and hierarchy questions"
+    rationale: "New workflow steps add capability to the skill"
+
+  - scenario: "Removing fields/options as part of workflow simplification"
+    decision: "feat(skill-name): Simplify workflow by removing unused fields"
+    rationale: "Part of feature improvement, not just cleanup - include in feat commit"
+
   - scenario: "Adding new microservice"
     decision: "feat(main): Add <service-name> microservice"
     rationale: "New service is a feature applications can use"

@@ -55,6 +55,10 @@ antipatterns:
     why: "Git hooks are developer tooling, not application feature"
     good: "chore(tools): Add git pre-push hooks"
 
+  - bad: "chore(skill): Remove unused fields from templates"
+    why: "If removal is part of a feature improvement (new workflow), it's feat not chore"
+    good: "feat(skill): Enhance workflow and simplify templates"
+
 # Edge cases
 edge_cases:
   - scenario: "Adding monitoring dashboard for applications"
