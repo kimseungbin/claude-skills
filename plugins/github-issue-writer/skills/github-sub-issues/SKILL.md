@@ -48,6 +48,25 @@ See `samples/graphql/` for validation query examples.
 | Nesting depth | 8 levels |
 | Parents per issue | 1 |
 
+## Do NOT Add Redundant References
+
+When creating parent-sub issue relationships, **do NOT** include relationship references in issue bodies:
+
+| Location | What NOT to add | Reason |
+|----------|-----------------|--------|
+| Parent issue body | "Sub-Issues" section/table listing child issues | GitHub UI natively displays sub-issues |
+| Sub-issue body | "Parent: #XXX" line | GitHub UI natively displays parent relationship |
+
+**Rationale:** GitHub's native sub-issues feature (via GraphQL `addSubIssue` mutation) renders these relationships in the issue UI. Adding them to issue bodies creates:
+- Redundant information that becomes stale
+- Manual maintenance burden when relationships change
+- Inconsistency between body text and actual relationships
+
+**Correct approach:**
+1. Create issues with their content only (no relationship references)
+2. Link them via the GraphQL API
+3. Let GitHub's UI handle relationship display
+
 ## Output Format
 
 ```
