@@ -16,7 +16,6 @@ INSTRUCTIONS FOR CLAUDE CODE:
 -->
 
 **Date:** YYYY-MM-DD
-**Effort:** S / M / L / XL
 **Breaking Change:** Yes / No
 
 ## Summary
