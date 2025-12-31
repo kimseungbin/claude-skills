@@ -2,6 +2,7 @@
 name: claude-md-refactoring
 description: |
     Use this skill when user wants to refactor CLAUDE.md to separate AI instructions from human documentation.
+allowed-tools: Read, Edit, Write, Glob
 ---
 
 # CLAUDE.md Refactoring Skill
@@ -35,46 +36,17 @@ You are helping refactor CLAUDE.md to make it focused and useful for Claude Code
     - Complex how-to guides for Claude Code to follow
     - Reference materials with examples for tool usage
 
-### Content Classification Rules
+### Content Classification (Quick Reference)
 
-**Move to README.md** if the content:
+| Content Type | Destination |
+|--------------|-------------|
+| Philosophy, "why" explanations | README.md |
+| Comprehensive guides (>100 lines) | docs/ |
+| Executable workflows (>30 lines) | Skill |
+| Commands, paths, constraints | CLAUDE.md |
+| Duplicates existing content | Remove |
 
-- Explains "why" instead of "what" or "how" (brief version)
-- Is a brief project overview or quick start guide
-- Targets human understanding/motivation (high-level)
-- Discusses team philosophy or culture (summary)
-- Is brief enough to keep README.md scannable (< 50 lines per section)
-
-**Move to docs/** if the content:
-
-- Is a comprehensive guide (>100 lines, multi-page documentation)
-- Contains detailed step-by-step procedures for humans (not Claude)
-- Would make README.md too long or cluttered
-- Needs to be organized into subcategories (docs/features/, docs/guides/)
-- Is planning/backlog documentation (roadmaps, task lists)
-- Is detailed reference material (not a quick overview)
-- Benefits from subdirectory organization
-
-**Extract to Skill** if the content:
-
-- Exceeds ~30 lines AND is an executable workflow for Claude
-- Contains step-by-step instructions for Claude Code to follow
-- Includes multiple examples/templates for Claude's use
-- Needs supporting reference files for Claude's execution
-
-**Keep in CLAUDE.md** if the content:
-
-- Provides direct AI instructions
-- Lists commands/file locations
-- Defines technical constraints
-- References skills/commands to use
-- Is concise actionable guidance for Claude
-
-**Remove entirely** if:
-
-- Duplicates README.md or docs/ content
-- No longer relevant/accurate
-- Covered better elsewhere
+See `decision-tree.md` for detailed classification flowchart and edge cases.
 
 ## Refactoring Process
 
@@ -91,33 +63,8 @@ Read through CLAUDE.md **sequentially from top to bottom**. Identify the **FIRST
 
 ### Step 2: Propose Refactoring
 
-Present your finding to the user:
-
-```markdown
-## 🔍 Refactoring Opportunity Found
-
-**Section**: [Section name or line range]
-
-**Issue Type**:
-
-- [ ] Human-oriented content (move to README.md or docs/)
-- [ ] Overly verbose (extract to skill or move to docs/)
-- [ ] Redundant (remove/condense)
-- [ ] Unclear AI instructions (rewrite)
-
-**Current Content** (preview):
-```
-
-[Show 5-10 lines of problematic content]
-
-```
-
-**Recommended Action**:
-[Specific recommendation: where to move (README.md vs docs/), what to extract, how to condense]
-
-**Rationale**:
-[Brief explanation of why this needs refactoring and which destination is appropriate]
-```
+Present finding using format in `templates.md` (Refactoring Opportunity Template).
+Include: section name, issue type, content preview, recommended action, rationale.
 
 ### Step 3: Get User Approval
 
@@ -143,28 +90,7 @@ Once approved, execute based on the refactoring type:
     - Keep brief AI instruction if needed
     - Add cross-reference to README.md if helpful
 
-**Example transformation**:
-
-```markdown
-# Before (CLAUDE.md)
-
-We use TDD because it helps us build confidence in our code and
-creates a safety net for refactoring. This philosophy ensures...
-
-# After (CLAUDE.md)
-
-All features must follow TDD workflow. See docs/TDD_GUIDE.md for details.
-
-# Moved to README.md
-
-## Development Philosophy
-
-### Why Test-Driven Development?
-
-We adopted TDD because it provides confidence and safety when refactoring...
-
-For detailed TDD workflow, see [docs/TDD_GUIDE.md](docs/TDD_GUIDE.md).
-```
+See `examples.md` Example 1 for before/after transformation.
 
 #### For Moving to docs/
 
@@ -183,37 +109,7 @@ For detailed TDD workflow, see [docs/TDD_GUIDE.md](docs/TDD_GUIDE.md).
     - Replace verbose section with brief instruction
     - Reference the docs/ file for details
 
-**Example transformation**:
-
-```markdown
-# Before (CLAUDE.md - 300 lines)
-
-## Adding a New Environment
-
-Follow these detailed steps to add a new environment...
-[300 lines of detailed instructions]
-
-# After (CLAUDE.md - 5 lines)
-
-## Adding a New Environment
-
-See [docs/ADDING_NEW_ENVIRONMENT.md](docs/ADDING_NEW_ENVIRONMENT.md) for complete guide.
-
-Quick summary: Update types, config, deployment stack, bootstrap AWS account.
-
-# Created: docs/ADDING_NEW_ENVIRONMENT.md
-
-# Adding a New Environment
-
-Complete step-by-step guide for adding new environments to fe-infra...
-[Full 300 lines with examples, troubleshooting, best practices]
-
-# Updated: README.md
-
-## Documentation
-
-- [Adding New Environment](docs/ADDING_NEW_ENVIRONMENT.md) - Complete guide for QA, UAT, etc.
-```
+See `examples.md` Example 2 for before/after transformation.
 
 #### For Extracting to Skill
 
@@ -246,18 +142,7 @@ Complete step-by-step guide for adding new environments to fe-infra...
 4. Keep file paths, commands, constraints
 5. Link to README.md or skills for details
 
-**Tone transformation**:
-
-```markdown
-# Before (narrative)
-
-When you're working with tests, you'll want to make sure you run them
-before committing. This helps catch issues early.
-
-# After (imperative)
-
-Run tests before committing. Use `npm test` or package-specific commands.
-```
+See `examples.md` Example 3 for tone transformation examples.
 
 #### For Removing Content
 
@@ -277,31 +162,8 @@ After refactoring:
 
 ### Step 6: Report Completion
 
-Provide summary:
-
-```markdown
-## ✅ Refactoring Complete
-
-**Changes Made**:
-
-- [Describe what was changed]
-
-**Files Modified**:
-
-- `CLAUDE.md`: [what changed - moved/removed/condensed]
-- `README.md`: [what was added, if applicable]
-- `docs/[name].md`: [if comprehensive guide created]
-- `.claude/skills/[name]/`: [if skill created]
-
-**Before/After Comparison**:
-[Show key before/after snippets if helpful]
-
-**Next Steps**:
-
-- Run `/refactor-claude-md` again to find next opportunity
-- Review changes and commit when satisfied
-- Continue until CLAUDE.md is fully optimized
-```
+Provide summary using format in `templates.md` (Completion Report Template).
+Include: changes made, files modified, before/after comparison, next steps.
 
 ## Quality Checklist
 
@@ -317,10 +179,9 @@ Before completing any refactoring, verify:
 
 ## Reference Materials
 
-See companion files:
-
-- `examples.md`: Before/after refactoring examples
-- `decision-tree.md`: Flowchart for content classification
+- `templates.md`: Output formats for proposals and completion reports
+- `examples.md`: Before/after transformations for each refactoring type
+- `decision-tree.md`: Classification flowchart and edge cases
 
 ## Important Reminders
 
