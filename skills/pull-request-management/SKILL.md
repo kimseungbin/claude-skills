@@ -85,29 +85,20 @@ Determine where this PR will merge to:
 - Check for environment-based branches (dev, staging, prod, etc.)
 - Ask user if unclear
 
-### 3.5. Determine PR Title and Type
+### 3.5. Interactive PR Content Selection
 
-**CRITICAL: For environment promotion PRs (e.g., master → staging), analyze ALL commits to determine the correct type.**
+**CRITICAL: Use `AskUserQuestion` to let the user choose PR title and key content interactively.**
 
-#### For Single-Feature PRs:
+After analyzing commits and changes, present options to the user rather than making unilateral decisions.
 
-Use the commit type directly:
-
-- `feat(scope): Add new feature`
-- `fix(scope): Fix bug in component`
-- `refactor(scope): Restructure module`
-
-#### For Environment Promotion PRs (Multiple Commits):
-
-**Step 1: Analyze All Commits**
+#### Step 1: Analyze Changes
 
 ```bash
 git log <target-branch>..<source-branch> --oneline
+git diff <target-branch>..<source-branch> --stat
 ```
 
-**Step 2: Count Commit Types**
 Categorize commits by type:
-
 - feat: New features, major functionality
 - fix: Bug fixes
 - refactor: Code restructuring without behavior change
@@ -115,114 +106,103 @@ Categorize commits by type:
 - chore: Maintenance (dependencies, config)
 - ci: CI/CD changes
 
-**Step 3: Select Dominant Type and Prioritize Important Items**
+#### Step 2: Generate Title Options
 
-**CRITICAL: Prioritize Runtime Impact Over Documentation/Tooling**
-
-See [README.md](README.md#quick-decision-tree-for-pr-titles) for the quick decision tree. When analyzing commits for PR titles and summaries, prioritize by business impact:
+Based on analysis, generate 2-4 title options prioritized by business impact:
 
 1. **Runtime/Service Changes** (HIGHEST PRIORITY)
-   - New services enabled
-   - Service configuration changes
-   - Infrastructure affecting running applications
-   - Database/API changes
-
 2. **Infrastructure/Architecture Changes** (HIGH PRIORITY)
-   - Migrations, major refactorings
-   - Build system changes
-   - Deployment strategy changes
-
 3. **Developer Tooling** (MEDIUM PRIORITY)
-   - CI/CD improvements
-   - Developer experience tools
-   - Build scripts
-
 4. **Documentation** (LOWEST PRIORITY)
-   - README, CLAUDE.md updates
-   - Comments, guides
-   - Refactoring plans
 
-**Decision Rules:**
+#### Step 3: Ask User to Choose Title
 
-1. **If there are runtime/service changes** (new service, service config):
-    - **ALWAYS prioritize these in the title**
-    - Use `feat(service-name):` or `feat(infra):`
-    - Example: `feat(profile): Enable Profile service for Production`
-    - Example: `feat(auth): Add OAuth2 with additional tooling improvements`
-
-2. **If there's a major infrastructure change** (migration, architecture change):
-    - Use `feat(infra):` or `refactor(infra):`
-    - Example: `feat(infra): Migrate to ES Modules and add tooling improvements`
-
-3. **If mostly new features** (>50% feat commits):
-    - Use `feat:` or `feat(scope):`
-    - **Prioritize most impactful features first**
-    - Example: `feat: Add authentication and user management features`
-
-4. **If mostly bug fixes** (>50% fix commits):
-    - Use `fix:` or `fix(scope):`
-    - Example: `fix: Resolve production issues and performance bugs`
-
-5. **If mixed with no clear dominant** (e.g., 40% feat, 35% fix, 25% docs):
-    - **Identify the most business-critical change**
-    - Lead with that in title, mention others secondarily
-    - Example: `feat(profile): Enable Production deployment with CDK tooling`
-    - NOT: `feat(tools): Add CDK expert skill and enable Profile service` (WRONG - tools less important)
-
-6. **NEVER use `chore:` for environment promotions**:
-    - `chore` = maintenance tasks (dependency updates, config tweaks)
-    - Promotions contain actual features/fixes that provide user value
-    - Exception: Only use `chore` if PR is truly just dependency updates
-
-**Examples:**
-
-**Good:**
+Use `AskUserQuestion` to present title options:
 
 ```
-feat(infra): Migrate to ES Modules and add tooling improvements
-feat(auth): Add OAuth2 and two-factor authentication
-fix: Resolve critical production bugs in payment flow
-refactor(api): Restructure API layer for better maintainability
+AskUserQuestion(
+  questions: [{
+    question: "Which PR title best describes these changes?",
+    header: "PR Title",
+    options: [
+      { label: "feat(auth): Add OAuth2 authentication", description: "Focuses on the new auth feature (Recommended)" },
+      { label: "feat: Add authentication and logging improvements", description: "Broader scope including logging changes" },
+      { label: "refactor(api): Restructure auth module with new OAuth2", description: "Emphasizes the refactoring aspect" }
+    ],
+    multiSelect: false
+  }]
+)
 ```
 
-**Bad:**
+**Guidelines for generating options:**
+- First option should be recommended (add "(Recommended)" to description)
+- Options should reflect different valid perspectives on the changes
+- Include scope when changes are focused on a specific area
+- User can always select "Other" to provide custom title
+
+#### Step 4: Ask About Change Type (if ambiguous)
+
+When commit types are mixed, ask the user:
 
 ```
-chore: Promote DEV to STAGING  ← TOO GENERIC, WRONG TYPE
-update: Add new features  ← "update" is not a conventional commit type
-feat: Changes  ← TOO VAGUE
+AskUserQuestion(
+  questions: [{
+    question: "What type of change is this PR?",
+    header: "Change Type",
+    options: [
+      { label: "feat", description: "New feature or capability" },
+      { label: "fix", description: "Bug fix" },
+      { label: "refactor", description: "Code restructuring, no behavior change" },
+      { label: "docs", description: "Documentation only" }
+    ],
+    multiSelect: false
+  }]
+)
 ```
 
-#### PR Title Specificity
+#### Step 5: Ask About Deployment Impact (for IaC projects)
+
+For infrastructure projects, ask about deployment impact:
+
+```
+AskUserQuestion(
+  questions: [{
+    question: "What is the deployment impact of this PR?",
+    header: "Impact",
+    options: [
+      { label: "High", description: "Service redeployment required (Task Definition, env vars)" },
+      { label: "Medium", description: "Resource updates without downtime (scaling, ALB rules)" },
+      { label: "Low", description: "Metadata only (docs, comments, tags)" }
+    ],
+    multiSelect: false
+  }]
+)
+```
+
+#### When to Skip Interactive Selection
+
+Skip `AskUserQuestion` and use direct selection when:
+- Single commit with clear type and scope
+- User explicitly provided a title
+- Changes are trivially obvious (e.g., typo fix, single doc update)
+
+#### Title Guidelines
 
 **CRITICAL: PR titles must be specific and actionable, not generic.**
 
 ❌ **Generic titles (avoid):**
 ```
 docs(project): Improve documentation
-docs: Update documentation and add backlog
-docs: Documentation improvements
 chore: Maintenance tasks
+feat: Changes
 ```
-
-**Why generic titles are bad:**
-- "Improve documentation" - doesn't tell what was improved
-- "Add backlog" - in an infrastructure repo, backlog IS infrastructure (redundant)
-- Reviewer can't understand changes without reading the full description
 
 ✅ **Specific titles (use):**
 ```
 docs(project): Mark Slack integration complete and add 9 features to backlog
-docs(deployment): Add pipeline notification architecture comments
-docs(lambda-edge): Translate Korean comments and add JSDoc
-docs(project): Extract feature flags documentation to dedicated file
+feat(auth): Add OAuth2 and two-factor authentication
+fix: Resolve critical production bugs in payment flow
 ```
-
-**Why specific titles are good:**
-- States concrete milestone: "Slack integration complete"
-- Quantifies changes: "9 features"
-- Identifies specific component: "pipeline notification"
-- Avoids redundancy: no "infrastructure backlog" in infra repo
 
 **Guidelines:**
 1. **Include concrete details**: Mention specific milestones, numbers, or components
