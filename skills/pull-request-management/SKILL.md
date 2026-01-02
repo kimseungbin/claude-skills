@@ -425,20 +425,6 @@ For sections requiring domain knowledge or judgment (40-80% confidence):
 3. If confidence > 60%, make a selection and **ALWAYS explain reasoning with specific evidence**
 4. If confidence < 60%, suggest template update (see section 5)
 
-#### Special: Deployment Impact Analysis
-
-**Workflow:**
-
-1. Identify changed files: `git diff <base>..<head> --name-only`
-2. Check ACTUAL diff content (not just file names)
-3. Categorize using the PR template's `<details>` guide
-
-**Key Rule:** Always run `git diff <base>..<head> -- <file>` before determining impact.
-
-**Decision criteria:** Refer to the project's PR template or see [examples/pr-template-iac-example.md](examples/pr-template-iac-example.md#배포-영향도-deployment-impact) for the full High/Medium/Low decision tree.
-
-**When uncertain (<60% confidence):** Ask the user or leave for manual review.
-
 #### 4.3. Low Confidence Sections
 
 For sections requiring project-specific knowledge (<40% confidence):
