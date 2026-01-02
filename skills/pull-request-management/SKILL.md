@@ -425,30 +425,19 @@ For sections requiring domain knowledge or judgment (40-80% confidence):
 3. If confidence > 60%, make a selection and **ALWAYS explain reasoning with specific evidence**
 4. If confidence < 60%, suggest template update (see section 5)
 
-#### Special: Deployment Impact Analysis (CRITICAL)
-
-**ALWAYS provide detailed reasoning for deployment impact. Never just check a box.**
+#### Special: Deployment Impact Analysis
 
 **Workflow:**
 
-1. **Identify Changed Files**
-   ```bash
-   git diff <base>..<head> --name-only | grep -E "task-definition|config.data|fargate|service"
-   ```
+1. Identify changed files: `git diff <base>..<head> --name-only`
+2. Check ACTUAL diff content (not just file names)
+3. Categorize using the PR template's `<details>` guide
 
-2. **Check ACTUAL Changes (Not Just File Names)**
-   ```bash
-   git diff <base>..<head> lib/constructs/service/task-definition.ts
-   git diff <base>..<head> src/config/config.data.ts | grep -E "cpu|memory|env|desired"
-   ```
+**Key Rule:** Always run `git diff <base>..<head> -- <file>` before determining impact.
 
-3. **Categorize Based on ACTUAL Changes**
-   - Refer to the PR template's `<details>` section for High/Medium/Low criteria
-   - The PR template contains the decision tree and common examples
+**Decision criteria:** Refer to the project's PR template or see [examples/pr-template-iac-example.md](examples/pr-template-iac-example.md#배포-영향도-deployment-impact) for the full High/Medium/Low decision tree.
 
-**Key Rule:** Always run `git diff <base>..<head> -- <file>` before determining impact. File names alone are misleading.
-
-**When uncertain (<60% confidence):** Ask the user or leave section for manual review with explanation.
+**When uncertain (<60% confidence):** Ask the user or leave for manual review.
 
 #### 4.3. Low Confidence Sections
 
