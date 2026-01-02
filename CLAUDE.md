@@ -37,16 +37,18 @@ claude-skills/
 │           ├── frontend.md         # React/Vue (skeleton)
 │           ├── backend.md          # Express/NestJS (skeleton)
 │           └── fullstack.md        # Next.js (skeleton)
-├── skills/                         # Shared skills directory (9 skills)
+├── skills/                         # Shared skills directory (8 skills)
 │   ├── cdk-expert/
 │   ├── claude-md-refactoring/
 │   ├── git-hooks-setup/
 │   ├── git-strategy/
 │   ├── maintaining-documentation/
 │   ├── nestjs-patterns/
-│   ├── pull-request-management/
 │   ├── skill-creator/
 │   └── test-symlink-skill/
+├── plugins/                        # Standalone plugins
+│   ├── github-issue-writer/        # Issue management with sub-issues
+│   └── github-pr-management/       # PR creation and management
 ├── CLAUDE.md                       # This file
 └── README.md                       # Setup instructions for humans
 ```
@@ -125,14 +127,33 @@ Provides NestJS-specific patterns and best practices including abstract class pa
 
 **Invoke:** `Skill(nestjs-patterns)`
 
----
+## Available Plugins
 
-### pull-request-management
+Plugins are standalone packages with multiple related skills.
+
+### github-pr-management
 **When to use:** Creating pull requests, filling PR templates, analyzing deployment impacts, managing environment promotions
 
-Comprehensive PR creation and management with template compliance, confidence-based decision making, deployment impact analysis, and checkbox alternatives. Supports project-specific configuration for PR rules and templates.
+Comprehensive PR creation and management with interactive content selection, template compliance, confidence-based decision making, and deployment impact analysis.
+
+**Skills:**
+- `pull-request-management` - Main skill for PR creation
 
 **Invoke:** `Skill(pull-request-management)` or `/create-pr` command
+
+---
+
+### github-issue-writer
+**When to use:** Writing structured GitHub issues with templates, sub-issues, and diagrams
+
+Issue management with sub-issue support via GraphQL API, mermaid diagrams, and GitHub callouts.
+
+**Skills:**
+- `github-issue-writer` - Write issues
+- `github-sub-issues` - Create sub-issues with parent-child linking
+- `setup-issue-templates` - Setup issue templates
+
+**Invoke:** `Skill(github-issue-writer)`
 
 ## Available Subagents
 

@@ -643,8 +643,5 @@ git commit -m "docs(github): Improve PR template with deployment impact guide"
 ## See Also
 
 - **Quick Reference:** [README.md](README.md) - Checkbox alternatives, emojis, common mistakes, anti-patterns
-- **Writing Style:** [.claude/config/pull-request-writing-style.md](../../config/pull-request-writing-style.md) - Korean conventions, environment analysis
-- **Workflows:** [examples/workflows/](examples/workflows/) - Feature branch, environment promotion, low-confidence scenarios
-- **Real-World:** [examples/real-world/](examples/real-world/) - Actual PR analysis and lessons learned
-- **Conventional Commits:** [../conventional-commits/](../conventional-commits/) - For commit message generation
+- **Sample Templates:** [samples/](../../samples/) - Example PR templates for IaC projects
 - **GitHub Docs:** [PR Template Best Practices](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/creating-a-pull-request-template-for-your-repository)
