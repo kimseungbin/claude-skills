@@ -2,6 +2,9 @@
 # For small projects with basic commit conventions
 # Copy to: .claude/config/commit-expert/main.yaml
 
+# Version must match plugin version for compatibility
+version: "1.0.0"
+
 project: your-project-name
 description: "Small project with simple structure"
 

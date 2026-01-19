@@ -5,6 +5,12 @@
   },
   "plugins": [
     {
+      "name": "commit-expert",
+      "source": "./plugins/commit-expert",
+      "description": "Expert at creating Conventional Commits with intelligent multi-commit splitting, pattern learning from project history, and smart commit ordering",
+      "version": "1.0.0"
+    },
+    {
       "name": "korean-technical-translator",
       "source": "./plugins/korean-technical-translator",
       "description": "Translate English technical content to Korean with project-specific dictionaries",

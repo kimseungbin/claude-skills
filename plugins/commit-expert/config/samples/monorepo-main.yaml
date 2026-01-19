@@ -2,6 +2,9 @@
 # For multi-package projects with complex structure
 # Copy to: .claude/config/commit-expert/main.yaml
 
+# Version must match plugin version for compatibility
+version: "1.0.0"
+
 project: your-project-name
 description: "Monorepo with multiple packages"
 

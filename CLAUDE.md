@@ -4,15 +4,13 @@ This repository contains shared Claude Code skills designed for reuse across mul
 
 ## Default Behaviors
 
-**Committing changes:** Always use the `commit-expert` subagent when the user asks to commit, create commits, or generate commit messages.
+**Committing changes:** Always use the `commit-expert` skill when the user asks to commit, create commits, or generate commit messages. Invoke with `Skill(commit-expert)`.
 
 ## Repository Structure
 
 ```
 claude-skills/
 ├── .claude/
-│   ├── agents/                     # Subagents (isolated context)
-│   │   └── commit-expert.md        # Enhanced commit generation
 │   ├── commands/                   # Local commands (copied for testing)
 │   │   ├── create-pr.md
 │   │   └── refactor-claude-md.md
@@ -21,32 +19,16 @@ claude-skills/
 ├── commands/                       # Slash commands (source files)
 │   ├── create-pr.md
 │   └── refactor-claude-md.md
-├── config/                         # Agent configuration (not skills)
-│   └── commit-expert/              # Config for commit-expert agent
-│       ├── README.md               # Setup guide
-│       ├── samples/                # Sample configurations
-│       │   ├── simple-main.yaml    # Small project config
-│       │   ├── monorepo-main.yaml  # Multi-package config
-│       │   ├── infrastructure-main.yaml
-│       │   ├── types/              # Type decision helpers
-│       │   ├── scopes/             # Scope decision helpers
-│       │   ├── examples/           # Commit examples
-│       │   └── guides/             # Quality guides
-│       └── guides/                 # Implementation guides
-│           ├── infrastructure.md   # CDK/Terraform patterns
-│           ├── frontend.md         # React/Vue (skeleton)
-│           ├── backend.md          # Express/NestJS (skeleton)
-│           └── fullstack.md        # Next.js (skeleton)
-├── skills/                         # Shared skills directory (8 skills)
+├── skills/                         # Shared skills directory
 │   ├── cdk-expert/
 │   ├── claude-md-refactoring/
 │   ├── git-hooks-setup/
 │   ├── git-strategy/
 │   ├── maintaining-documentation/
 │   ├── nestjs-patterns/
-│   ├── skill-creator/
-│   └── test-symlink-skill/
+│   └── skill-creator/
 ├── plugins/                        # Standalone plugins
+│   ├── commit-expert/              # Commit generation with isolated context
 │   ├── github-issue-writer/        # Issue management with sub-issues
 │   └── github-pr-management/       # PR creation and management
 ├── CLAUDE.md                       # This file
@@ -155,24 +137,26 @@ Issue management with sub-issue support via GraphQL API, mermaid diagrams, and G
 
 **Invoke:** `Skill(github-issue-writer)`
 
-## Available Subagents
-
-Subagents provide isolated context windows, separate from the main conversation. Use them for complex tasks that benefit from dedicated focus.
+---
 
 ### commit-expert
 **When to use:** Creating commits with pattern learning and smart ordering
 
 Enhanced commit generation with:
-- Context isolation (separate from main conversation)
+- Context isolation via `context: fork` (separate from main conversation)
 - Commit history analysis (learns project's existing patterns)
 - Smart commit ordering (deps → features → tests → docs)
 - Multi-commit splitting and implementation guides
 
 **Configuration:**
-- Samples: `claude-skills/config/commit-expert/samples/` (reference templates)
+- Samples: `claude-skills/plugins/commit-expert/config/samples/` (reference templates)
 - Project-specific: `.claude/config/commit-expert/main.yaml` (copy from samples)
 
-**Invoke:** `Task(subagent_type="commit-expert")`
+**Skills:**
+- `commit-expert` - Main skill for commit generation
+- `config-updater` - Update config when plugin version changes
+
+**Invoke:** `Skill(commit-expert)`
 
 ## Available Commands
 
