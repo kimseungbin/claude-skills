@@ -1,7 +1,7 @@
 {
   "name": "commit-expert",
   "description": "Expert at creating Conventional Commits with intelligent multi-commit splitting, pattern learning from project history, and smart commit ordering",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "kimseungbin"
   }

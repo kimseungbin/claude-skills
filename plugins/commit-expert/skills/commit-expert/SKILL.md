@@ -8,92 +8,24 @@ allowed-tools:
   - Glob
   - Grep
   - Edit
+  - TodoWrite
+  - AskUserQuestion
 ---
 
 # Commit Expert
 
-You are an expert at creating high-quality git commits following the Conventional Commits specification. You provide context isolation, learn from project history, and suggest smart commit ordering.
+You are an expert at creating high-quality git commits following the Conventional Commits specification.
 
-## Core Responsibilities
+## Configuration Paths
 
-1. Generate commit messages following Conventional Commits specification
-2. Analyze changes and recommend multi-commit splitting when appropriate
-3. Learn from project's existing commit patterns to match style
-4. Suggest logical commit ordering for multi-commit scenarios
-5. Ensure commit message quality through specificity checks
+- **Project-specific**: `.claude/config/commit-expert/` (check first)
+- **Default samples**: `claude-skills/plugins/commit-expert/config/samples/`
 
-## Configuration Loading Protocol
-
-Load configuration in this priority order:
-
-1. **Project-specific** (check first): `.claude/config/commit-expert/main.yaml`
-2. **Default samples** (reference): `claude-skills/plugins/commit-expert/config/samples/`
-
-### Version Check (REQUIRED)
-
-Before proceeding with any commit, check for version mismatch:
-
-1. Read plugin version from `claude-skills/plugins/commit-expert/.claude-plugin/plugin.json`
-2. Read config version from `.claude/config/commit-expert/main.yaml` (if exists)
-3. If versions mismatch:
-   ```
-   ⚠️ Config version mismatch detected
-   Plugin version: X.Y.Z
-   Config version: A.B.C
-
-   Your config may be outdated. Run `Skill(config-updater)` to review and update.
-   ```
-4. **Continue with commit** after showing warning (don't block)
-5. If no project config exists, skip version check
-
-**Minimal-context loading pattern:**
-- Load main config only for 90% of commits
-- Load detailed files only when needed:
-  - `types/*.yaml` - When type unclear (feat vs chore edge cases)
-  - `scopes/*.yaml` - When scope unclear for multiple file changes
-  - `examples/*.yaml` - When need similar commit pattern
-  - `guides/*.yaml` - For quality check or title validation
-
-**Implementation guide loading:**
-- Check if config has `implementation` field (e.g., `implementation: infrastructure`)
-- If present, read `claude-skills/plugins/commit-expert/config/guides/{implementation}.md`
-- Available: `infrastructure.md` (complete), `frontend.md`, `backend.md`, `fullstack.md` (skeletons)
+Use project-specific config if exists, otherwise use samples as reference.
 
 ## Workflow
 
-### Step 0: Analyze Project Commit History
-
-Before generating any commit message, learn from the project's existing patterns:
-
-```bash
-# Get recent commits to understand style
-git log --oneline -30 --pretty=format:"%s"
-
-# Analyze type distribution
-git log --oneline -50 --pretty=format:"%s" | grep -oE "^[a-z]+\(" | sort | uniq -c | sort -rn
-
-# Check scope usage patterns
-git log --oneline -50 --pretty=format:"%s" | grep -oE "\([a-z-]+\)" | sort | uniq -c | sort -rn
-```
-
-**Analyze and note:**
-- Common type usage (feat vs fix ratio)
-- Scope naming conventions (abbreviated vs full names)
-- Subject line style (capitalization, typical length)
-- Whether footers are commonly used
-- Any project-specific patterns
-
-Match these patterns when generating messages.
-
-### Step 1: Load Commit Rules Configuration
-
-Read the configuration file following the priority order above.
-
-### Step 2: Load Implementation Guide (if specified)
-
-If config specifies an implementation, load the corresponding guide for domain-specific decision trees.
-
-### Step 3: Analyze Current Changes
+### Step 1: Analyze All Changes
 
 ```bash
 git status
@@ -101,255 +33,102 @@ git diff --staged
 git diff
 ```
 
-Identify ALL changes: which packages, modules, or areas are affected.
+Identify what files changed and group by area/purpose.
 
-### Step 4: Determine Multi-Commit Splitting
+**Skip derived files** - don't read their diffs, just commit with source:
+- Lock files (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`) → commit with `package.json`
+- Generated code → commit with generator config/source
 
-**Criteria for suggesting split:**
-- Changes affect 2+ different scopes (frontend, backend, tools, etc.)
-- Changes include multiple distinct features or fixes
-- Changes mix different types (feat + refactor, fix + chore)
-- Test-only changes can be separated from implementation
-- Configuration/tooling changes can be separated from feature work
+### Step 2: Learn Project Style
 
-**When NOT to split:**
-- Single feature with its tests (keep together)
+```bash
+git log --oneline -30 --pretty=format:"%s"
+```
+
+Note: type/scope patterns, capitalization, typical length.
+
+### Step 3: Split and Order
+
+**Split when:**
+- Changes affect 2+ different scopes
+- Mix of different types (feat + refactor)
+- Test-only changes separable from implementation
+
+**Keep together when:**
+- Single feature with its tests
 - Related changes that should be atomic
-- Changes are too small to meaningfully separate
-- User explicitly wants a single commit
+- User explicitly wants single commit
 
-### Step 4.5: Determine Smart Commit Order
+**Order by dependency:**
+1. Infrastructure/config (base)
+2. Dependencies (new libraries)
+3. Core features
+4. Tests
+5. Documentation
 
-When splitting into multiple commits, categorize and order them:
+If splitting, present ordered groups to user with AskUserQuestion.
 
-**Priority order:**
-1. **Infrastructure/config** - Base changes others depend on
-2. **Dependencies** - Package updates, new libraries
-3. **Core features** - Primary feature implementation
-4. **API/interface changes** - Contracts between modules
-5. **UI components** - Frontend/visual changes
-6. **Tests** - Test additions or updates
-7. **Documentation** - README, comments, docs
+### Step 4: Track in Todo
 
-**Detect dependencies:**
-- If commit A modifies a type/interface used by commit B → A before B
-- If commit A adds a dependency used by commit B → A before B
-- If commit A is a refactor that commit B builds on → A before B
-
-Present commits in suggested order and explain the rationale.
-
-### Step 5: Prompt User for Commit Selection (if splitting)
-
-Use AskUserQuestion with multiSelect: true to present options:
-
+Write commit groups to todo list:
 ```
-Option 1: "feat(backend): Add trip calculation API"
-  - packages/backend/src/trips/trips.service.ts
-  - packages/backend/src/trips/trips.controller.ts
-
-Option 2: "feat(frontend): Add trip calculation UI"
-  - packages/frontend/src/components/TripCalculator.svelte
-
-Option 3: "test(frontend): Add E2E tests for trip calculation"
-  - packages/frontend/tests/e2e/trip-calculation.spec.ts
-
-Option 4: "Combine all into one commit"
+[ ] Commit 1: deps changes (package.json, lock file)
+[ ] Commit 2: feature changes (src/feature.ts)
+[ ] Commit 3: test changes (tests/feature.test.ts)
 ```
 
-### Step 6: Determine Type and Scope
+### Step 5: For Each Commit Group
 
-**TYPE** (what kind of change) - use this decision tree:
+Mark current group as in_progress, then:
 
-```
-What are you doing?
-├─ Adding NEW capability → feat
-├─ Fixing BROKEN behavior → fix
-├─ Changing CODE STRUCTURE → refactor
-├─ Updating docs ONLY → docs
-├─ Updating DEPENDENCIES → chore(deps) or chore(monorepo)
-└─ Infrastructure project - what does it serve?
-   ├─ FOR applications → feat
-   ├─ FOR deployment → chore(deployment)
-   └─ FOR development → chore(tools)
-```
+**5a. Determine Type**
+1. Read `types/index.md` from config path
+2. If unclear, read specific file (e.g., `types/feat.yaml`)
 
-**SCOPE** (where the change is):
+**5b. Determine Scope**
+1. Read `scopes/index.md` from config path
+2. If unclear, read specific file for pattern matching
 
-```
-What files changed?
-├─ Single construct → Use construct name (service, cloudfront)
-├─ Single service → Use service name (auth, yozm)
-├─ Multiple services → Use parent scope (main, infra)
-├─ Config only → config
-└─ Docs only → project or specific doc scope
-```
+**5c. Quality Check**
+1. Read `guides/index.md` - run quick 5-question check
+2. If title vague, read `guides/specificity.yaml`
+
+**5d. Generate and Execute**
 
 Format: `{type}({scope}): {subject}`
+- Imperative mood, capitalize first letter, no period, max 72 chars
 
-### Step 7: Generate Commit Message(s)
+```bash
+git add <specific-files>
+git commit -m "type(scope): subject"
+```
 
-**Subject line conventions:**
-- Use imperative mood: "Add" not "Added"
-- Capitalize first letter
-- No period at end
-- Be specific: name components, not just files
-- Max 72 characters (ideal 50-70)
+Mark todo as completed, move to next group.
 
-**Body conventions (if needed):**
-- Separate from subject with blank line
-- Explain what and why, not how
-- Use bullet points for multiple changes
-- Wrap at 100 characters
-
-**Footer conventions:**
-- Add `Skill: commit-expert` footer
-- Breaking changes: `BREAKING CHANGE: description`
-- Issue references: `Refs #123` or `Closes #123`
-- Deployment safety (infrastructure): `Safe-To-Deploy: manual-deletion-planned`
-
-### Step 8: Execute Commits
-
-For each selected commit:
-1. Show the generated message with explanation
-2. Stage only relevant files: `git add <specific-files>`
-3. Execute commit immediately
-4. Show commit hash and confirmation
-
-Process in logical order (dependencies first, tests last).
-
-### Step 9: Evaluate Rule Coverage (optional)
-
-If commit doesn't fit existing types/scopes well:
-- Provide feedback suggesting updates to config
-- Explain what new patterns should be added
-
-### Step 10: Final Report and TERMINATE
-
-**This is your last step. After this, stop generating output.**
+### Step 6: Report and Terminate
 
 1. Run `git status` ONE TIME
-2. Summarize what was committed:
-   ```
-   ✓ Committed: [hash] [message]
-   ```
-3. If uncommitted changes remain, mention them ONCE
-4. **END YOUR RESPONSE** - Do not continue
+2. Report all commits: `✓ Committed: [hash] [message]`
+3. **TERMINATE** - Do not continue
 
-## Quality Standards
+## File Reading Strategy
 
-Before finalizing any commit message, run through this specificity checklist:
-
-**Question 1:** Does the title name specific components/services?
-- Good: `feat(service): Add auto-scaling support`
-- Bad: `feat(service): Update code`
-
-**Question 2:** Does the title avoid generic verbs (update, change, modify)?
-- Good: `feat(cloudfront): Add WAF rate limiting`
-- Bad: `feat(cloudfront): Update WAF`
-
-**Question 3:** Can you understand what changed without reading the body?
-- Good: `feat(main): Add profile microservice`
-- Bad: `feat(main): Add service`
-
-**Question 4:** Does it specify which service/construct if multiple exist?
-- Good: `fix(config): Correct memory limit for auth service`
-- Bad: `fix(config): Correct memory limit`
-
-**Question 5:** Does it use imperative mood?
-- Good: `feat(service): Add auto-scaling`
-- Bad: `feat(service): Added auto-scaling`
-
-**Quality rubric:**
-- 5/5 checks: Excellent - proceed
-- 4/5 checks: Good - proceed or suggest minor improvement
-- 3/5 checks: Acceptable - suggest improvements
-- ≤2/5 checks: Needs improvement - rewrite
-
-## Common Anti-Patterns to Avoid
-
-1. **Vague verbs**: "Update code" → "Extract IAM role creation"
-2. **File names instead of content**: "Update task-definition.ts" → "Fix missing health check timeout"
-3. **Confusing move with remove**: "Remove Architecture section" → "Move Architecture section to README.md"
-4. **Type vs scope confusion**: "feat(ci)" → "ci(tools)"
-5. **Overly generic scope**: "feat(infra)" → "feat(lambda)"
-
-## Example Workflows
-
-### Single Scope - One Commit
+**Read index first, then specific files only when needed:**
 
 ```
-User: "Commit the changes"
+types/index.md ──→ Identifies candidate type
+    └─→ types/feat.yaml (only if unclear)
 
-1. Analyze history: Recent commits use lowercase scopes, specific verbs
-2. Load config
-3. Analyze: Modified packages/backend/src/trips/trips.service.ts
-4. Determine: Only backend scope, no split needed
-5. Type: feat, Scope: backend
-6. Generate: "feat(backend): Add trip expense calculation logic"
-7. Execute commit
-8. Run git status ONE TIME
-9. Report: "✓ Committed: abc123 feat(backend): Add trip expense calculation logic"
-10. TERMINATE (stop generating output)
+scopes/index.md ──→ Identifies scope
+    └─→ scopes/infrastructure.yaml (only if multi-construct)
+
+guides/index.md ──→ Quick quality check
+    └─→ guides/specificity.yaml (only if vague)
 ```
-
-### Multiple Scopes - Split with Smart Ordering
-
-```
-User: "Commit the changes"
-
-1. Analyze history: Project uses abbreviated scopes
-2. Load config
-3. Analyze changes:
-   - packages/frontend/src/components/TripForm.svelte
-   - packages/backend/src/trips/trips.service.ts
-   - .github/workflows/test.yml
-4. Determine: 3 scopes → recommend split
-5. Order by priority: backend → frontend → ci
-6. Present options with ordering rationale
-7. User selects: backend + frontend
-8. Execute in order:
-   - "feat(backend): Add trip expense calculation API"
-   - "feat(frontend): Add trip form with expense tracking"
-9. Run git status ONE TIME
-10. Report:
-    "✓ Committed: abc123 feat(backend): Add trip expense calculation API"
-    "✓ Committed: def456 feat(frontend): Add trip form with expense tracking"
-    "Note: .github/workflows/test.yml remains uncommitted"
-11. TERMINATE (stop generating output)
-```
-
-## Completion Requirements
-
-**CRITICAL: After completing commits, you MUST TERMINATE:**
-
-1. Run `git status` ONE TIME to confirm commit success
-2. Report the commit hash(es) and message(s) in a summary
-3. **TERMINATE IMMEDIATELY** - Your task is complete, end your response
-
-**HOW TO TERMINATE:**
-- Simply finish your response after showing the commit summary
-- Do NOT run any more git commands after the final status check
-- Do NOT analyze anything further
-- Do NOT continue generating output
-
-**TERMINATION CHECKLIST (if ANY are true, STOP IMMEDIATELY):**
-- [ ] You have shown a commit hash → TERMINATE
-- [ ] You have run `git status` after committing → TERMINATE
-- [ ] You are about to run `git log` or `git status` again → TERMINATE
-- [ ] You are about to analyze files you already committed → TERMINATE
-
-**NEVER DO THESE:**
-- Run git commands in a loop
-- Run `git status && git log` multiple times
-- Re-analyze files after committing them
-- Continue generating output after showing commit results
 
 ## Notes
 
-- Always respect the project's existing commit history style
-- For multi-package changes, use broader scopes like "monorepo"
-- Breaking changes must be clearly indicated
-- Reference issue numbers when mentioned by user
-- When in doubt about splitting, present options to user
-- Keep related changes together (feature + its tests)
-- Process commits in logical dependency order
+- Match project's existing commit style
+- Add `Skill: commit-expert` footer
+- For breaking changes: `BREAKING CHANGE: description`
+- Reference issues when mentioned: `Refs #123`
