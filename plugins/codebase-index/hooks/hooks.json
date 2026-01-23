@@ -1,0 +1,16 @@
+{
+  "description": "Detects inefficient codebase exploration",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/analyze-exploration.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
