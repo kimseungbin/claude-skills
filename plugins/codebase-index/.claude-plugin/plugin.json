@@ -3,6 +3,5 @@
   "version": "0.1.0",
   "description": "Detects inefficient codebase exploration and provides tools to build navigation knowledge",
   "keywords": ["indexing", "navigation", "efficiency", "documentation"],
-  "hooks": "./hooks/hooks.json",
   "skills": "./skills/"
 }
