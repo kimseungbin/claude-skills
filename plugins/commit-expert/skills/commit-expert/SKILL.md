@@ -84,19 +84,23 @@ Mark current group as in_progress, then:
 **5a. Determine Type**
 1. Read `types/index.md` from config path
 2. If unclear, read specific file (e.g., `types/feat.yaml`)
+3. If still ambiguous between 2+ types, use AskUserQuestion to let user pick
 
 **5b. Determine Scope**
 1. Read `scopes/index.md` from config path
 2. If unclear, read specific file for pattern matching
+3. If still ambiguous or multiple scopes could apply, use AskUserQuestion to let user pick
 
 **5c. Quality Check**
 1. Read `guides/index.md` - run quick 5-question check
 2. If title vague, read `guides/specificity.yaml`
 
-**5d. Generate and Execute**
+**5d. Choose Subject and Execute**
 
 Format: `{type}({scope}): {subject}`
 - Imperative mood, capitalize first letter, no period, max 72 chars
+
+**MUST ask user:** Always generate 2-4 subject line candidates and present them via AskUserQuestion. Include varying levels of detail/specificity so the user can pick or provide their own.
 
 ```bash
 git add <specific-files>
