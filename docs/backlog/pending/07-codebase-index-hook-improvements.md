@@ -6,18 +6,18 @@ The codebase-index plugin monitors exploration but doesn't guide Claude to use e
 
 ## Planned Improvements
 
-### 1. Prompt Hook (NEW) - Priority: High
+### 1. UserPromptSubmit Hook - ✅ DONE
 
 **Purpose**: Help Claude use existing indexes before exploring
 
-- **Trigger**: Start of each turn (Prompt hook type)
-- **Condition**: Only if `INDEX.md` exists in project root or configured locations
-- **Action**: Inject reminder: "INDEX.md exists at {path} - read it before exploring the codebase"
+- **Trigger**: `UserPromptSubmit` - fires when user submits a prompt, before Claude processes it
+- **Condition**: Only if `INDEX.md` exists in project root, src/, or docs/
+- **Action**: Outputs reminder that gets added to Claude's context
 
-**Implementation**:
-- Add `Prompt` hook type to `hooks/hooks.json`
-- Create `hooks/check-index.sh` script
-- Script checks for INDEX.md, outputs reminder if found
+**Implemented**:
+- `hooks/check-index.sh` - checks for INDEX.md in common locations
+- Added `UserPromptSubmit` hook to `hooks/hooks.json`
+- Outputs: "INDEX.md exists at ./{path} - read it before exploring the codebase"
 
 ### 2. Stop Hook Suggestions (UPDATE) - Priority: High
 
@@ -46,7 +46,7 @@ The codebase-index plugin monitors exploration but doesn't guide Claude to use e
 
 ## Notes
 
-- Prompt hook requires Claude Code to support `Prompt` hook type (verify this exists)
+- ✅ `UserPromptSubmit` hook type confirmed - fires before Claude processes each message
 - Per-turn tracking is already implemented (marker file system)
 - Skills `maintain-index` and `file-headers` already exist in the plugin
 
