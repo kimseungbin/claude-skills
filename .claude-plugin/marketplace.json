@@ -8,7 +8,7 @@
       "name": "codebase-index",
       "source": "./plugins/codebase-index",
       "description": "Detects inefficient codebase exploration and provides tools to build navigation knowledge",
-      "version": "0.1.10"
+      "version": "0.1.11"
     },
     {
       "name": "commit-expert",

@@ -67,17 +67,35 @@ else
 fi
 
 explore_count=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Task") | select(.input.subagent_type == "Explore") | .name' 2>/dev/null | wc -l | tr -d ' ')
-read_count=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Read") | .name' 2>/dev/null | wc -l | tr -d ' ')
 glob_count=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Glob") | .name' 2>/dev/null | wc -l | tr -d ' ')
 grep_count=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Grep") | .name' 2>/dev/null | wc -l | tr -d ' ')
 
 # Get file paths that were edited (to distinguish edit targets from reference reads)
 edited_files=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Edit") | .input.file_path' 2>/dev/null | sort -u)
 
-# Get file paths with their line counts (file_path<tab>limit)
-files_with_lines=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Read") | "\(.input.file_path)\t\(.input.limit // 200)"' 2>/dev/null)
+# Get error tool_result IDs (to identify failed Read attempts)
+error_ids=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_result") | select(.is_error == true) | .tool_use_id' 2>/dev/null | sort -u)
 
-# Calculate total lines read
+# Get all Read tool calls with IDs for success/failure filtering
+all_read_entries=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Read") | "\(.id)\t\(.input.file_path)\t\(.input.limit // 200)"' 2>/dev/null)
+
+# Separate successful reads from failed attempts
+successful_reads_file=$(mktemp)
+failed_read_count=0
+while IFS=$'\t' read -r id filepath limit; do
+  [ -z "$id" ] && continue
+  if [ -n "$error_ids" ] && echo "$error_ids" | grep -qF "$id"; then
+    failed_read_count=$((failed_read_count + 1))
+  else
+    printf '%s\t%s\n' "$filepath" "$limit" >> "$successful_reads_file"
+  fi
+done <<< "$all_read_entries"
+
+files_with_lines=$(cat "$successful_reads_file" 2>/dev/null)
+read_count=$(wc -l < "$successful_reads_file" 2>/dev/null | tr -d ' ')
+rm -f "$successful_reads_file"
+
+# Calculate total lines read (successful reads only)
 lines_read=$(echo "$files_with_lines" | awk -F'\t' '{sum+=$2} END {print sum+0}')
 
 # Calculate lines from reference-only reads (files Read but not Edited)
@@ -124,6 +142,10 @@ if [ "$glob_grep_count" -gt "$GLOB_GREP_THRESHOLD" ]; then
   reasons+=("Used Glob/Grep $glob_grep_count time(s)")
 fi
 
+if [ "$failed_read_count" -gt 0 ]; then
+  reasons+=("$failed_read_count failed Read attempt(s) (wrong paths)")
+fi
+
 # Build formatted file list with line counts
 files_formatted=""
 if [ -n "$files_read" ]; then
@@ -140,7 +162,12 @@ if [ ${#reasons[@]} -gt 0 ]; then
 
   # Build formatted message
   message="📊 Exploration Summary\\n"
-  message+="  Explore: $explore_count | Read: $read_count ($unique_file_count files) | Glob: $glob_count | Grep: $grep_count | ~${lines_read} lines\\n\\n"
+  read_summary="Read: $read_count ($unique_file_count files"
+  if [ "$failed_read_count" -gt 0 ]; then
+    read_summary+=", $failed_read_count failed"
+  fi
+  read_summary+=")"
+  message+="  Explore: $explore_count | $read_summary | Glob: $glob_count | Grep: $grep_count | ~${lines_read} lines\\n\\n"
   message+="⚠️  Thresholds Exceeded:\\n"
   for reason in "${reasons[@]}"; do
     message+="  - $reason\\n"
@@ -151,7 +178,7 @@ if [ ${#reasons[@]} -gt 0 ]; then
 
   # Build metric-specific suggestions
   suggestions=()
-  if [ "$read_count" -gt "$READ_THRESHOLD" ] || [ "$explore_count" -gt "$EXPLORE_THRESHOLD" ] || [ "$glob_grep_count" -gt "$GLOB_GREP_THRESHOLD" ]; then
+  if [ "$read_count" -gt "$READ_THRESHOLD" ] || [ "$explore_count" -gt "$EXPLORE_THRESHOLD" ] || [ "$glob_grep_count" -gt "$GLOB_GREP_THRESHOLD" ] || [ "$failed_read_count" -gt 0 ]; then
     suggestions+=("Navigation could be improved. Run \`Skill(maintain-index)\` to update INDEX.md")
   fi
   if [ "$lines_read_refs" -gt "$LINES_THRESHOLD" ]; then
