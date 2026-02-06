@@ -19,22 +19,20 @@ The codebase-index plugin monitors exploration but doesn't guide Claude to use e
 - Added `UserPromptSubmit` hook to `hooks/hooks.json`
 - Outputs: "INDEX.md exists at ./{path} - read it before exploring the codebase"
 
-### 2. Stop Hook Suggestions (UPDATE) - Priority: High
+### 2. Stop Hook Suggestions (UPDATE) - ✅ DONE
 
 **Purpose**: Provide actionable feedback with specific skill recommendations
 
-**Current**: Shows exploration summary with thresholds exceeded
-
-**Add separate suggestions based on metric**:
+**Implemented**:
+- Modified `analyze-exploration.sh` to generate metric-specific suggestions
+- Navigation-related thresholds (high reads, explore agent, glob/grep) → suggest `Skill(maintain-index)`
+- File size threshold (high line counts) → suggest `Skill(file-headers)`
+- Replaced generic "Consider adding paths to CLAUDE.md" with targeted suggestions
 
 | Metric | Meaning | Suggestion |
 |--------|---------|------------|
-| High file reads | Claude didn't know where files are | "Navigation could be improved. Run `Skill(maintain-index)` to update INDEX.md" |
+| High file reads / explore / glob+grep | Claude didn't know where files are | "Navigation could be improved. Run `Skill(maintain-index)` to update INDEX.md" |
 | High line counts | Files are too large, wasting tokens | "Large files detected. Run `Skill(file-headers)` to add JSDoc summaries" |
-
-**Implementation**:
-- Modify `analyze-exploration.sh` to generate different suggestions
-- Check which threshold was exceeded and recommend appropriate skill
 
 ### 3. Analysis Command (FUTURE) - Priority: Low
 

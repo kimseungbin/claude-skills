@@ -136,7 +136,20 @@ if [ ${#reasons[@]} -gt 0 ]; then
   if [ -n "$files_formatted" ]; then
     message+="\\n📁 Files Accessed:\\n$files_formatted\\n"
   fi
-  message+="\\n💡 Consider adding these paths to CLAUDE.md for faster navigation."
+
+  # Build metric-specific suggestions
+  suggestions=()
+  if [ "$read_count" -gt "$READ_THRESHOLD" ] || [ "$explore_count" -gt "$EXPLORE_THRESHOLD" ] || [ "$glob_grep_count" -gt "$GLOB_GREP_THRESHOLD" ]; then
+    suggestions+=("Navigation could be improved. Run \`Skill(maintain-index)\` to update INDEX.md")
+  fi
+  if [ "$lines_read" -gt "$LINES_THRESHOLD" ]; then
+    suggestions+=("Large files detected. Run \`Skill(file-headers)\` to add JSDoc summaries")
+  fi
+
+  message+="\\n💡 Suggestions:\\n"
+  for suggestion in "${suggestions[@]}"; do
+    message+="  - $suggestion\\n"
+  done
 
   # Save current timestamp as marker for next check
   current_ts=$(cat "$transcript_path" | jq -r '.timestamp' 2>/dev/null | tail -1)
