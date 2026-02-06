@@ -78,10 +78,18 @@ files_with_lines=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.t
 lines_read=$(echo "$files_with_lines" | awk -F'\t' '{sum+=$2} END {print sum+0}')
 
 # Aggregate lines per unique file (sum if file read multiple times)
-files_read=$(echo "$files_with_lines" | awk -F'\t' '{lines[$1]+=$2} END {for(f in lines) print f"\t"lines[f]}' | sort -t$'\t' -k2 -rn | head -10)
+if [ -z "$files_with_lines" ]; then
+  files_read=""
+else
+  files_read=$(echo "$files_with_lines" | awk -F'\t' '$1 != "" {lines[$1]+=$2} END {for(f in lines) print f"\t"lines[f]}' | sort -t$'\t' -k2 -rn | head -10)
+fi
 
-# Count unique files
-unique_file_count=$(echo "$files_read" | grep -c . || echo 0)
+# Count unique files (handle empty case)
+if [ -z "$files_read" ]; then
+  unique_file_count=0
+else
+  unique_file_count=$(echo "$files_read" | grep -c . || echo 0)
+fi
 
 glob_grep_count=$((glob_count + grep_count))
 
