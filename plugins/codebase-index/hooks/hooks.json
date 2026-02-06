@@ -1,6 +1,17 @@
 {
-  "description": "Detects inefficient codebase exploration",
+  "description": "Guides efficient codebase navigation and detects exploration patterns",
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-index.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
