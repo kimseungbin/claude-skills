@@ -153,10 +153,5 @@ current_ts=$(cat "$transcript_path" | jq -r '.timestamp' 2>/dev/null | tail -1)
 mkdir -p "$(dirname "$marker_file")"
 echo "$current_ts" > "$marker_file"
 
-# No thresholds exceeded - print summary
-message="📊 Exploration Summary\\n"
-message+="  Explore: $explore_count | Read: $read_count ($unique_file_count files) | Glob: $glob_count | Grep: $grep_count | ~${lines_read} lines\\n\\n"
-message+="✅ All within thresholds."
-
-echo "{\"decision\": \"block\", \"reason\": \"$message\"}"
+# No thresholds exceeded - silent exit
 exit 0
