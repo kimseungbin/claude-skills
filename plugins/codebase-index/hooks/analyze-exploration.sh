@@ -23,6 +23,16 @@ if [ ! -f "$transcript_path" ]; then
   exit 0
 fi
 
+# Marker file to track last check timestamp (per-session)
+session_id=$(basename "$transcript_path" .jsonl)
+marker_file="$cwd/.claude/.codebase-index-marker-$session_id"
+
+# Get last check timestamp (empty string if first run)
+last_check=""
+if [ -f "$marker_file" ]; then
+  last_check=$(cat "$marker_file")
+fi
+
 # Default thresholds
 EXPLORE_THRESHOLD=0
 READ_THRESHOLD=5
@@ -38,15 +48,31 @@ if [ -f "$config_file" ] && command -v yq &> /dev/null; then
   GLOB_GREP_THRESHOLD=$(yq -r '.thresholds.glob_grep_count // 3' "$config_file")
 fi
 
-# Count exploration signals from transcript (JSONL format - must pipe through cat)
+# Count exploration signals from transcript (JSONL format)
 # Tool calls are in .message.content[] where .type == "tool_use"
-explore_count=$(cat "$transcript_path" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Task") | select(.input.subagent_type == "Explore") | .name' 2>/dev/null | wc -l | tr -d ' ')
-read_count=$(cat "$transcript_path" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Read") | .name' 2>/dev/null | wc -l | tr -d ' ')
-glob_count=$(cat "$transcript_path" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Glob") | .name' 2>/dev/null | wc -l | tr -d ' ')
-grep_count=$(cat "$transcript_path" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Grep") | .name' 2>/dev/null | wc -l | tr -d ' ')
+# Filter by timestamp if we have a last_check marker (use temp file to handle large transcripts)
+filtered_file=$(mktemp)
+trap "rm -f '$filtered_file'" EXIT
+
+if [ -n "$last_check" ]; then
+  # Filter entries after the marker timestamp
+  while IFS= read -r line; do
+    ts=$(echo "$line" | jq -r '.timestamp // ""' 2>/dev/null)
+    if [[ -n "$ts" && "$ts" > "$last_check" ]]; then
+      echo "$line"
+    fi
+  done < "$transcript_path" > "$filtered_file"
+else
+  cp "$transcript_path" "$filtered_file"
+fi
+
+explore_count=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Task") | select(.input.subagent_type == "Explore") | .name' 2>/dev/null | wc -l | tr -d ' ')
+read_count=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Read") | .name' 2>/dev/null | wc -l | tr -d ' ')
+glob_count=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Glob") | .name' 2>/dev/null | wc -l | tr -d ' ')
+grep_count=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Grep") | .name' 2>/dev/null | wc -l | tr -d ' ')
 
 # Get file paths with their line counts (file_path<tab>limit)
-files_with_lines=$(cat "$transcript_path" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Read") | "\(.input.file_path)\t\(.input.limit // 200)"' 2>/dev/null)
+files_with_lines=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Read") | "\(.input.file_path)\t\(.input.limit // 200)"' 2>/dev/null)
 
 # Calculate total lines read
 lines_read=$(echo "$files_with_lines" | awk -F'\t' '{sum+=$2} END {print sum+0}')
@@ -104,10 +130,20 @@ if [ ${#reasons[@]} -gt 0 ]; then
   fi
   message+="\\n💡 Consider adding these paths to CLAUDE.md for faster navigation."
 
+  # Save current timestamp as marker for next check
+  current_ts=$(cat "$transcript_path" | jq -r '.timestamp' 2>/dev/null | tail -1)
+  mkdir -p "$(dirname "$marker_file")"
+  echo "$current_ts" > "$marker_file"
+
   # Use jq to properly escape the message for JSON
   echo "{\"decision\": \"block\", \"reason\": \"$message\"}"
   exit 0
 fi
+
+# Save current timestamp as marker for next check
+current_ts=$(cat "$transcript_path" | jq -r '.timestamp' 2>/dev/null | tail -1)
+mkdir -p "$(dirname "$marker_file")"
+echo "$current_ts" > "$marker_file"
 
 # No thresholds exceeded - print summary
 message="📊 Exploration Summary\\n"
