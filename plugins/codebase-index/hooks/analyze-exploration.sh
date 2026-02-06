@@ -71,11 +71,23 @@ read_count=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type ==
 glob_count=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Glob") | .name' 2>/dev/null | wc -l | tr -d ' ')
 grep_count=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Grep") | .name' 2>/dev/null | wc -l | tr -d ' ')
 
+# Get file paths that were edited (to distinguish edit targets from reference reads)
+edited_files=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Edit") | .input.file_path' 2>/dev/null | sort -u)
+
 # Get file paths with their line counts (file_path<tab>limit)
 files_with_lines=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Read") | "\(.input.file_path)\t\(.input.limit // 200)"' 2>/dev/null)
 
 # Calculate total lines read
 lines_read=$(echo "$files_with_lines" | awk -F'\t' '{sum+=$2} END {print sum+0}')
+
+# Calculate lines from reference-only reads (files Read but not Edited)
+# Edit targets need full reads — file-headers won't help there
+if [ -z "$edited_files" ]; then
+  lines_read_refs=$lines_read
+else
+  edited_pattern=$(echo "$edited_files" | paste -sd'|' -)
+  lines_read_refs=$(echo "$files_with_lines" | awk -F'\t' -v pat="$edited_pattern" '$1 !~ pat {sum+=$2} END {print sum+0}')
+fi
 
 # Aggregate lines per unique file (sum if file read multiple times)
 if [ -z "$files_with_lines" ]; then
@@ -142,8 +154,8 @@ if [ ${#reasons[@]} -gt 0 ]; then
   if [ "$read_count" -gt "$READ_THRESHOLD" ] || [ "$explore_count" -gt "$EXPLORE_THRESHOLD" ] || [ "$glob_grep_count" -gt "$GLOB_GREP_THRESHOLD" ]; then
     suggestions+=("Navigation could be improved. Run \`Skill(maintain-index)\` to update INDEX.md")
   fi
-  if [ "$lines_read" -gt "$LINES_THRESHOLD" ]; then
-    suggestions+=("Large files detected. Run \`Skill(file-headers)\` to add JSDoc summaries")
+  if [ "$lines_read_refs" -gt "$LINES_THRESHOLD" ]; then
+    suggestions+=("Large reference files detected. Run \`Skill(file-headers)\` to add JSDoc summaries so you can check APIs without reading full files")
   fi
 
   message+="\\n💡 Suggestions:\\n"
