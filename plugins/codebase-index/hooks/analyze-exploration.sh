@@ -38,17 +38,24 @@ if [ -f "$config_file" ] && command -v yq &> /dev/null; then
   GLOB_GREP_THRESHOLD=$(yq -r '.thresholds.glob_grep_count // 3' "$config_file")
 fi
 
-# Count exploration signals from transcript
-explore_count=$(jq -r 'select(.tool_name == "Task") | select(.tool_input.subagent_type == "Explore") | .tool_name' "$transcript_path" 2>/dev/null | wc -l | tr -d ' ')
-read_count=$(jq -r 'select(.tool_name == "Read") | .tool_name' "$transcript_path" 2>/dev/null | wc -l | tr -d ' ')
-glob_count=$(jq -r 'select(.tool_name == "Glob") | .tool_name' "$transcript_path" 2>/dev/null | wc -l | tr -d ' ')
-grep_count=$(jq -r 'select(.tool_name == "Grep") | .tool_name' "$transcript_path" 2>/dev/null | wc -l | tr -d ' ')
+# Count exploration signals from transcript (JSONL format - must pipe through cat)
+# Tool calls are in .message.content[] where .type == "tool_use"
+explore_count=$(cat "$transcript_path" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Task") | select(.input.subagent_type == "Explore") | .name' 2>/dev/null | wc -l | tr -d ' ')
+read_count=$(cat "$transcript_path" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Read") | .name' 2>/dev/null | wc -l | tr -d ' ')
+glob_count=$(cat "$transcript_path" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Glob") | .name' 2>/dev/null | wc -l | tr -d ' ')
+grep_count=$(cat "$transcript_path" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Grep") | .name' 2>/dev/null | wc -l | tr -d ' ')
 
-# Calculate total lines read (sum of limit fields or estimate from output)
-lines_read=$(jq -r 'select(.tool_name == "Read") | .tool_input.limit // 200' "$transcript_path" 2>/dev/null | awk '{sum+=$1} END {print sum+0}')
+# Get file paths with their line counts (file_path<tab>limit)
+files_with_lines=$(cat "$transcript_path" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Read") | "\(.input.file_path)\t\(.input.limit // 200)"' 2>/dev/null)
 
-# Get files that were read for context
-files_read=$(jq -r 'select(.tool_name == "Read") | .tool_input.file_path' "$transcript_path" 2>/dev/null | sort -u | head -10)
+# Calculate total lines read
+lines_read=$(echo "$files_with_lines" | awk -F'\t' '{sum+=$2} END {print sum+0}')
+
+# Aggregate lines per unique file (sum if file read multiple times)
+files_read=$(echo "$files_with_lines" | awk -F'\t' '{lines[$1]+=$2} END {for(f in lines) print f"\t"lines[f]}' | sort -t$'\t' -k2 -rn | head -10)
+
+# Count unique files
+unique_file_count=$(echo "$files_read" | grep -c . || echo 0)
 
 glob_grep_count=$((glob_count + grep_count))
 
@@ -60,7 +67,7 @@ if [ "$explore_count" -gt "$EXPLORE_THRESHOLD" ]; then
 fi
 
 if [ "$read_count" -gt "$READ_THRESHOLD" ]; then
-  reasons+=("Read $read_count files")
+  reasons+=("$read_count Read operations")
 fi
 
 if [ "$lines_read" -gt "$LINES_THRESHOLD" ]; then
@@ -71,24 +78,41 @@ if [ "$glob_grep_count" -gt "$GLOB_GREP_THRESHOLD" ]; then
   reasons+=("Used Glob/Grep $glob_grep_count time(s)")
 fi
 
+# Build formatted file list with line counts
+files_formatted=""
+if [ -n "$files_read" ]; then
+  # Convert to relative paths and format with line counts: "  - path (N lines)"
+  files_formatted=$(echo "$files_read" | while IFS=$'\t' read -r filepath linecount; do
+    relpath=$(echo "$filepath" | sed "s|^$cwd/||")
+    echo "  - $relpath ($linecount lines)"
+  done | tr '\n' '|' | sed 's/|$//' | sed 's/|/\\n/g')
+fi
+
 # If any threshold exceeded, suggest improvements
 if [ ${#reasons[@]} -gt 0 ]; then
   reason_text=$(IFS=', '; echo "${reasons[*]}")
 
-  # Build file list for context
-  file_context=""
-  if [ -n "$files_read" ]; then
-    file_context="Files accessed: $(echo "$files_read" | tr '\n' ', ' | sed 's/,$//'). "
+  # Build formatted message
+  message="📊 Exploration Summary\\n"
+  message+="  Explore: $explore_count | Read: $read_count ($unique_file_count files) | Glob: $glob_count | Grep: $grep_count | ~${lines_read} lines\\n\\n"
+  message+="⚠️  Thresholds Exceeded:\\n"
+  for reason in "${reasons[@]}"; do
+    message+="  - $reason\\n"
+  done
+  if [ -n "$files_formatted" ]; then
+    message+="\\n📁 Files Accessed:\\n$files_formatted\\n"
   fi
+  message+="\\n💡 Consider adding these paths to CLAUDE.md for faster navigation."
 
-  cat <<EOF
-{
-  "decision": "block",
-  "reason": "Exploration detected: $reason_text. ${file_context}Consider suggesting updates to CLAUDE.md or INDEX.md to make this faster next time. What file paths or patterns should be documented for this feature area?"
-}
-EOF
+  # Use jq to properly escape the message for JSON
+  echo "{\"decision\": \"block\", \"reason\": \"$message\"}"
   exit 0
 fi
 
-# No issues - allow stop
+# No thresholds exceeded - print summary
+message="📊 Exploration Summary\\n"
+message+="  Explore: $explore_count | Read: $read_count ($unique_file_count files) | Glob: $glob_count | Grep: $grep_count | ~${lines_read} lines\\n\\n"
+message+="✅ All within thresholds."
+
+echo "{\"decision\": \"block\", \"reason\": \"$message\"}"
 exit 0

@@ -1,7 +1,8 @@
 {
   "name": "codebase-index",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Detects inefficient codebase exploration and provides tools to build navigation knowledge",
   "keywords": ["indexing", "navigation", "efficiency", "documentation"],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
 }
