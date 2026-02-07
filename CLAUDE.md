@@ -28,9 +28,11 @@ claude-skills/
 │   ├── nestjs-patterns/
 │   └── skill-creator/
 ├── plugins/                        # Standalone plugins
+│   ├── codebase-index/             # Navigation efficiency with index files
 │   ├── commit-expert/              # Commit generation with isolated context
 │   ├── github-issue-writer/        # Issue management with sub-issues
-│   └── github-pr-management/       # PR creation and management
+│   ├── github-pr-management/       # PR creation and management
+│   └── korean-technical-translator/# English-to-Korean technical translation
 ├── CLAUDE.md                       # This file
 └── README.md                       # Setup instructions for humans
 ```
@@ -113,6 +115,21 @@ Provides NestJS-specific patterns and best practices including abstract class pa
 
 Plugins are standalone packages with multiple related skills.
 
+### codebase-index
+**When to use:** Improving navigation efficiency, detecting excessive exploration, building codebase knowledge with index files and file headers
+
+Improves navigation efficiency by maintaining INDEX.md files that map features to file locations and adding JSDoc file-level headers. Includes a stop hook that detects excessive exploration patterns (too many Explore agents, reads, or searches) and suggests improvements.
+
+**Skills:**
+- `maintain-index` - Create and maintain INDEX.md files mapping features to file locations
+- `file-headers` - Add JSDoc file-level documentation headers to files
+
+**Configuration:** `.claude/config/codebase-index.yaml` (detection thresholds, index settings, header style)
+
+**Invoke:** `Skill(maintain-index)` or `Skill(file-headers)`
+
+---
+
 ### github-pr-management
 **When to use:** Creating pull requests, filling PR templates, analyzing deployment impacts, managing environment promotions
 
@@ -157,6 +174,20 @@ Enhanced commit generation with:
 - `config-updater` - Update config when plugin version changes
 
 **Invoke:** `Skill(commit-expert)`
+
+---
+
+### korean-technical-translator
+**When to use:** Translating English technical content to Korean with consistent terminology
+
+Translates technical documentation and content to Korean while maintaining project-specific terminology consistency. Supports formal (합니다체) and casual (해요체) styles, custom dictionary mappings, and domain-specific terminology (AWS, React, NestJS).
+
+**Configuration:** `.claude/config/korean-technical-translator.yaml` (style, dictionary, keep_english list, domain terms)
+
+**Skills:**
+- `korean-technical-translator` - Main skill for English-to-Korean translation
+
+**Invoke:** `Skill(korean-technical-translator)`
 
 ## Available Commands
 
