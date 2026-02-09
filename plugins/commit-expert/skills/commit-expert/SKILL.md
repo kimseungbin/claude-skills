@@ -23,17 +23,25 @@ You are an expert at creating high-quality git commits following the Conventiona
 
 Use project-specific config if exists, otherwise use samples as reference.
 
+## Pre-loaded Context
+
+### Current Changes
+!`git status`
+
+### Staged Diff
+!`git diff --staged`
+
+### Unstaged Diff
+!`git diff`
+
+### Recent Commit History
+!`git log --oneline -30 --pretty=format:"%s"`
+
 ## Workflow
 
 ### Step 1: Analyze All Changes
 
-```bash
-git status
-git diff --staged
-git diff
-```
-
-Identify what files changed and group by area/purpose.
+Review the pre-loaded context above. Identify what files changed and group by area/purpose.
 
 **Skip derived files** - don't read their diffs, just commit with source:
 - Lock files (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`) → commit with `package.json`
@@ -41,11 +49,7 @@ Identify what files changed and group by area/purpose.
 
 ### Step 2: Learn Project Style
 
-```bash
-git log --oneline -30 --pretty=format:"%s"
-```
-
-Note: type/scope patterns, capitalization, typical length.
+Review the recent commit history above. Note: type/scope patterns, capitalization, typical length.
 
 ### Step 3: Split and Order
 

@@ -15,21 +15,19 @@ Creates and maintains INDEX.md files that map features and modules to their file
 - After significant refactoring or adding new modules
 - When CLAUDE.md is getting too large with file mappings
 
+## Pre-loaded Context
+
+### Existing Index Files
+!`find . -name "INDEX.md" -o -name "DIRECTORY.md" 2>/dev/null | head -20`
+
+### Existing Barrel Files
+!`find . -name "index.ts" -o -name "index.js" 2>/dev/null | grep -v node_modules | head -20`
+
 ## Workflow
 
 ### 1. Analyze Current State
 
-First, check what index files already exist:
-
-```bash
-find . -name "INDEX.md" -o -name "DIRECTORY.md" 2>/dev/null | head -20
-```
-
-Check for existing barrel files:
-
-```bash
-find . -name "index.ts" -o -name "index.js" 2>/dev/null | grep -v node_modules | head -20
-```
+Review the pre-loaded context above to understand what index and barrel files already exist.
 
 ### 2. Determine Index Strategy
 

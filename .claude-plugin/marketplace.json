@@ -8,13 +8,13 @@
       "name": "codebase-index",
       "source": "./plugins/codebase-index",
       "description": "Detects inefficient codebase exploration and provides tools to build navigation knowledge",
-      "version": "0.1.12"
+      "version": "0.1.13"
     },
     {
       "name": "commit-expert",
       "source": "./plugins/commit-expert",
       "description": "Expert at creating Conventional Commits with intelligent multi-commit splitting, pattern learning from project history, and smart commit ordering",
-      "version": "1.0.3"
+      "version": "1.0.4"
     },
     {
       "name": "korean-technical-translator",
