@@ -23,16 +23,6 @@ if [ ! -f "$transcript_path" ]; then
   exit 0
 fi
 
-# Marker file to track last check timestamp (per-session)
-session_id=$(basename "$transcript_path" .jsonl)
-marker_file="$cwd/.claude/.codebase-index-marker-$session_id"
-
-# Get last check timestamp (empty string if first run)
-last_check=""
-if [ -f "$marker_file" ]; then
-  last_check=$(cat "$marker_file")
-fi
-
 # Default thresholds
 EXPLORE_THRESHOLD=0
 READ_THRESHOLD=5
@@ -48,20 +38,13 @@ if [ -f "$config_file" ] && command -v yq &> /dev/null; then
   GLOB_GREP_THRESHOLD=$(yq -r '.thresholds.glob_grep_count // 3' "$config_file")
 fi
 
-# Count exploration signals from transcript (JSONL format)
-# Tool calls are in .message.content[] where .type == "tool_use"
-# Filter by timestamp if we have a last_check marker (use temp file to handle large transcripts)
+# Extract current turn only (entries after the last user message)
 filtered_file=$(mktemp)
 trap "rm -f '$filtered_file'" EXIT
 
-if [ -n "$last_check" ]; then
-  # Filter entries after the marker timestamp
-  while IFS= read -r line; do
-    ts=$(echo "$line" | jq -r '.timestamp // ""' 2>/dev/null)
-    if [[ -n "$ts" && "$ts" > "$last_check" ]]; then
-      echo "$line"
-    fi
-  done < "$transcript_path" > "$filtered_file"
+last_user_line=$(grep -n '"role":"user"' "$transcript_path" | tail -1 | cut -d: -f1)
+if [ -n "$last_user_line" ]; then
+  tail -n +"$((last_user_line + 1))" "$transcript_path" > "$filtered_file"
 else
   cp "$transcript_path" "$filtered_file"
 fi
@@ -198,20 +181,10 @@ if [ ${#reasons[@]} -gt 0 ]; then
     message+="  - $suggestion\\n"
   done
 
-  # Save current timestamp as marker for next check
-  current_ts=$(cat "$transcript_path" | jq -r '.timestamp' 2>/dev/null | tail -1)
-  mkdir -p "$(dirname "$marker_file")"
-  echo "$current_ts" > "$marker_file"
-
   # Use jq to properly escape the message for JSON
   echo "{\"decision\": \"block\", \"reason\": \"$message\"}"
   exit 0
 fi
-
-# Save current timestamp as marker for next check
-current_ts=$(cat "$transcript_path" | jq -r '.timestamp' 2>/dev/null | tail -1)
-mkdir -p "$(dirname "$marker_file")"
-echo "$current_ts" > "$marker_file"
 
 # No thresholds exceeded - silent exit
 exit 0
