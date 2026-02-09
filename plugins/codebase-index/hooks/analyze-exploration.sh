@@ -77,7 +77,7 @@ edited_files=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type 
 error_ids=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_result") | select(.is_error == true) | .tool_use_id' 2>/dev/null | sort -u)
 
 # Get all Read tool calls with IDs for success/failure filtering
-all_read_entries=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Read") | "\(.id)\t\(.input.file_path)\t\(.input.limit // 200)"' 2>/dev/null)
+all_read_entries=$(cat "$filtered_file" | jq -r '.message.content[]? | select(.type == "tool_use") | select(.name == "Read") | "\(.id)\t\(.input.file_path)\t\(.input.limit // "")"' 2>/dev/null)
 
 # Separate successful reads from failed attempts
 successful_reads_file=$(mktemp)
@@ -87,6 +87,14 @@ while IFS=$'\t' read -r id filepath limit; do
   if [ -n "$error_ids" ] && echo "$error_ids" | grep -qF "$id"; then
     failed_read_count=$((failed_read_count + 1))
   else
+    # When limit is empty, the whole file was read — count actual lines
+    if [ -z "$limit" ]; then
+      if [ -f "$filepath" ]; then
+        limit=$(wc -l < "$filepath" | tr -d ' ')
+      else
+        limit=0
+      fi
+    fi
     printf '%s\t%s\n' "$filepath" "$limit" >> "$successful_reads_file"
   fi
 done <<< "$all_read_entries"
