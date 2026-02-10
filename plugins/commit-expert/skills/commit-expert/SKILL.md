@@ -37,6 +37,9 @@ Use project-specific config if exists, otherwise use samples as reference.
 ### Recent Commit History
 !`git log --oneline -30 --pretty=format:"%s"`
 
+### Project Config
+!`cat .claude/config/commit-expert/main.yaml 2>/dev/null`
+
 ## Workflow
 
 ### Step 1: Analyze All Changes
@@ -99,17 +102,26 @@ Mark current group as in_progress, then:
 1. Read `guides/index.md` - run quick 5-question check
 2. If title vague, read `guides/specificity.yaml`
 
-**5d. Choose Subject and Execute**
+**5d. Choose Subject**
 
 Format: `{type}({scope}): {subject}`
 - Imperative mood, capitalize first letter, no period, max 72 chars
 
 **MUST ask user:** Always generate 2-4 subject line candidates and present them via AskUserQuestion. Include varying levels of detail/specificity so the user can pick or provide their own.
 
-```bash
-git add <specific-files>
-git commit -m "type(scope): subject"
-```
+**5e. Generate Body**
+
+Use `body_conventions` from pre-loaded project config (if absent, read from samples config as fallback).
+
+1. Draft the body focusing on **why** — the reasoning and motivation behind the change:
+   - **Why this approach?** Capture design decisions from the session (tradeoffs considered, alternatives rejected, constraints that shaped the solution)
+   - **What changed?** Only when the subject line can't cover all changes — summarize what the subject omits
+2. **Skip body when:** the change is trivial and the subject fully explains both the what and why
+3. **MUST ask user:** Present the drafted body via AskUserQuestion for confirmation. Let user approve, edit, or skip the body.
+
+**5f. Execute Commit**
+
+Stage specific files and commit using HEREDOC for multi-line messages (subject + body + footers). For trivial commits without body, single `-m` is fine.
 
 Mark todo as completed, move to next group.
 
