@@ -38,7 +38,7 @@ Use project-specific config if exists, otherwise use samples as reference.
 !`git log --oneline -30 --pretty=format:"%s"`
 
 ### Project Config
-!`cat .claude/config/commit-expert/main.yaml 2>/dev/null`
+!`cat .claude/config/commit-expert/main.yaml 2>/dev/null || true`
 
 ## Workflow
 
