@@ -27,6 +27,12 @@
       "source": "./plugins/github-issue-writer",
       "description": "Write structured GitHub issues (incidents, deployments, features) with mermaid diagrams",
       "version": "2.0.2"
+    },
+    {
+      "name": "marketplace-feedback",
+      "source": "./plugins/marketplace-feedback",
+      "description": "Submit bug reports and feature requests for claude-skills marketplace plugins",
+      "version": "1.0.1"
     }
   ]
 }

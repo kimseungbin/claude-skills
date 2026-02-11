@@ -158,6 +158,18 @@ Enhanced commit generation with:
 
 **Invoke:** `Skill(commit-expert)`
 
+---
+
+### marketplace-feedback
+**When to use:** Submitting bug reports or feature requests for plugins in the claude-skills marketplace
+
+Submit feedback directly to the claude-skills GitHub Issues from any project. Auto-detects which plugin the issue relates to and creates structured, labeled issues.
+
+**Skills:**
+- `marketplace-feedback` - Submit bug reports and feature requests
+
+**Invoke:** `Skill(marketplace-feedback)`
+
 ## Available Commands
 
 - **create-pr**: Invokes the pull-request-management skill
