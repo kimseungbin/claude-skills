@@ -42,7 +42,7 @@ fi
 filtered_file=$(mktemp)
 trap "rm -f '$filtered_file'" EXIT
 
-last_user_line=$(grep -n '"role":"user"' "$transcript_path" | tail -1 | cut -d: -f1)
+last_user_line=$(grep -n '"role":"user"' "$transcript_path" | grep -v '"tool_result"' | tail -1 | cut -d: -f1)
 if [ -n "$last_user_line" ]; then
   tail -n +"$((last_user_line + 1))" "$transcript_path" > "$filtered_file"
 else
