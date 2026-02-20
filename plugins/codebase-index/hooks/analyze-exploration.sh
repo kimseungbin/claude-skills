@@ -153,12 +153,13 @@ if [ ${#reasons[@]} -gt 0 ]; then
 
   # Build formatted message
   message="📊 Exploration Summary\\n"
-  read_summary="Read: $read_count ($unique_file_count files"
+  edited_count=$(echo "$edited_files" | grep -c . 2>/dev/null || echo 0)
+  read_summary="Read: $read_count ($unique_file_count files, $edited_count edited"
   if [ "$failed_read_count" -gt 0 ]; then
     read_summary+=", $failed_read_count failed"
   fi
-  read_summary+=")"
-  message+="  Explore: $explore_count | $read_summary | Glob: $glob_count | Grep: $grep_count | ~${lines_read} lines\\n\\n"
+  read_summary+=", ~${lines_read} lines, ~${lines_read_refs} ref lines)"
+  message+="  Explore: $explore_count | $read_summary | Glob: $glob_count | Grep: $grep_count\\n\\n"
   message+="⚠️  Thresholds Exceeded:\\n"
   for reason in "${reasons[@]}"; do
     message+="  - $reason\\n"
@@ -166,20 +167,6 @@ if [ ${#reasons[@]} -gt 0 ]; then
   if [ -n "$files_formatted" ]; then
     message+="\\n📁 Files Accessed:\\n$files_formatted\\n"
   fi
-
-  # Build metric-specific suggestions
-  suggestions=()
-  if [ "$read_count" -gt "$READ_THRESHOLD" ] || [ "$explore_count" -gt "$EXPLORE_THRESHOLD" ] || [ "$glob_grep_count" -gt "$GLOB_GREP_THRESHOLD" ] || [ "$failed_read_count" -gt 0 ]; then
-    suggestions+=("Navigation could be improved. Run \`Skill(maintain-index)\` to update INDEX.md")
-  fi
-  if [ "$lines_read_refs" -gt "$LINES_THRESHOLD" ]; then
-    suggestions+=("Large reference files detected. Run \`Skill(file-headers)\` to add JSDoc summaries so you can check APIs without reading full files")
-  fi
-
-  message+="\\n💡 Suggestions:\\n"
-  for suggestion in "${suggestions[@]}"; do
-    message+="  - $suggestion\\n"
-  done
 
   # Use jq to properly escape the message for JSON
   echo "{\"decision\": \"block\", \"reason\": \"$message\"}"
