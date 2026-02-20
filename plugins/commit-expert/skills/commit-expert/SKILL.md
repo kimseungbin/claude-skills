@@ -109,15 +109,22 @@ Format: `{type}({scope}): {subject}`
 
 **MUST ask user:** Always generate 2-4 subject line candidates and present them via AskUserQuestion. Include varying levels of detail/specificity so the user can pick or provide their own.
 
-**5e. Generate Body**
+**5e. Generate Body (only when necessary)**
 
 Use `body_conventions` from pre-loaded project config (if absent, read from samples config as fallback).
 
-1. Draft the body focusing on **why** — the reasoning and motivation behind the change:
-   - **Why this approach?** Capture design decisions from the session (tradeoffs considered, alternatives rejected, constraints that shaped the solution)
-   - **What changed?** Only when the subject line can't cover all changes — summarize what the subject omits
-2. **Skip body when:** the change is trivial and the subject fully explains both the what and why
-3. **MUST ask user:** Present the drafted body via AskUserQuestion for confirmation. Let user approve, edit, or skip the body.
+**Skip body by default.** Most commits need only a good subject line.
+
+**Generate body when:**
+- The subject line cannot fully convey **why** the change was made (non-obvious design decisions, rejected alternatives, constraints)
+- The subject line cannot cover **what** changed (multi-file changes where the subject omits important details)
+- There is a breaking change requiring `BREAKING CHANGE:` footer
+
+When generating a body, focus on **why** — the reasoning and motivation:
+- **Why this approach?** Reference the actual conversation context — use reasons, decisions, and constraints discussed in the session. Do NOT infer or guess motivations; only include what was explicitly discussed.
+- **What changed?** Only what the subject line omits
+
+**MUST ask user:** Present the drafted body via AskUserQuestion for confirmation. Let user approve, edit, or skip.
 
 **5f. Execute Commit**
 
