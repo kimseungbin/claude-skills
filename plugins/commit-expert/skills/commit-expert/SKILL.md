@@ -40,7 +40,17 @@ Use project-specific config if exists, otherwise use samples as reference.
 ### Project Config
 !`cat .claude/config/commit-expert/main.yaml 2>/dev/null`
 
+### Config Exists
+!`test -f .claude/config/commit-expert/main.yaml && echo "true" || echo "false"`
+
 ## Workflow
+
+### Step 0: Check Config
+
+If **Config Exists** above is `false`, ask the user with AskUserQuestion:
+
+- **Set up config** — Invoke `Skill(commit-expert:config-updater)` and stop
+- **Continue with defaults** — Proceed to Step 1 using samples as fallback
 
 ### Step 1: Analyze All Changes
 
