@@ -35,10 +35,10 @@ Use project-specific config if exists, otherwise use samples as reference.
 !`git diff`
 
 ### Recent Commit History
-!`git log --oneline -30 --pretty=format:"%s"`
+!`git log --oneline -30 --pretty=format:"%s" 2>/dev/null || echo "NO_HISTORY: initial repo, use Conventional Commits defaults"`
 
 ### Project Config
-!`cat .claude/config/commit-expert/main.yaml 2>/dev/null || true`
+!`cat .claude/config/commit-expert/main.yaml 2>/dev/null`
 
 ## Workflow
 
@@ -52,7 +52,10 @@ Review the pre-loaded context above. Identify what files changed and group by ar
 
 ### Step 2: Learn Project Style
 
-Review the recent commit history above. Note: type/scope patterns, capitalization, typical length.
+Review the recent commit history above.
+
+- If output contains commits: note type/scope patterns, capitalization, typical length
+- If `NO_HISTORY` (initial repo with no commits): skip pattern learning, use Conventional Commits defaults from config samples
 
 ### Step 3: Split and Order
 
@@ -155,7 +158,7 @@ guides/index.md ──→ Quick quality check
 
 ## Notes
 
-- Match project's existing commit style
+- Match project's existing commit style (if history exists; otherwise use Conventional Commits defaults)
 - Add `Skill: commit-expert` footer
 - For breaking changes: `BREAKING CHANGE: description`
 - Reference issues when mentioned: `Refs #123`
