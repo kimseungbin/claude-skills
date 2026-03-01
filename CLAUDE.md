@@ -28,6 +28,7 @@ claude-skills/
 │   ├── nestjs-patterns/
 │   └── skill-creator/
 ├── plugins/                        # Standalone plugins
+│   ├── codebase-index/             # Exploration detection and indexing
 │   ├── commit-expert/              # Commit generation with isolated context
 │   ├── github-issue-writer/        # Issue management with sub-issues
 │   └── github-pr-management/       # PR creation and management
