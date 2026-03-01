@@ -193,27 +193,25 @@ This skill can be customized using `.claude/config/cdk-expert.yaml` in your proj
 
 **Example config:**
 
+See [`config-template.yaml`](./config-template.yaml) for a complete example with detailed comments.
+
 ```yaml
 project: my-cdk-project
 
-# Project-specific naming conventions
 naming:
     pattern: '${service}-${environment}-${resource}'
     environments: [dev, staging, prod]
 
-# Required tags for all resources
 tags:
     ManagedBy: CDK
     Project: my-project
     CostCenter: engineering
 
-# Custom validation rules
 validation:
     require_encryption: true
     require_versioning: true
     max_fargate_cpu: 4096
 
-# Security requirements
 security:
     cdk_nag_enabled: true
     nag_rule_pack: AwsSolutions
