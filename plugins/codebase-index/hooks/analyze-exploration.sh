@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Codebase Index Plugin - Stop Hook
-# Analyzes session transcript for inefficient exploration patterns
+# Codebase Index Plugin - Stop Hook (non-blocking)
+# Analyzes session transcript for exploration patterns and emits warnings to stderr
 
 set -euo pipefail
 
@@ -10,13 +10,7 @@ input=$(cat)
 
 # Extract fields
 transcript_path=$(echo "$input" | jq -r '.transcript_path')
-stop_hook_active=$(echo "$input" | jq -r '.stop_hook_active')
 cwd=$(echo "$input" | jq -r '.cwd')
-
-# Prevent infinite loops - if we already triggered, allow stop
-if [ "$stop_hook_active" = "true" ]; then
-  exit 0
-fi
 
 # Check if transcript exists
 if [ ! -f "$transcript_path" ]; then
@@ -144,32 +138,53 @@ if [ -n "$files_read" ]; then
   files_formatted=$(echo "$files_read" | while IFS=$'\t' read -r filepath linecount; do
     relpath=$(echo "$filepath" | sed "s|^$cwd/||")
     echo "  - $relpath ($linecount lines)"
-  done | tr '\n' '|' | sed 's/|$//' | sed 's/|/\\n/g')
+  done)
 fi
 
-# If any threshold exceeded, suggest improvements
+# If any threshold exceeded, emit non-blocking warning to stderr
 if [ ${#reasons[@]} -gt 0 ]; then
-  reason_text=$(IFS=', '; echo "${reasons[*]}")
-
-  # Build formatted message
-  message="📊 Exploration Summary\\n"
   edited_count=$(echo "$edited_files" | grep -c . 2>/dev/null || echo 0)
   read_summary="Read: $read_count ($unique_file_count files, $edited_count edited"
   if [ "$failed_read_count" -gt 0 ]; then
     read_summary+=", $failed_read_count failed"
   fi
   read_summary+=", ~${lines_read} lines, ~${lines_read_refs} ref lines)"
-  message+="  Explore: $explore_count | $read_summary | Glob: $glob_count | Grep: $grep_count\\n\\n"
-  message+="⚠️  Thresholds Exceeded:\\n"
-  for reason in "${reasons[@]}"; do
-    message+="  - $reason\\n"
-  done
-  if [ -n "$files_formatted" ]; then
-    message+="\\n📁 Files Accessed:\\n$files_formatted\\n"
+
+  # Build skill suggestions based on detected patterns
+  suggestions=()
+  if [ "$lines_read_refs" -gt "$LINES_THRESHOLD" ]; then
+    suggestions+=("file-headers — add JSDoc summaries so Claude reads only headers")
+  fi
+  if [ "$glob_grep_count" -gt "$GLOB_GREP_THRESHOLD" ] || [ "$explore_count" -gt "$EXPLORE_THRESHOLD" ]; then
+    suggestions+=("maintain-index — create INDEX.md mapping features to file paths")
+  fi
+  if [ "$failed_read_count" -gt 0 ]; then
+    suggestions+=("maintain-index — create INDEX.md to reduce guessing at paths")
   fi
 
-  # Use jq to properly escape the message for JSON
-  echo "{\"decision\": \"block\", \"reason\": \"$message\"}"
+  # Write warning to stderr (visible in terminal, does not block Claude)
+  {
+    echo "📊 Exploration Summary"
+    echo "  Explore: $explore_count | $read_summary | Glob: $glob_count | Grep: $grep_count"
+    echo ""
+    echo "⚠️  Thresholds Exceeded:"
+    for reason in "${reasons[@]}"; do
+      echo "  - $reason"
+    done
+    if [ -n "$files_formatted" ]; then
+      echo ""
+      echo "📁 Files Accessed:"
+      echo "$files_formatted"
+    fi
+    if [ ${#suggestions[@]} -gt 0 ]; then
+      echo ""
+      echo "💡 Suggested Skills:"
+      printf '%s\n' "${suggestions[@]}" | sort -u | while read -r s; do
+        echo "  - $s"
+      done
+    fi
+  } >&2
+
   exit 0
 fi
 
