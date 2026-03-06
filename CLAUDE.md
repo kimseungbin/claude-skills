@@ -22,7 +22,6 @@ claude-skills/
 ├── skills/                         # Shared skills directory
 │   ├── cdk-expert/
 │   ├── claude-md-refactoring/
-│   ├── git-hooks-setup/
 │   ├── git-strategy/
 │   ├── maintaining-documentation/
 │   ├── nestjs-patterns/
@@ -30,6 +29,7 @@ claude-skills/
 ├── plugins/                        # Standalone plugins
 │   ├── codebase-index/             # Exploration detection and indexing
 │   ├── commit-expert/              # Commit generation with isolated context
+│   ├── git-hooks-setup/            # Project-specific git hooks generation
 │   ├── github-issue-writer/        # Issue management with sub-issues
 │   └── github-pr-management/       # PR creation and management
 ├── CLAUDE.md                       # This file
@@ -94,15 +94,6 @@ AWS CDK expert skill providing guidance on infrastructure patterns, CloudFormati
 
 ---
 
-### git-hooks-setup
-**When to use:** Setting up project-specific git hooks, pre-commit validation, quality gates
-
-Generates custom git hooks tailored to your project's needs. Automatically detects project type and provides appropriate hooks with templates, examples, and comprehensive guides.
-
-**Invoke:** `Skill(git-hooks-setup)`
-
----
-
 ### nestjs-patterns
 **When to use:** NestJS repository pattern implementation, dependency injection setup, testing strategies, ESM configuration
 
@@ -158,6 +149,18 @@ Enhanced commit generation with:
 - `config-updater` - Update config when plugin version changes
 
 **Invoke:** `Skill(commit-expert)`
+
+---
+
+### git-hooks-setup
+**When to use:** Setting up project-specific git hooks, pre-commit validation, quality gates
+
+Generates custom git hooks tailored to your project's needs. Includes pre-built bundles for common project types (TypeScript, monorepo, AWS CDK) with shared library functions.
+
+**Skills:**
+- `git-hooks-setup` - Main skill for hook setup and generation
+
+**Invoke:** `Skill(git-hooks-setup)`
 
 ---
 

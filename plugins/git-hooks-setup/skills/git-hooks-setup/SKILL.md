@@ -35,7 +35,7 @@ chmod +x .githooks/*
 git config core.hooksPath .githooks
 ```
 
-**See**: [bundles/README.md](bundles/README.md) for complete recipes by project type.
+**See**: [bundles/README.md](../../bundles/README.md) for complete recipes by project type.
 
 ## Available Bundles
 
@@ -119,17 +119,17 @@ Read `package.json` to identify:
 - **Available scripts**: format, lint, type-check, build, test
 - **Tech stack**: TypeScript? Testing framework?
 
-**See**: [guides/project-detection.md](guides/project-detection.md) for detailed analysis steps
+**See**: [guides/project-detection.md](../../guides/project-detection.md) for detailed analysis steps
 
-### 2. Select Template
+### 2. Select Bundle
 
 Based on project type:
 
-- **Monorepo** → `examples/templates/pre-commit-monorepo.sh`
-- **AWS CDK** → `examples/templates/pre-commit-aws-cdk.sh`
-- **Simple TS/JS** → `examples/templates/pre-commit-basic.sh`
+- **Monorepo** → `bundles/hooks/pre-commit/monorepo.sh`
+- **AWS CDK** → `bundles/hooks/pre-push/cdk-safety.sh`
+- **Simple TS/JS** → `bundles/hooks/pre-commit/basic.sh`
 
-**See**: [decision-tree.md](decision-tree.md) for visual selection guide
+**See**: [decision-tree.md](../../decision-tree.md) for visual selection guide
 
 ### 3. Customize Hook
 
@@ -148,7 +148,7 @@ Adapt template to project's scripts:
 - Docker builds
 ```
 
-**See**: [hooks/pre-commit-patterns.md](hooks/pre-commit-patterns.md) for common patterns
+**See**: [bundles/hooks/pre-commit/README.md](../../bundles/hooks/pre-commit/README.md) for common patterns
 
 ## Quick Reference
 
@@ -170,24 +170,18 @@ Adapt template to project's scripts:
 
 ### Bundles
 
-- **Bundle Overview**: [bundles/README.md](bundles/README.md)
-- **Pre-commit Hooks**: [bundles/hooks/pre-commit/README.md](bundles/hooks/pre-commit/README.md)
-- **Pre-push Hooks**: [bundles/hooks/pre-push/README.md](bundles/hooks/pre-push/README.md)
-- **Commit-msg Hooks**: [bundles/hooks/commit-msg/README.md](bundles/hooks/commit-msg/README.md)
+- **Bundle Overview**: [bundles/README.md](../../bundles/README.md)
+- **Pre-commit Hooks**: [bundles/hooks/pre-commit/README.md](../../bundles/hooks/pre-commit/README.md)
+- **Pre-push Hooks**: [bundles/hooks/pre-push/README.md](../../bundles/hooks/pre-push/README.md)
+- **Commit-msg Hooks**: [bundles/hooks/commit-msg/README.md](../../bundles/hooks/commit-msg/README.md)
 
 ### Guides
 
-- **Setup & Verification**: [guides/setup-guide.md](guides/setup-guide.md)
-- **Project Analysis**: [guides/project-detection.md](guides/project-detection.md)
-- **Hook Selection**: [decision-tree.md](decision-tree.md)
-- **Common Patterns**: [hooks/pre-commit-patterns.md](hooks/pre-commit-patterns.md)
-- **Testing Hooks**: [guides/testing-hooks.md](guides/testing-hooks.md)
-- **Troubleshooting**: [guides/troubleshooting.md](guides/troubleshooting.md)
-
-### Legacy Templates
-
-- **Templates**: [examples/templates/](examples/templates/)
-- **Real Implementations**: [examples/implementations/](examples/implementations/)
+- **Setup & Verification**: [guides/setup-guide.md](../../guides/setup-guide.md)
+- **Project Analysis**: [guides/project-detection.md](../../guides/project-detection.md)
+- **Hook Selection**: [decision-tree.md](../../decision-tree.md)
+- **Testing Hooks**: [guides/testing-hooks.md](../../guides/testing-hooks.md)
+- **Troubleshooting**: [guides/troubleshooting.md](../../guides/troubleshooting.md)
 
 ## Key Principles
 
@@ -224,7 +218,7 @@ The skill will read this config and generate appropriate hooks.
 
 ## Troubleshooting
 
-See [guides/troubleshooting.md](guides/troubleshooting.md) for common issues:
+See [guides/troubleshooting.md](../../guides/troubleshooting.md) for common issues:
 
 - Hook not running
 - Permission denied errors

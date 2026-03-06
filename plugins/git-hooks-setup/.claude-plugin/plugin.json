@@ -1,0 +1,9 @@
+{
+  "name": "git-hooks-setup",
+  "description": "Analyze projects and generate custom git hooks tailored to the codebase",
+  "version": "1.0.0",
+  "author": {
+    "name": "kimseungbin"
+  },
+  "skills": "./skills/"
+}
