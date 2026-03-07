@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# Commit-msg hook to enforce commit-expert agent usage
+# Commit-msg hook to enforce commit skill usage
 #
-# PURPOSE: Validate that commits are created via Claude's commit-expert agent
+# PURPOSE: Validate that commits are created via Claude's commit skill
 # USE CASE: Teams using Claude Code who want to ensure consistent commit quality
 #
 # Installation:
@@ -16,7 +16,7 @@
 #
 #      conventions:
 #        footer:
-#          - "REQUIRED: Always add 'Agent: commit-expert' to mark agent usage"
+#          - "REQUIRED: Always add 'Skill: commit' to mark skill usage"
 #
 # Bypass (emergency only):
 #   git commit --no-verify -m "emergency: Critical fix"
@@ -46,20 +46,20 @@ COMMIT_MSG_FILE="$1"
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 
 # Check if commit message has the agent marker
-if ! echo "$COMMIT_MSG" | grep -q "Agent: commit-expert"; then
+if ! echo "$COMMIT_MSG" | grep -q "Skill: commit"; then
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo -e "${RED}${SYM_CROSS:-✗} COMMIT BLOCKED${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "This commit was not created using the commit-expert agent."
+    echo "This commit was not created using the commit skill."
     echo ""
-    echo "Required footer tag missing: 'Agent: commit-expert'"
+    echo "Required footer tag missing: 'Skill: commit'"
     echo ""
     echo "┌─────────────────────────────────────────────────────┐"
     echo "│  HOW TO FIX:                                        │"
     echo "├─────────────────────────────────────────────────────┤"
-    echo "│  ${SYM_CHECK:-✓} Use: Task(subagent_type=\"commit-expert\")        │"
+    echo "│  ${SYM_CHECK:-✓} Use: Skill(commit)                               │"
     echo "│  ${SYM_CROSS:-✗} DO NOT use: git commit directly                 │"
     echo "└─────────────────────────────────────────────────────┘"
     echo ""
