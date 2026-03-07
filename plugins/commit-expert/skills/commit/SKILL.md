@@ -1,5 +1,5 @@
 ---
-name: commit-expert
+name: commit
 description: Expert at creating Conventional Commits with intelligent multi-commit splitting, pattern learning from project history, and smart commit ordering. Use PROACTIVELY when committing changes or generating commit messages.
 context: fork
 allowed-tools:
@@ -7,7 +7,6 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - Edit
   - TodoWrite
   - AskUserQuestion
 ---
@@ -86,7 +85,21 @@ Review the recent commit history above.
 4. Tests
 5. Documentation
 
-If splitting, present ordered groups to user with AskUserQuestion.
+If splitting, present the plan as a table using AskUserQuestion:
+
+```
+┌─────┬──────────┬──────────┬────────────────────────────────────────┬──────────────────────────┐
+│  #  │   Type   │  Scope   │                 Files                  │       Description        │
+├─────┼──────────┼──────────┼────────────────────────────────────────┼──────────────────────────┤
+│ 1   │ chore    │ deps     │ package.json, package-lock.json         │ Add new dependencies     │
+├─────┼──────────┼──────────┼────────────────────────────────────────┼──────────────────────────┤
+│ 2   │ feat     │ crawler  │ packages/crawler/**                    │ New crawler package       │
+├─────┼──────────┼──────────┼────────────────────────────────────────┼──────────────────────────┤
+│ 3   │ docs     │ project  │ docs/backlogs/*.md                     │ Backlog docs for crawler  │
+└─────┴──────────┴──────────┴────────────────────────────────────────┴──────────────────────────┘
+```
+
+Type and Scope columns show the preliminary analysis — these may be refined in Step 5.
 
 ### Step 4: Track in Todo
 
@@ -143,6 +156,8 @@ When generating a body, focus on **why** — the reasoning and motivation:
 
 Stage specific files and commit using HEREDOC for multi-line messages (subject + body + footers). For trivial commits without body, single `-m` is fine.
 
+**If a pre-commit hook fails** (e.g., prettier, eslint): Do NOT fix files yourself. Report the error to the user and stop. You do not have permission to edit source files — only the user can decide how to resolve hook failures.
+
 Mark todo as completed, move to next group.
 
 ### Step 6: Report and Terminate
@@ -169,6 +184,6 @@ guides/index.md ──→ Quick quality check
 ## Notes
 
 - Match project's existing commit style (if history exists; otherwise use Conventional Commits defaults)
-- Add `Skill: commit-expert` footer
+- Add `Skill: commit` footer
 - For breaking changes: `BREAKING CHANGE: description`
 - Reference issues when mentioned: `Refs #123`

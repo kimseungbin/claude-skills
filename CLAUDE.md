@@ -4,7 +4,7 @@ This repository contains shared Claude Code skills designed for reuse across mul
 
 ## Default Behaviors
 
-**Committing changes:** Always use the `commit-expert` skill when the user asks to commit, create commits, or generate commit messages. Invoke with `Skill(commit-expert)`.
+**Committing changes:** Always use the `commit` skill when the user asks to commit, create commits, or generate commit messages. Invoke with `Skill(commit)`.
 
 ## Repository Structure
 
@@ -145,10 +145,10 @@ Enhanced commit generation with:
 - Project-specific: `.claude/config/commit-expert/main.yaml` (copy from samples)
 
 **Skills:**
-- `commit-expert` - Main skill for commit generation
+- `commit` - Main skill for commit generation
 - `config-updater` - Update config when plugin version changes
 
-**Invoke:** `Skill(commit-expert)`
+**Invoke:** `Skill(commit)`
 
 ---
 

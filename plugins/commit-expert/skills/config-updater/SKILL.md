@@ -15,7 +15,7 @@ Updates project-specific commit-expert configuration when the plugin version cha
 ## When to Use
 
 This skill is invoked when:
-1. `commit-expert` skill detects a version mismatch between plugin and config
+1. `commit` skill detects a version mismatch between plugin and config
 2. User wants to review their config against latest samples
 3. User wants to upgrade their config to a new plugin version
 
