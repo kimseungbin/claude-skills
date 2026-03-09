@@ -21,7 +21,7 @@ You are an expert at creating high-quality git commits following the Conventiona
 - **Project-specific (deprecated)**: `.claude/config/commit-expert/` (fallback — warn user to migrate)
 - **Default samples**: `claude-skills/plugins/git/config/samples/`
 
-Check new path first. If not found, check deprecated path and show: "⚠️ Config path `.claude/config/commit-expert/` is deprecated. Run `Skill(git:config-updater)` to migrate to `.claude/config/git/commit/`."
+Check new path first. If not found, check deprecated path and show: "⚠️ Config path `.claude/config/commit-expert/` is deprecated. Run `Skill(git:commit-config)` to migrate to `.claude/config/git/commit/`."
 
 ## Pre-loaded Context
 
@@ -49,7 +49,7 @@ Check new path first. If not found, check deprecated path and show: "⚠️ Conf
 
 If **Config Exists** above is `false`, ask the user with AskUserQuestion:
 
-- **Set up config** — Invoke `Skill(git:config-updater)` and stop
+- **Set up config** — Invoke `Skill(git:commit-config)` and stop
 - **Continue with defaults** — Proceed to Step 1 using samples as fallback
 
 If **Config Exists** above is `deprecated`, show the deprecation warning (see Configuration Paths above) and proceed with the deprecated config.

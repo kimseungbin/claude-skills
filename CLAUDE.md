@@ -146,7 +146,7 @@ Unified git workflow plugin combining commit generation and hook setup:
 
 **Skills:**
 - `commit` - Main skill for commit generation
-- `config-updater` - Update config when plugin version changes
+- `commit-config` - Set up and update commit message configuration
 - `git-hooks-setup` - Git hook setup and generation
 
 **Invoke:** `Skill(commit)` or `Skill(git-hooks-setup)`

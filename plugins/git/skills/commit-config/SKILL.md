@@ -1,6 +1,6 @@
 ---
-name: config-updater
-description: Review and update commit config when plugin version changes. Compares project config with latest samples and suggests updates. Also migrates deprecated config paths.
+name: commit-config
+description: Set up, update, and migrate commit message configuration. Compares project config with latest samples and suggests updates.
 allowed-tools:
   - Read
   - Edit
@@ -8,9 +8,9 @@ allowed-tools:
   - AskUserQuestion
 ---
 
-# Commit Config Updater
+# Commit Config
 
-Updates project-specific commit configuration when the plugin version changes.
+Sets up, updates, and migrates commit message configuration.
 
 ## When to Use
 

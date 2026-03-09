@@ -23,11 +23,11 @@ Expert at creating Conventional Commits with intelligent multi-commit splitting,
 
 **Invoke:** `Skill(commit)`
 
-### config-updater
+### commit-config
 
 Reviews and updates commit configuration when the plugin version changes. Also migrates deprecated config paths from `commit-expert` to `git/commit`.
 
-**Invoke:** `Skill(git:config-updater)`
+**Invoke:** `Skill(git:commit-config)`
 
 ### git-hooks-setup
 
@@ -87,8 +87,8 @@ pre_push:
 
 If you previously used the `commit-expert` plugin:
 
-1. Run `Skill(git:config-updater)` — it will automatically migrate your config from `.claude/config/commit-expert/` to `.claude/config/git/commit/`
-2. Update your `CLAUDE.md` references from `Skill(commit-expert:config-updater)` to `Skill(git:config-updater)`
+1. Run `Skill(git:commit-config)` — it will automatically migrate your config from `.claude/config/commit-expert/` to `.claude/config/git/commit/`
+2. Update your `CLAUDE.md` references from `Skill(commit-expert:commit-config)` to `Skill(git:commit-config)`
 
 ## Directory Structure
 
@@ -110,6 +110,6 @@ plugins/git/
 │   └── troubleshooting.md
 └── skills/
     ├── commit/SKILL.md
-    ├── config-updater/SKILL.md
+    ├── commit-config/SKILL.md
     └── git-hooks-setup/SKILL.md
 ```
