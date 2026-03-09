@@ -33,13 +33,13 @@ individual_skills:
       - "fix(conventional-commits): Fix YAML syntax in specificity guide"
       - "refactor(conventional-commits): Extract templates to split config"
 
-  git-hooks-setup:
+  git:
     patterns:
-      - "skills/git-hooks-setup/**"
-    description: "Git hooks setup skill"
+      - "plugins/git/**"
+    description: "Git workflow plugin (commits + hooks)"
     examples:
-      - "feat(git-hooks-setup): Add copiable bundles"
-      - "docs(git-hooks-setup): Add implementation examples"
+      - "feat(git): Add copiable hook bundles"
+      - "refactor(git): Merge commit-expert and git-hooks-setup"
 
   git-strategy:
     patterns:

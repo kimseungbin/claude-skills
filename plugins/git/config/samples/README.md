@@ -1,6 +1,6 @@
-# Commit Expert Samples
+# Commit Samples
 
-Split configuration samples for the `commit-expert` subagent.
+Split configuration samples for the `commit` skill.
 
 ## Quick Start
 
@@ -11,9 +11,9 @@ Split configuration samples for the `commit-expert` subagent.
 
 2. Copy to your project:
    ```bash
-   mkdir -p .claude/config/commit-expert
-   cp simple-main.yaml .claude/config/commit-expert/main.yaml
-   cp -r types/ scopes/ .claude/config/commit-expert/
+   mkdir -p .claude/config/git/commit
+   cp simple-main.yaml .claude/config/git/commit/main.yaml
+   cp -r types/ scopes/ .claude/config/git/commit/
    ```
 
 3. Customize scopes for your project structure
@@ -79,7 +79,7 @@ scopes_quick:
 
 ### Add Custom Examples
 
-Create `.claude/config/commit-expert/examples/my-project.yaml`:
+Create `.claude/config/git/commit/examples/my-project.yaml`:
 
 ```yaml
 examples:

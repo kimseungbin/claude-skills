@@ -29,10 +29,10 @@ skill_enhancement:
       - "skills/cdk-expert/SKILL.md"
     explanation: "New capability within existing skill"
 
-  - commit: "feat(agents): Add commit-expert subagent with history analysis"
+  - commit: "feat(git): Add commit skill with history analysis"
     files:
-      - ".claude/agents/commit-expert.md"
-    explanation: "New subagent is a feature"
+      - "plugins/git/skills/commit/SKILL.md"
+    explanation: "New skill is a feature"
 
 # Skill documentation examples
 skill_documentation:
@@ -46,9 +46,9 @@ skill_documentation:
       - "skills/cdk-expert/docs/troubleshooting/troubleshooting.md"
     explanation: "Documentation within skill scope"
 
-  - commit: "docs(git-hooks-setup): Add implementation examples"
+  - commit: "docs(git): Add implementation examples"
     files:
-      - "skills/git-hooks-setup/examples/**"
+      - "skills/git/examples/**"
     explanation: "Examples are documentation"
 
 # Skill refactoring examples

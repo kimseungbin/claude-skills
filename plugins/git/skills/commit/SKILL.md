@@ -17,10 +17,11 @@ You are an expert at creating high-quality git commits following the Conventiona
 
 ## Configuration Paths
 
-- **Project-specific**: `.claude/config/commit-expert/` (check first)
-- **Default samples**: `claude-skills/plugins/commit-expert/config/samples/`
+- **Project-specific (new)**: `.claude/config/git/commit/` (check first)
+- **Project-specific (deprecated)**: `.claude/config/commit-expert/` (fallback — warn user to migrate)
+- **Default samples**: `claude-skills/plugins/git/config/samples/`
 
-Use project-specific config if exists, otherwise use samples as reference.
+Check new path first. If not found, check deprecated path and show: "⚠️ Config path `.claude/config/commit-expert/` is deprecated. Run `Skill(git:config-updater)` to migrate to `.claude/config/git/commit/`."
 
 ## Pre-loaded Context
 
@@ -37,10 +38,10 @@ Use project-specific config if exists, otherwise use samples as reference.
 !`git log --oneline -30 --pretty=format:"%s" 2>/dev/null || echo "NO_HISTORY: initial repo, use Conventional Commits defaults"`
 
 ### Project Config
-!`cat .claude/config/commit-expert/main.yaml 2>/dev/null`
+!`cat .claude/config/git/commit/main.yaml 2>/dev/null || cat .claude/config/commit-expert/main.yaml 2>/dev/null`
 
 ### Config Exists
-!`test -f .claude/config/commit-expert/main.yaml && echo "true" || echo "false"`
+!`test -f .claude/config/git/commit/main.yaml && echo "new" || (test -f .claude/config/commit-expert/main.yaml && echo "deprecated" || echo "false")`
 
 ## Workflow
 
@@ -48,8 +49,10 @@ Use project-specific config if exists, otherwise use samples as reference.
 
 If **Config Exists** above is `false`, ask the user with AskUserQuestion:
 
-- **Set up config** — Invoke `Skill(commit-expert:config-updater)` and stop
+- **Set up config** — Invoke `Skill(git:config-updater)` and stop
 - **Continue with defaults** — Proceed to Step 1 using samples as fallback
+
+If **Config Exists** above is `deprecated`, show the deprecation warning (see Configuration Paths above) and proceed with the deprecated config.
 
 ### Step 1: Analyze All Changes
 

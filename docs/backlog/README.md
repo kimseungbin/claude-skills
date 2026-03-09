@@ -26,9 +26,8 @@ Documentation files needed for user-facing skill information:
    - Priority: High | Time: 1 hour
    - Missing user-facing documentation
 
-2. **[Add README.md for git-hooks-setup](pending/02-readme-git-hooks-setup.md)**
-   - Priority: High | Time: 1.5 hours
-   - Missing user-facing documentation
+2. ~~**[Add README.md for git-hooks-setup](pending/02-readme-git-hooks-setup.md)**~~
+   - **OBSOLETE**: git-hooks-setup merged into `plugins/git/` plugin (has README.md)
 
 3. **[Add README.md for nestjs-patterns](pending/03-readme-nestjs-patterns.md)**
    - Priority: High | Time: 1 hour
@@ -50,11 +49,10 @@ Configuration documentation for project-specific customization:
    - Priority: Medium | Time: 45 minutes
    - Missing project config documentation
 
-New feature - Claude Code subagent:
+~~New feature - Claude Code skill isolation:~~
 
-11. **[Create commit-expert Subagent](pending/11-commit-expert-subagent.md)**
-    - Priority: Medium
-    - Replace conventional-commits skill with isolated subagent
+11. ~~**[Create commit-expert Subagent](pending/11-commit-expert-subagent.md)**~~
+    - **OBSOLETE**: commit skill already uses `context: fork` for isolation
 
 ### Low Priority (3 tasks)
 
@@ -64,9 +62,8 @@ Template files for easier project setup:
    - Priority: Low | Time: 15 minutes
    - Extract inline example to template file
 
-8. **[Create config-template.yaml for git-hooks-setup](pending/08-config-template-git-hooks-setup.md)**
-   - Priority: Low | Time: 20 minutes
-   - Create comprehensive config template
+8. ~~**[Create config-template.yaml for git-hooks-setup](pending/08-config-template-git-hooks-setup.md)**~~
+   - **OBSOLETE**: git-hooks-setup merged into `plugins/git/` plugin
 
 9. **[Create config-template.md for git-strategy](pending/09-config-template-git-strategy.md)**
    - Priority: Low | Time: 30 minutes
@@ -77,12 +74,12 @@ Template files for easier project setup:
 | Skill | Tasks | Status |
 |-------|-------|--------|
 | claude-md-refactoring | 2 tasks | #01 README, #05 Config section |
-| git-hooks-setup | 2 tasks | #02 README, #08 Config template |
+| ~~git-hooks-setup~~ | ~~2 tasks~~ | ~~#02 README, #08 Config template~~ (merged into `plugins/git/`) |
 | nestjs-patterns | 2 tasks | #03 README, #06 Config section |
 | pull-request-management | 1 task | #04 README |
 | cdk-expert | 1 task | #07 Config template |
 | git-strategy | 1 task | #09 Config template |
-| conventional-commits | 1 task | #11 Subagent replacement |
+| ~~conventional-commits~~ | ~~1 task~~ | ~~#11 Subagent replacement~~ (obsolete — already using `context: fork`) |
 
 ## Estimated Total Time
 
@@ -98,7 +95,7 @@ Start with these for immediate impact:
 
 1. ✅ ~~**Task #10** - Rename skill.md (5 minutes)~~ **COMPLETED**
 2. **Task #07** - Create cdk-expert config template (15 minutes)
-3. **Task #08** - Create git-hooks-setup config template (20 minutes)
+3. ~~**Task #08** - Create git-hooks-setup config template~~ (OBSOLETE)
 4. **Task #09** - Create git-strategy config template (30 minutes)
 
 **Remaining quick wins:** ~1 hour, completes all low-priority tasks
@@ -110,7 +107,7 @@ Skills reviewed against skill-creator rules:
 | Status | Count | Skills |
 |--------|-------|--------|
 | ✅ Fully Compliant | 5 | conventional-commits, maintaining-documentation, cdk-expert, skill-creator, pull-request-management |
-| ⚠️ Partially Compliant | 3 | claude-md-refactoring, git-hooks-setup, nestjs-patterns |
+| ⚠️ Partially Compliant | 2 | claude-md-refactoring, nestjs-patterns |
 | ✅ Mostly Compliant | 1 | git-strategy |
 
 ## Exemplary Skills

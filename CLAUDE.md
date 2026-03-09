@@ -28,8 +28,7 @@ claude-skills/
 │   └── skill-creator/
 ├── plugins/                        # Standalone plugins
 │   ├── codebase-index/             # Exploration detection and indexing
-│   ├── commit-expert/              # Commit generation with isolated context
-│   ├── git-hooks-setup/            # Project-specific git hooks generation
+│   ├── git/                        # Git workflow: commits + hooks
 │   ├── github-issue-writer/        # Issue management with sub-issues
 │   └── github-pr-management/       # PR creation and management
 ├── CLAUDE.md                       # This file
@@ -131,36 +130,26 @@ Issue management with sub-issue support via GraphQL API, mermaid diagrams, and G
 
 ---
 
-### commit-expert
-**When to use:** Creating commits with pattern learning and smart ordering
+### git
+**When to use:** Creating commits with pattern learning and smart ordering, or setting up project-specific git hooks
 
-Enhanced commit generation with:
+Unified git workflow plugin combining commit generation and hook setup:
 - Context isolation via `context: fork` (separate from main conversation)
 - Commit history analysis (learns project's existing patterns)
 - Smart commit ordering (deps → features → tests → docs)
 - Multi-commit splitting and implementation guides
+- Pre-built hook bundles for common project types (TypeScript, monorepo, AWS CDK)
 
 **Configuration:**
-- Samples: `claude-skills/plugins/commit-expert/config/samples/` (reference templates)
-- Project-specific: `.claude/config/commit-expert/main.yaml` (copy from samples)
+- Samples: `claude-skills/plugins/git/config/samples/` (reference templates)
+- Project-specific: `.claude/config/git/commit/main.yaml` (copy from samples)
 
 **Skills:**
 - `commit` - Main skill for commit generation
 - `config-updater` - Update config when plugin version changes
+- `git-hooks-setup` - Git hook setup and generation
 
-**Invoke:** `Skill(commit)`
-
----
-
-### git-hooks-setup
-**When to use:** Setting up project-specific git hooks, pre-commit validation, quality gates
-
-Generates custom git hooks tailored to your project's needs. Includes pre-built bundles for common project types (TypeScript, monorepo, AWS CDK) with shared library functions.
-
-**Skills:**
-- `git-hooks-setup` - Main skill for hook setup and generation
-
-**Invoke:** `Skill(git-hooks-setup)`
+**Invoke:** `Skill(commit)` or `Skill(git-hooks-setup)`
 
 ---
 
@@ -249,8 +238,8 @@ Skills should be generic and reusable. For project-specific customizations, use 
 # User says: "For this project, all commits must include PROJ-XXX ticket numbers"
 
 # Create config directory and file
-mkdir -p .claude/config/commit-expert
-cat > .claude/config/commit-expert/main.yaml <<EOF
+mkdir -p .claude/config/git/commit
+cat > .claude/config/git/commit/main.yaml <<EOF
 project: my-project
 ticket_format: "PROJ-{number}"
 required_ticket: true

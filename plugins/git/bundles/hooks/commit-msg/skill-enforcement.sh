@@ -12,7 +12,7 @@
 #   4. git config core.hooksPath .githooks
 #
 # INTEGRATION:
-#   1. Add footer requirement to .claude/config/commit-expert/main.yaml:
+#   1. Add footer requirement to .claude/config/git/commit/main.yaml:
 #
 #      conventions:
 #        footer:
@@ -45,7 +45,7 @@ COMMIT_MSG_FILE="$1"
 # Read the commit message
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 
-# Check if commit message has the agent marker
+# Check if commit message has the skill marker
 if ! echo "$COMMIT_MSG" | grep -q "Skill: commit"; then
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -63,7 +63,7 @@ if ! echo "$COMMIT_MSG" | grep -q "Skill: commit"; then
     echo "│  ${SYM_CROSS:-✗} DO NOT use: git commit directly                 │"
     echo "└─────────────────────────────────────────────────────┘"
     echo ""
-    echo "The agent ensures:"
+    echo "The skill ensures:"
     echo "  - Proper conventional commit format (type(scope): subject)"
     echo "  - Intelligent multi-commit splitting"
     echo "  - Follows project-specific rules"

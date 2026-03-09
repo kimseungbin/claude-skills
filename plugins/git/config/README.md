@@ -1,46 +1,46 @@
-# Commit Expert Configuration
+# Commit Configuration
 
-Sample configuration for the `commit-expert` subagent.
+Sample configuration for the `commit` skill in the `git` plugin.
 
 ## Quick Start
 
 1. **Copy a sample configuration:**
    ```bash
-   mkdir -p .claude/config/commit-expert
+   mkdir -p .claude/config/git/commit
 
    # Choose based on your project type:
    # Small projects:
-   cp claude-skills/config/commit-expert/samples/simple-main.yaml \
-      .claude/config/commit-expert/main.yaml
+   cp claude-skills/config/git/commit/samples/simple-main.yaml \
+      .claude/config/git/commit/main.yaml
 
    # Monorepo:
-   cp claude-skills/config/commit-expert/samples/monorepo-main.yaml \
-      .claude/config/commit-expert/main.yaml
+   cp claude-skills/config/git/commit/samples/monorepo-main.yaml \
+      .claude/config/git/commit/main.yaml
 
    # Infrastructure (CDK/Terraform):
-   cp claude-skills/config/commit-expert/samples/infrastructure-main.yaml \
-      .claude/config/commit-expert/main.yaml
+   cp claude-skills/config/git/commit/samples/infrastructure-main.yaml \
+      .claude/config/git/commit/main.yaml
    ```
 
 2. **Copy supporting files:**
    ```bash
-   cp -r claude-skills/config/commit-expert/samples/types \
-         claude-skills/config/commit-expert/samples/scopes \
-         .claude/config/commit-expert/
+   cp -r claude-skills/config/git/commit/samples/types \
+         claude-skills/config/git/commit/samples/scopes \
+         .claude/config/git/commit/
    ```
 
 3. **Customize scopes for your project** in `main.yaml`
 
 4. **Commit config files:**
    ```bash
-   git add .claude/config/commit-expert/
-   git commit -m "chore(config): Add commit-expert configuration"
+   git add .claude/config/git/commit/
+   git commit -m "chore(config): Add commit configuration"
    ```
 
 ## Directory Structure
 
 ```
-config/commit-expert/
+config/git/commit/
 ├── README.md                # This file
 ├── samples/                 # Sample configurations
 │   ├── README.md           # Sample usage guide
@@ -60,19 +60,19 @@ config/commit-expert/
 
 ## Configuration Priority
 
-The commit-expert agent loads configuration in this order:
+The commit skill loads configuration in this order:
 
 1. **Project-specific** (checked first):
-   `.claude/config/commit-expert/main.yaml`
+   `.claude/config/git/commit/main.yaml`
 
 2. **Default samples** (reference only):
-   `claude-skills/config/commit-expert/samples/`
+   `claude-skills/config/git/commit/samples/`
 
 ## Customization
 
 ### Adding Project-Specific Scopes
 
-Edit `.claude/config/commit-expert/main.yaml`:
+Edit `.claude/config/git/commit/main.yaml`:
 
 ```yaml
 scopes_quick:
@@ -98,7 +98,7 @@ Available: `infrastructure`, `frontend`, `backend`, `fullstack`
 
 ### Adding Custom Examples
 
-Create `.claude/config/commit-expert/examples/my-project.yaml`:
+Create `.claude/config/git/commit/examples/my-project.yaml`:
 
 ```yaml
 examples:

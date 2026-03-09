@@ -1,6 +1,6 @@
 # Simple Project Configuration
 # For small projects with basic commit conventions
-# Copy to: .claude/config/commit-expert/main.yaml
+# Copy to: .claude/config/git/commit/main.yaml
 
 # Version must match plugin version for compatibility
 version: "1.0.0"

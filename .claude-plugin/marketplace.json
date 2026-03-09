@@ -11,10 +11,10 @@
       "version": "0.1.17"
     },
     {
-      "name": "commit-expert",
-      "source": "./plugins/commit-expert",
-      "description": "Expert at creating Conventional Commits with intelligent multi-commit splitting, pattern learning from project history, and smart commit ordering",
-      "version": "1.0.8"
+      "name": "git",
+      "source": "./plugins/git",
+      "description": "Git workflow tools: Conventional Commits with smart splitting, and custom git hooks generation",
+      "version": "1.0.1"
     },
     {
       "name": "korean-technical-translator",
@@ -32,7 +32,7 @@
       "name": "marketplace-feedback",
       "source": "./plugins/marketplace-feedback",
       "description": "Submit bug reports and feature requests for claude-skills marketplace plugins",
-      "version": "1.0.1"
+      "version": "1.0.2"
     }
   ]
 }

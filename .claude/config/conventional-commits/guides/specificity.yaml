@@ -19,11 +19,11 @@ specificity_checklist:
   question_2:
     check: "Does the title use specific verbs (Add, Extract, Fix, Reorganize)?"
     good_examples:
-      - "feat(agents): Add commit-expert subagent"
+      - "feat(git): Add commit skill"
       - "refactor(cdk-expert): Extract troubleshooting to separate guide"
       - "fix(conventional-commits): Correct YAML syntax"
     bad_examples:
-      - "feat(agents): Update agent"
+      - "feat(git): Update skill"
       - "refactor(cdk-expert): Change structure"
       - "fix(conventional-commits): Fix issue"
     why_bad: "Generic verbs don't convey what action was taken"
@@ -31,11 +31,11 @@ specificity_checklist:
   question_3:
     check: "Can you understand the change without reading the body?"
     good_examples:
-      - "feat(git-hooks-setup): Add copiable bundles for ready-to-use hooks"
+      - "feat(git): Add copiable bundles for ready-to-use hooks"
       - "docs(maintaining-documentation): Add docs/ organization strategy"
       - "refactor(pull-request-management): Reorganize into task-oriented structure"
     bad_examples:
-      - "feat(git-hooks-setup): Add bundles"
+      - "feat(git): Add bundles"
       - "docs(maintaining-documentation): Add strategy"
       - "refactor(pull-request-management): Reorganize"
     why_bad: "Requires reading body to understand the change"
@@ -69,7 +69,7 @@ skills_repo_patterns:
   good_patterns:
     - "feat(skills): Add {skill-name} skill"
     - "feat({skill-name}): Add {capability} support"
-    - "feat(agents): Add {agent-name} subagent"
+    - "feat({plugin-name}): Add {skill-name} skill"
     - "docs({skill-name}): Add {topic} guide"
     - "refactor({skill-name}): Extract {component} to separate file"
     - "fix({skill-name}): Correct {specific-issue}"
@@ -78,7 +78,7 @@ skills_repo_patterns:
   bad_patterns:
     - "feat(skills): Add skill"
     - "feat({skill-name}): Update"
-    - "feat(agents): New agent"
+    - "feat(git): New skill"
     - "docs({skill-name}): Add docs"
     - "refactor({skill-name}): Refactor"
     - "fix({skill-name}): Fix bug"
@@ -97,7 +97,7 @@ improvement_examples:
     after: "feat(skills): Add nestjs-patterns skill with repository pattern guide"
 
   - before: "docs(project): Update CLAUDE.md"
-    after: "docs(project): Document commit-expert subagent in CLAUDE.md"
+    after: "docs(project): Document commit skill in CLAUDE.md"
 
   - before: "refactor(cdk-expert): Reorganize docs"
     after: "refactor(cdk-expert): Reorganize docs into task-oriented structure"

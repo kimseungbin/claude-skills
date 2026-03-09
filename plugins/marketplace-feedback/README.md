@@ -27,7 +27,7 @@ The skill will:
 Issues are automatically labeled with:
 
 - **Type**: `type:bug` or `type:feature`
-- **Plugin**: `plugin:<name>` (e.g., `plugin:commit-expert`)
+- **Plugin**: `plugin:<name>` (e.g., `plugin:git`)
 - **Priority**: `priority:p0` through `priority:p3`
 - **Source**: `marketplace-feedback`
 

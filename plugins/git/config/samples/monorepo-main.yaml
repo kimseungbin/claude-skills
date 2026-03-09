@@ -1,6 +1,6 @@
 # Monorepo Project Configuration
 # For multi-package projects with complex structure
-# Copy to: .claude/config/commit-expert/main.yaml
+# Copy to: .claude/config/git/commit/main.yaml
 
 # Version must match plugin version for compatibility
 version: "1.0.0"

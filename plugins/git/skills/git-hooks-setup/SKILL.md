@@ -129,7 +129,7 @@ Based on project type:
 - **AWS CDK** → `bundles/hooks/pre-push/cdk-safety.sh`
 - **Simple TS/JS** → `bundles/hooks/pre-commit/basic.sh`
 
-**See**: [decision-tree.md](../../decision-tree.md) for visual selection guide
+**See**: [decision-tree.md](../../guides/decision-tree.md) for visual selection guide
 
 ### 3. Customize Hook
 
@@ -179,7 +179,7 @@ Adapt template to project's scripts:
 
 - **Setup & Verification**: [guides/setup-guide.md](../../guides/setup-guide.md)
 - **Project Analysis**: [guides/project-detection.md](../../guides/project-detection.md)
-- **Hook Selection**: [decision-tree.md](../../decision-tree.md)
+- **Hook Selection**: [decision-tree.md](../../guides/decision-tree.md)
 - **Testing Hooks**: [guides/testing-hooks.md](../../guides/testing-hooks.md)
 - **Troubleshooting**: [guides/troubleshooting.md](../../guides/troubleshooting.md)
 

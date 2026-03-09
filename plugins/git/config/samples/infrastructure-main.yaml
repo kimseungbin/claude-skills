@@ -1,6 +1,6 @@
 # Infrastructure Project Configuration
 # For CDK, Terraform, Pulumi, and other IaC projects
-# Copy to: .claude/config/commit-expert/main.yaml
+# Copy to: .claude/config/git/commit/main.yaml
 
 # Version must match plugin version for compatibility
 version: "1.0.0"

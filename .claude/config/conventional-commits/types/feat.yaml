@@ -1,11 +1,11 @@
 # Type: feat - Feature commits for claude-skills repository
 
-description: "New skill, subagent, command, or significant capability"
+description: "New skill, command, or significant capability"
 
 # When to use feat in this repository
 when_to_use:
   - "Adding a new skill to skills/ directory"
-  - "Adding a new subagent to .claude/agents/"
+  - "Adding a new plugin to plugins/"
   - "Adding a new slash command"
   - "Adding a new implementation guide to existing skill"
   - "Adding significant new capability to existing skill"
@@ -23,9 +23,9 @@ decision_tree:
     scope: "skills or specific skill name"
     example: "feat(skills): Add nestjs-patterns skill"
 
-  new_subagent:
-    scope: "agents"
-    example: "feat(agents): Add commit-expert subagent"
+  new_plugin:
+    scope: "plugins or plugin name"
+    example: "feat(git): Add git-hooks-setup skill"
 
   new_command:
     scope: "commands"

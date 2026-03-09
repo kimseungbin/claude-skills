@@ -13,7 +13,7 @@ format:
 # Quick reference - most common types (80% of commits)
 # For detailed decision trees, see types/ directory
 types_quick:
-  feat: "New skill, subagent, command, or capability"
+  feat: "New skill, command, or capability"
   fix: "Bug fix in skill logic or documentation"
   docs: "Documentation changes only"
   refactor: "Restructure without behavior change"
@@ -28,7 +28,7 @@ scopes_quick:
   cdk-expert: "CDK expert skill"
   # Use general scope for cross-cutting changes
   skills: "Multiple skills"
-  agents: "Subagent definitions"
+  plugins: "Plugin definitions"
   project: "Project-level files"
 
 # Footer conventions
@@ -41,7 +41,7 @@ footer:
 type_decision_tree:
   - question: "What are you doing?"
     answers:
-      adding_new_skill_or_feature: "feat - New skill, subagent, command, implementation guide"
+      adding_new_skill_or_feature: "feat - New skill, command, implementation guide"
       fixing_bug_or_error: "fix - Correcting broken behavior in skill or docs"
       changing_structure: "refactor - Reorganizing files, extracting content"
       updating_docs_only: "docs - README, SKILL.md, guides (no logic change)"
@@ -57,9 +57,9 @@ type_decision_tree:
     project_docs:
       description: "Top-level CLAUDE.md, README.md"
       type: "docs(project)"
-    subagents:
-      description: "Agent definitions in .claude/agents/"
-      type: "feat(agents) or refactor(agents)"
+    plugins:
+      description: "Plugin definitions in plugins/"
+      type: "feat(plugins) or refactor(plugins)"
     commands:
       description: "Slash commands in commands/"
       type: "feat(commands) or docs(commands)"
@@ -69,7 +69,7 @@ scope_decision:
   - question: "What files changed?"
     single_skill: "Use skill name (conventional-commits, cdk-expert, etc.)"
     multiple_skills: "Use 'skills'"
-    subagents: "Use 'agents'"
+    plugins: "Use 'plugins'"
     commands: "Use 'commands'"
     project_files: "Use 'project'"
     backlog: "Use 'backlog'"
