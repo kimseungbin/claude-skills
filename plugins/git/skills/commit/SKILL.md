@@ -17,11 +17,10 @@ You are an expert at creating high-quality git commits following the Conventiona
 
 ## Configuration Paths
 
-- **Project-specific (new)**: `.claude/config/git/commit/` (check first)
-- **Project-specific (deprecated)**: `.claude/config/commit-expert/` (fallback — warn user to migrate)
+- **Project-specific**: `.claude/config/git/commit/` (check first)
 - **Default samples**: `claude-skills/plugins/git/config/samples/`
 
-Check new path first. If not found, check deprecated path and show: "⚠️ Config path `.claude/config/commit-expert/` is deprecated. Run `Skill(git:commit-config)` to migrate to `.claude/config/git/commit/`."
+Use project-specific config if exists, otherwise use samples as reference.
 
 ## Pre-loaded Context
 
@@ -38,10 +37,10 @@ Check new path first. If not found, check deprecated path and show: "⚠️ Conf
 !`git log --oneline -30 --pretty=format:"%s" 2>/dev/null || echo "NO_HISTORY: initial repo, use Conventional Commits defaults"`
 
 ### Project Config
-!`cat .claude/config/git/commit/main.yaml 2>/dev/null || cat .claude/config/commit-expert/main.yaml 2>/dev/null`
+!`cat .claude/config/git/commit/main.yaml 2>/dev/null || echo "NO_CONFIG: Run Skill(git:commit-config) to set up project-specific configuration."`
 
 ### Config Exists
-!`test -f .claude/config/git/commit/main.yaml && echo "new" || (test -f .claude/config/commit-expert/main.yaml && echo "deprecated" || echo "false")`
+!`test -f .claude/config/git/commit/main.yaml && echo "true" || echo "false"`
 
 ## Workflow
 
@@ -51,8 +50,6 @@ If **Config Exists** above is `false`, ask the user with AskUserQuestion:
 
 - **Set up config** — Invoke `Skill(git:commit-config)` and stop
 - **Continue with defaults** — Proceed to Step 1 using samples as fallback
-
-If **Config Exists** above is `deprecated`, show the deprecation warning (see Configuration Paths above) and proceed with the deprecated config.
 
 ### Step 1: Analyze All Changes
 

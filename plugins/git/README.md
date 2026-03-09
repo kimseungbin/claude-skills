@@ -25,7 +25,7 @@ Expert at creating Conventional Commits with intelligent multi-commit splitting,
 
 ### commit-config
 
-Reviews and updates commit configuration when the plugin version changes. Also migrates deprecated config paths from `commit-expert` to `git/commit`.
+Sets up and updates commit message configuration. Compares project config with latest samples and suggests updates.
 
 **Invoke:** `Skill(git:commit-config)`
 
@@ -82,13 +82,6 @@ pre_push:
     - test:e2e
     - docker:build
 ```
-
-## Migration from commit-expert
-
-If you previously used the `commit-expert` plugin:
-
-1. Run `Skill(git:commit-config)` — it will automatically migrate your config from `.claude/config/commit-expert/` to `.claude/config/git/commit/`
-2. Update your `CLAUDE.md` references from `Skill(commit-expert:commit-config)` to `Skill(git:commit-config)`
 
 ## Directory Structure
 

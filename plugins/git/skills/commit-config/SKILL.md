@@ -1,6 +1,6 @@
 ---
 name: commit-config
-description: Set up, update, and migrate commit message configuration. Compares project config with latest samples and suggests updates.
+description: Set up and update commit message configuration. Compares project config with latest samples and suggests updates.
 allowed-tools:
   - Read
   - Edit
@@ -10,25 +10,16 @@ allowed-tools:
 
 # Commit Config
 
-Sets up, updates, and migrates commit message configuration.
+Sets up and updates commit message configuration.
 
 ## When to Use
 
 This skill is invoked when:
-1. `commit` skill detects a version mismatch between plugin and config
+1. `commit` skill detects no config exists and user wants to set one up
 2. User wants to review their config against latest samples
 3. User wants to upgrade their config to a new plugin version
-4. User needs to migrate from deprecated `.claude/config/commit-expert/` path
 
 ## Workflow
-
-### Step 0: Migrate Deprecated Path (if needed)
-
-Check if `.claude/config/commit-expert/` exists but `.claude/config/git/commit/` does not:
-1. Create `.claude/config/git/commit/`
-2. Move all files from `.claude/config/commit-expert/` to `.claude/config/git/commit/`
-3. Remove `.claude/config/commit-expert/`
-4. Inform user of the migration
 
 ### Step 1: Read Version Information
 
