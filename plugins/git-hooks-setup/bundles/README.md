@@ -242,16 +242,11 @@ git push --no-verify
 
 ## Updating Bundles
 
-When the submodule updates with new bundle versions:
+When the plugin updates with new bundle versions, re-run the setup skill:
 
 ```bash
-# In your project
-cd claude-skills  # or your submodule path
-git pull origin main
-
-# Re-copy updated files
-cp -r skills/git-hooks-setup/bundles/base/.githooks/lib/ ../.githooks/lib/
-cp -r skills/git-hooks-setup/bundles/base/.githooks/scripts/ ../.githooks/scripts/
+# Invoke the git-hooks-setup skill to regenerate hooks
+Skill(git-hooks-setup)
 ```
 
-Consider using a setup script for easier updates.
+Alternatively, manually re-copy updated files from the installed plugin's bundles directory.

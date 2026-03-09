@@ -1,10 +1,10 @@
 # Project-Specific Configuration Guide
 
-This guide explains how to customize shared skills for project-specific requirements without modifying the symlinked skills themselves.
+This guide explains how to customize shared skills for project-specific requirements without modifying the installed skills themselves.
 
 ## Overview
 
-Skills in this repository are designed to be generic and reusable. When you need project-specific customizations, use external config files instead of modifying the symlinked skills.
+Skills in this repository are designed to be generic and reusable. When you need project-specific customizations, use external config files instead of modifying the installed skills.
 
 ## The Config File Pattern
 
@@ -17,22 +17,20 @@ Skills can optionally read from `.claude/config/<skill-name>.yaml` for project-s
 ```
 .claude/
 ├── skills/
-│   └── conventional-commits@     # Symlink to submodule (generic)
-├── config/
-│   └── conventional-commits.yaml # Project-specific config (real file)
-└── submodules/
-    └── claude-skills/
+│   └── conventional-commits/     # Installed via marketplace (generic)
+└── config/
+    └── conventional-commits.yaml # Project-specific config (real file)
 ```
 
 ### How It Works
 
-1. **Skill symlinks remain unchanged** - Full directory symlinks to submodule
+1. **Installed skills remain unchanged** - Managed by the marketplace
 2. **Config files are project-specific** - Real files committed to your project repo
 3. **Skills check for config files** - If `.claude/config/<skill-name>.yaml` exists, skill uses it
 
 ## Example: Conventional Commits Skill
 
-**Generic skill (in submodule):**
+**Generic skill (installed via marketplace):**
 
 ```yaml
 # skills/conventional-commits/SKILL.md
@@ -110,8 +108,7 @@ branch_rules:
 
 ## Benefits of This Approach
 
-✅ **Symlinks stay simple** - Full directory symlinks, no file-by-file symlinking
-✅ **Clear separation** - Shared skills vs project-specific config
+✅ **Clean separation** - Shared skills vs project-specific config
 ✅ **Git-friendly** - Config files are regular files in your repo
 ✅ **Updateable** - Pull skill updates without conflicts
 ✅ **Team sharing** - Config files are committed and shared with team

@@ -68,7 +68,7 @@ preserve_sections:
 
 ⚠️ **CRITICAL: Configuration File Management** ⚠️
 
-This skill is a **git submodule** shared across multiple projects.
+This skill is installed via the **Claude Code marketplace** and shared across multiple projects.
 
 **Configuration file (optional):** `.claude/config/claude-md-refactoring.yaml`
 

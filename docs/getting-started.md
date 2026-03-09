@@ -1,74 +1,25 @@
 # Getting Started Guide
 
-This guide walks you through setting up this skills repository as a git submodule in your project.
+This guide walks you through installing skills from the Claude Code marketplace into your project.
 
 ## Prerequisites
 
-- Git installed on your system
+- Claude Code installed on your system
 - A project where you want to use Claude Code skills
-- Basic familiarity with git submodules and symlinks
 
 ## Setup Instructions
 
-Follow these steps to use this skill repository in your project.
+### Step 1: Install from Marketplace
 
-### Step 1: Add as Git Submodule
-
-In your target project, add this repository as a git submodule:
+Install this skills package using the Claude Code CLI:
 
 ```bash
-# Navigate to your project root
-cd /path/to/your/project
-
-# Add the submodule
-git submodule add <your-repo-url> claude-skills
-
-# Initialize and update the submodule
-git submodule update --init --recursive
+claude install @kimseungbin/claude-skills
 ```
 
-**Note:** The path `claude-skills` is recommended for simplicity, but you can choose any location.
+This installs all available skills and plugins into your project.
 
-### Step 2: Create Symlinks to Skills
-
-Claude Code discovers skills in `.claude/skills/`, so create symlinks from there to the skills in the submodule:
-
-```bash
-# Navigate to your skills directory
-cd .claude/skills/
-
-# Create symlinks for each skill you want to use
-ln -s ../../claude-skills/skills/claude-md-refactoring claude-md-refactoring
-ln -s ../../claude-skills/skills/test-symlink-skill test-symlink-skill
-
-# Or create symlinks for all skills at once
-cd .claude/skills && for skill_dir in ../../claude-skills/skills/*/; do
-  skill_name=$(basename "$skill_dir")
-  ln -s "../../claude-skills/skills/$skill_name" "$skill_name"
-done
-```
-
-**Important Notes:**
-- Adjust paths based on where you placed your submodule
-- **⚠️ Do NOT symlink the entire `skills/` directory** (e.g., `ln -s ../../claude-skills/skills skills`). This prevents you from adding project-specific skills to `.claude/skills/` alongside the shared ones.
-- Instead, create **individual symlinks for each skill** as shown above. This allows you to:
-  - Mix shared skills (symlinked) with project-specific skills (real directories)
-  - Selectively choose which shared skills to include
-  - Easily distinguish between shared and custom skills
-
-### Step 3: Commit the Symlinks
-
-Symlinks are tracked by git and will work for your team members:
-
-```bash
-git add .claude/skills/
-git add claude-skills/
-git add .gitmodules
-git commit -m "Add shared Claude Code skills as submodule"
-git push
-```
-
-### Step 4: Verify Setup
+### Step 2: Verify Setup
 
 Test that Claude Code can discover your skills:
 
@@ -76,18 +27,17 @@ Test that Claude Code can discover your skills:
 2. Check available skills with `/skills` command
 3. Test a skill: "Test if 'claude-md-refactoring' works"
 
-### Step 5: Add Commands (Optional)
+### Step 3: Add Commands (Optional)
 
 If you want to use the example commands from this repository:
 
 ```bash
-# Copy commands to your project (not symlinked)
-cp claude-skills/commands/*.md .claude/commands/
+# Copy commands to your project
+cp node_modules/@kimseungbin/claude-skills/commands/*.md .claude/commands/
 ```
 
-**Why copy instead of symlink?**
+**Why copy instead of reference?**
 
-- Commands are not officially documented to support symlinks in Claude Code
 - Commands are typically small and project-specific
 - Copying allows easy customization per project
 - Commands can reference project-specific skills or tools
@@ -103,110 +53,36 @@ After copying, edit the commands in `.claude/commands/` to:
 
 ### For Team Members
 
-When team members clone the repository:
-
-```bash
-# Clone with submodules
-git clone --recurse-submodules <your-project-url>
-
-# Or if already cloned, initialize submodules
-git submodule update --init --recursive
-```
-
-The symlinks work automatically, and Claude Code will discover the skills immediately.
+Once skills are installed in the project, team members simply need Claude Code installed. The skills are available automatically after cloning the repository.
 
 ### Onboarding New Projects
 
 When starting a new project that should use these skills:
 
-1. Follow Step 1-3 above to add the submodule
-2. Create symlinks for the skills you need
-3. Commit and push
-
-## Advanced: Automated Symlink Creation
-
-### Post-Checkout Hook (Optional)
-
-To automatically create symlinks after checkout, create `.git/hooks/post-checkout`:
-
-```bash
-#!/bin/bash
-
-# Navigate to skills directory
-cd .claude/skills/ || exit
-
-# Create symlinks for all skills
-for skill in ../../claude-skills/skills/*/; do
-    skill_name=$(basename "$skill")
-    ln -sf "../../claude-skills/skills/$skill_name" "$skill_name"
-done
-```
-
-Make it executable:
-
-```bash
-chmod +x .git/hooks/post-checkout
-```
-
-**Note:** This will create symlinks for ALL skills in the submodule automatically.
+1. Run `claude install @kimseungbin/claude-skills`
+2. Verify skills are available
+3. Commit any configuration changes
 
 ## Troubleshooting
-
-### Symlink Not Working
-
-**Check symlink path:**
-
-```bash
-ls -la .claude/skills/
-readlink .claude/skills/skill-name
-```
-
-**Verify submodule initialized:**
-
-```bash
-git submodule status
-```
 
 ### Skill Not Discovered by Claude Code
 
 - Ensure the skill has a `SKILL.md` file with proper frontmatter
-- Check that the symlink points to the correct directory
-- Verify the symlink target exists: `ls -la .claude/skills/skill-name`
 - Restart Claude Code
 
-### Submodule Not Updating
+### Skills Not Installing
 
 ```bash
-# Force update
-git submodule update --remote --force
+# Retry installation
+claude install @kimseungbin/claude-skills
 
-# Or reinitialize
-git submodule deinit -f claude-skills
-git submodule update --init
-```
-
-### Submodule Detached HEAD
-
-When you update a submodule, it enters "detached HEAD" state. This is normal:
-
-```bash
-cd claude-skills
-git checkout main  # Or your default branch
-git pull
-```
-
-### Team Member Can't See Submodule
-
-They need to initialize submodules after cloning:
-
-```bash
-git submodule update --init --recursive
+# Check installed packages
+claude list
 ```
 
 ## Next Steps
 
 - **Configure skills for your project**: See [Configuration Guide](configuration.md)
-- **Update skills regularly**: See [Updating Skills](#updating-skills) in the main README
 - **Contribute new skills**: See [Contributing](#contributing-new-skills) in the main README
 
 ## Questions?

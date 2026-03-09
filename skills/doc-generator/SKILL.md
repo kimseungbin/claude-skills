@@ -217,10 +217,6 @@ ls -la **/*.md
 
 ## Project Configuration Location
 
-⚠️ **CRITICAL: Configuration File Management** ⚠️
-
-This skill is a **git submodule** shared across multiple projects.
-
 **Priority order:**
 
 1. **Project-specific configuration** (PRIMARY): `.claude/config/doc-generator.yaml`

@@ -103,28 +103,15 @@ Works well with:
 
 ## Installation
 
-### As Git Submodule (Recommended)
+### Via Claude Code Marketplace
 
 ```bash
-# Add submodule to your project (if not already added)
-git submodule add https://github.com/kimseungbin/claude-skills.git claude-skills
-
-# Create symlink to git-strategy skill
-ln -s ../../claude-skills/skills/git-strategy .claude/skills/git-strategy
-
-# Create project-specific configuration
-mkdir -p .claude/config
-# Create .claude/config/git-strategy.md with project-specific workflow
+claude install kimseungbin/claude-skills
 ```
 
-### Standalone Installation
+After installing, create project-specific configuration:
 
 ```bash
-# Copy the skill directory to your project
-mkdir -p .claude/skills
-cp -r /path/to/git-strategy .claude/skills/
-
-# Create project-specific configuration
 mkdir -p .claude/config
 # Create .claude/config/git-strategy.md with project-specific workflow
 ```
@@ -175,4 +162,4 @@ When improving this skill:
 
 ## License
 
-Part of the claude-skills collection. Shared across multiple projects via git submodule.
+Part of the claude-skills collection. Distributed via the Claude Code marketplace.

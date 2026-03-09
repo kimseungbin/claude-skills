@@ -70,8 +70,7 @@ Create `skills/pull-request-management/README.md`
 - PR rules and patterns
 
 ### Installation Instructions
-- Git submodule setup
-- Symlink creation
+- Marketplace installation (`claude install @kimseungbin/claude-skills`)
 - Configuration file setup (copy from config.template.yaml)
 
 ### Usage Examples

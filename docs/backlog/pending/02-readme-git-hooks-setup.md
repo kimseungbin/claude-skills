@@ -58,8 +58,7 @@ Create `skills/git-hooks-setup/README.md`
 - Link to config template (once created in task #08)
 
 ### Installation Instructions
-- Git submodule setup
-- Symlink creation
+- Marketplace installation (`claude install @kimseungbin/claude-skills`)
 - Hook directory setup (`git config core.hooksPath .githooks`)
 
 ### Usage Examples

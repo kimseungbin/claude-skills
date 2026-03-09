@@ -45,8 +45,7 @@ Create `skills/claude-md-refactoring/README.md`
 - Support for docs/ directory organization
 
 ### Installation Instructions
-- Git submodule setup
-- Symlink creation
+- Marketplace installation (`claude install @kimseungbin/claude-skills`)
 - Optional: Configuration for custom refactoring preferences
 
 ### Usage Example

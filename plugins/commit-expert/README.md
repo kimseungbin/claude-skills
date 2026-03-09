@@ -1,21 +1,20 @@
-# Commit Expert Subagent
+# Commit Expert
 
 Expert at creating Conventional Commits with intelligent multi-commit splitting, pattern learning from project history, and smart commit ordering.
 
-## Setup
+## Installation
 
-### Step 1: Copy the Agent File
-
-Subagents do not support symlinks. Copy the agent file to your project:
+Install via the Claude Code marketplace:
 
 ```bash
-mkdir -p .claude/agents
-cp claude-skills/agents/commit-expert/commit-expert.md .claude/agents/
+claude install kimseungbin/claude-skills/plugins/commit-expert
 ```
 
-### Step 2: Set Up Configuration (Optional)
+## Setup
 
-The agent works without configuration but can be customized for your project.
+### Step 1: Set Up Configuration (Optional)
+
+The plugin works without configuration but can be customized for your project.
 
 **Choose a sample based on your project type:**
 
@@ -25,22 +24,16 @@ The agent works without configuration but can be customized for your project.
 | Monorepo | `monorepo-main.yaml` |
 | Infrastructure (CDK/Terraform) | `infrastructure-main.yaml` |
 
-**Copy configuration:**
+**Copy configuration from the plugin's sample files:**
 
 ```bash
 mkdir -p .claude/config/commit-expert
 
-# Choose one:
-cp claude-skills/config/commit-expert/samples/simple-main.yaml \
-   .claude/config/commit-expert/main.yaml
-
-# Copy supporting files (optional, for detailed guidance)
-cp -r claude-skills/config/commit-expert/samples/types \
-      claude-skills/config/commit-expert/samples/scopes \
-      .claude/config/commit-expert/
+# Copy a sample config and customize it
+# See plugins/commit-expert/config/samples/ for available templates
 ```
 
-### Step 3: Customize Scopes
+### Step 2: Customize Scopes
 
 Edit `.claude/config/commit-expert/main.yaml` to match your project structure:
 
@@ -60,34 +53,25 @@ scopes_quick:
 
 ```bash
 git add .claude/agents/commit-expert.md .claude/config/commit-expert/
-git commit -m "chore(config): Add commit-expert subagent and configuration"
+git commit -m "chore(config): Add commit-expert configuration"
 ```
 
 ## Usage
 
-Invoke the subagent directly:
+Invoke the skill:
 
-```bash
-# Via Task tool
-Task(subagent_type="commit-expert")
+```
+Skill(commit)
 ```
 
 ## Updating
 
-### Updating the Agent
+### Updating the Plugin
 
-When the source agent is updated in `claude-skills`:
+Update via the Claude Code marketplace:
 
 ```bash
-# Pull latest changes
-cd claude-skills && git pull
-
-# Re-copy the agent file
-cp claude-skills/agents/commit-expert/commit-expert.md .claude/agents/
-
-# Commit the update
-git add .claude/agents/commit-expert.md
-git commit -m "chore(agents): Update commit-expert to latest version"
+claude install kimseungbin/claude-skills/plugins/commit-expert
 ```
 
 ### Updating Configuration
@@ -115,36 +99,28 @@ Add to your `main.yaml`:
 implementation: infrastructure  # Options: infrastructure, frontend, backend, fullstack
 ```
 
-This loads domain-specific guidance from `claude-skills/config/commit-expert/guides/`.
+This loads domain-specific guidance from the plugin's bundled guides.
 
 ## Configuration Priority
 
 The agent loads configuration in this order:
 
 1. **Project-specific** (checked first): `.claude/config/commit-expert/main.yaml`
-2. **Default samples** (reference only): `claude-skills/config/commit-expert/samples/`
+2. **Default samples** (reference only): Bundled in the plugin under `config/samples/`
 
 ## Directory Structure After Setup
 
 ```
 your-project/
 ├── .claude/
-│   ├── agents/
-│   │   └── commit-expert.md      # Copied from submodule
 │   └── config/
 │       └── commit-expert/
 │           ├── main.yaml         # Project-specific config
 │           ├── types/            # (optional) Type helpers
 │           └── scopes/           # (optional) Scope helpers
-└── claude-skills/                # Git submodule
-    ├── agents/
-    │   └── commit-expert/
-    │       ├── README.md         # This file
-    │       └── commit-expert.md  # Source of truth
-    └── config/
-        └── commit-expert/
-            └── samples/          # Sample configurations
 ```
+
+The plugin itself is installed and managed by Claude Code via the marketplace.
 
 ## Features
 

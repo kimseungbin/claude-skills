@@ -8,8 +8,6 @@ This skill guides the entire process of creating a new skill, from planning to d
 
 - **Skill planning**: Understand requirements and structure
 - **File creation**: Generate SKILL.md, README.md, and optional files
-- **Submodule management**: Properly create skills in the submodule
-- **Symlink setup**: Connect skills to main project
 - **Configuration**: Set up project-specific config files
 - **Quality checks**: Verify completeness and correctness
 
@@ -47,13 +45,8 @@ Use this skill when:
 
 ## Key Features
 
-### Submodule-First Approach
-- Creates skills in `claude-skills` submodule (shared across projects)
-- Prevents accidental nesting or directory issues
-- Ensures proper git separation
-
 ### Configuration Pattern
-- Skill files in submodule (read-only, generic)
+- Skill files from marketplace (read-only, generic)
 - Project config in `.claude/config/` (writable, specific)
 - Clear separation of concerns
 
@@ -64,7 +57,7 @@ Use this skill when:
 - Integration testing steps
 
 ### Complete Workflow
-- Skill creation → Commit to submodule → Create symlink → Configure project
+- Skill creation → Commit → Publish → Configure project
 
 ## Usage Examples
 
@@ -76,12 +69,10 @@ User: "Help me create a new skill for managing AWS CDK deployments"
 Skill:
 1. Asks about skill requirements (triggers, tasks, config needs)
 2. Plans structure (name: "cdk-deployment", files needed)
-3. Creates directory in claude-skills/skills/cdk-deployment/
+3. Creates directory in skills/cdk-deployment/
 4. Generates SKILL.md with deployment instructions
 5. Generates README.md with overview
-6. Creates symlink in main project
-7. Commits to submodule
-8. Updates main project reference
+6. Commits changes
 ```
 
 ### Convert Documentation to Skill
@@ -101,14 +92,8 @@ Skill:
 
 ## Installation
 
-This skill is part of the claude-skills submodule:
-
 ```bash
-# Skill is already available if submodule exists
-ls .claude/skills/skill-creator
-
-# If missing, create symlink
-ln -s ../../claude-skills/skills/skill-creator .claude/skills/skill-creator
+claude install kimseungbin/claude-skills
 ```
 
 ## Skill Creation Process
@@ -119,16 +104,15 @@ ln -s ../../claude-skills/skills/skill-creator .claude/skills/skill-creator
 - Plan file structure
 
 ### 2. Creation Phase
-- Create directory in submodule
+- Create directory in skills/
 - Generate SKILL.md with instructions
 - Generate README.md with documentation
 - Add optional files if needed
 
 ### 3. Integration Phase
-- Commit skill to submodule
-- Create symlink in main project
+- Commit skill changes
 - Set up project-specific config
-- Update main project submodule reference
+- Publish to marketplace
 
 ### 4. Testing Phase
 - Verify skill invocation
@@ -139,13 +123,7 @@ ln -s ../../claude-skills/skills/skill-creator .claude/skills/skill-creator
 ## Common Pitfalls Avoided
 
 ### ❌ Wrong Location
-Skill prevents creating skills in main project instead of submodule
-
-### ❌ Nested Directories
-Skill checks for and prevents `claude-skills/claude-skills/` nesting
-
-### ❌ Missing Symlink
-Skill ensures symlink is created and verified
+Skill prevents creating skills outside the skills/ directory
 
 ### ❌ Incomplete Metadata
 Skill validates frontmatter completeness
@@ -179,15 +157,13 @@ The skill provides a pre-commit checklist:
 - [ ] Examples are realistic
 - [ ] Configuration pattern documented
 - [ ] README.md is user-friendly
-- [ ] Symlink created correctly
-- [ ] No nested directories
-- [ ] Skill committed to submodule
+- [ ] Skill committed to repository
 
 ## Integration with Other Skills
 
 Works well with:
 - **conventional-commits**: Creates commit messages for new skills
-- **git-strategy**: References submodule workflow
+- **git-strategy**: References git workflow
 - **pull-request-management**: Creates PRs for skill additions
 
 ## Best Practices
@@ -213,8 +189,8 @@ Works well with:
 
 After skill creation:
 
-1. Push submodule changes
-2. Commit main project changes
+1. Commit changes
+2. Push to remote
 3. Update project documentation
 4. Test skill invocation
 5. Create PR if needed
@@ -238,4 +214,4 @@ When improving this skill:
 
 ## License
 
-Part of the claude-skills collection. Shared across multiple projects via git submodule.
+Part of the claude-skills collection. Distributed via the Claude Code marketplace.

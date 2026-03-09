@@ -36,7 +36,7 @@ claude-skills/
 └── README.md                       # Setup instructions for humans
 ```
 
-**Note:** In this repo, `.claude/commands/` contains **copied files** (not symlinks). When using this repo as a submodule in other projects, users should **copy** commands, not symlink them. Commands do not support symlinks in Claude Code.
+**Note:** In this repo, `.claude/commands/` contains **copied files** (not symlinks). Commands do not support symlinks in Claude Code.
 
 ## Available Skills
 
@@ -179,18 +179,17 @@ Submit feedback directly to the claude-skills GitHub Issues from any project. Au
 - **create-pr**: Invokes the pull-request-management skill
 - **refactor-claude-md**: Invokes the claude-md-refactoring skill
 
-**Note:** Commands should be copied to `.claude/commands/` in target projects, not symlinked. Commands are typically project-specific and small enough to copy.
+**Note:** Commands are included automatically when installed via the marketplace.
 
 ## Working with This Repository
 
 ### If User Asks About Setup
 
-Direct them to README.md for complete setup instructions. Key steps:
+Direct them to README.md for complete setup instructions. Install via the Claude Code marketplace:
 
-1. Add this repo as git submodule in target project
-2. Create symlinks from `.claude/skills/` to `skills/` directory
-3. Copy desired commands from `commands/` to `.claude/commands/` (don't symlink)
-4. Commit symlinks and commands
+```bash
+claude install kimseungbin/claude-skills
+```
 
 ### Adding New Skills
 
@@ -223,7 +222,7 @@ Skills should be generic and reusable. For project-specific customizations, use 
 
 **Pattern:**
 
-- Skills are symlinked from submodule (generic, shared)
+- Skills are installed via the marketplace (generic, shared)
 - Config files are real files in `.claude/config/` (project-specific)
 - Skills check for config files and use them if present
 
@@ -283,15 +282,6 @@ This skill can be customized using `.claude/config/<skill-name>.yaml`.
 
 ## Key Commands
 
-**Create symlinks for all skills:**
-
-```bash
-cd .claude/skills && for skill_dir in ../../skills/*/; do
-  skill_name=$(basename "$skill_dir")
-  ln -s "../../skills/$skill_name" "$skill_name"
-done
-```
-
 **List available skills:**
 
 ```bash
@@ -307,5 +297,5 @@ tree skills/skill-name
 ## Notes
 
 - Skills in `skills/` are the source of truth
-- `.claude/skills/` contains symlinks for testing
-- README.md contains setup instructions for using this repo as a submodule in other projects
+- `.claude/skills/` contains symlinks for local testing
+- This repo is distributed via the Claude Code marketplace (`claude install`)

@@ -33,7 +33,7 @@ Insert at the end of SKILL.md, after all patterns and examples.
 
 ⚠️ **CRITICAL: Configuration File Management** ⚠️
 
-This skill is a **git submodule** shared across multiple projects.
+This skill is installed via the **Claude Code marketplace** and shared across multiple projects.
 
 **Priority order:**
 
@@ -42,7 +42,7 @@ This skill is a **git submodule** shared across multiple projects.
 
 **Configuration Pattern:**
 
-- `.claude/skills/nestjs-patterns/` → Symlink to submodule (READ-ONLY, shared)
+- `.claude/skills/nestjs-patterns/` → Installed via marketplace (READ-ONLY, shared)
 - `.claude/config/nestjs-patterns.yaml` → Real file in project (WRITABLE, project-specific)
 
 **When to create config:**
@@ -50,7 +50,7 @@ This skill is a **git submodule** shared across multiple projects.
 1. Check if `.claude/config/nestjs-patterns.yaml` exists
 2. If NOT exists, create it when user specifies project-specific patterns
 3. If EXISTS, update it with new rules
-4. NEVER modify files in the skill directory (it's a submodule!)
+4. NEVER modify files in the skill directory (it's managed by the marketplace)
 
 **Example config:**
 

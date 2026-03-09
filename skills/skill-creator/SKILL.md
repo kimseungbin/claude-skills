@@ -5,7 +5,7 @@ description: Create new Claude Code skills following best practices and standard
 
 # Skill Creator
 
-This skill guides the creation of new Claude Code skills, ensuring consistent structure, proper submodule management, and complete documentation.
+This skill guides the creation of new Claude Code skills, ensuring consistent structure and complete documentation.
 
 ## Instructions
 
@@ -25,18 +25,11 @@ When the user requests to create a new skill:
     - Decision trees or examples needed
     - Integration with other skills
 
-3. **Create the skill in the submodule**:
+3. **Create the skill**:
 
 ### Step 1: Create Directory Structure
 
 ```bash
-# Navigate to claude-skills submodule
-cd claude-skills
-
-# Ensure on main branch
-git checkout main
-git pull origin main
-
 # Create skill directory
 mkdir -p skills/<skill-name>
 ```
@@ -91,10 +84,6 @@ User: "[Example user request]"
 
 ## Project Configuration Location
 
-⚠️ **CRITICAL: Configuration File Management** ⚠️
-
-This skill is a **git submodule** shared across multiple projects.
-
 **Priority order:**
 
 1. **Project-specific configuration** (PRIMARY): `.claude/config/<skill-name>.md` or `.yaml`
@@ -102,7 +91,7 @@ This skill is a **git submodule** shared across multiple projects.
 
 **Configuration Pattern:**
 
-- `.claude/skills/<skill-name>/` → Symlink to submodule (READ-ONLY, shared)
+- Skill files installed via `claude install` (READ-ONLY, shared)
 - `.claude/config/<skill-name>.*` → Real file in project (WRITABLE, project-specific)
 
 **When user requests project-specific configuration:**
@@ -110,7 +99,7 @@ This skill is a **git submodule** shared across multiple projects.
 1. Check if `.claude/config/<skill-name>.*` exists
 2. If NOT exists, create it with project-specific settings
 3. If EXISTS, update it
-4. NEVER modify files in the skill directory (it's a submodule!)
+4. NEVER modify installed skill files directly
 
 ## Integration with Other Skills
 
@@ -184,18 +173,10 @@ Skill: [What happens]
 
 ## Installation
 
-### As Git Submodule (Recommended)
+### Via Claude Code Marketplace
 
 ```bash
-# Add submodule (if not already added)
-git submodule add https://github.com/kimseungbin/claude-skills.git claude-skills
-
-# Create symlink
-ln -s ../../claude-skills/skills/<skill-name> .claude/skills/<skill-name>
-
-# Create project-specific configuration
-mkdir -p .claude/config
-# Create .claude/config/<skill-name>.* with project settings
+claude install kimseungbin/claude-skills
 ```
 
 ## Contributing
@@ -408,7 +389,7 @@ The `maintaining-documentation` skill uses this hybrid pattern:
 
 **Benefits:**
 
-1. **Centralized updates**: Implementation guides live in submodule, shared across projects
+1. **Centralized updates**: Implementation guides are shared across projects via marketplace
 2. **Project flexibility**: YAML configs allow project-specific overrides (category names, file paths, languages)
 3. **Type-specific patterns**: Each project type gets specialized decision trees and examples
 4. **Reusability**: New projects copy config template and customize minimally
@@ -419,11 +400,9 @@ The `maintaining-documentation` skill uses this hybrid pattern:
 - All logic can be in SKILL.md
 - Configuration needs are minimal (simple YAML with 2-3 fields)
 
-4. **Commit the skill to submodule**:
+4. **Commit the skill**:
 
 ```bash
-cd claude-skills
-
 # Stage the new skill
 git add skills/<skill-name>/
 
@@ -438,44 +417,17 @@ Add skill for [purpose].
 Features:
 - [Key feature 1]
 - [Key feature 2]
-- [Key feature 3]
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
+- [Key feature 3]"
 ```
 
-5. **Create symlink in main project**:
+5. **Create project-specific configuration (if needed)**:
 
 ```bash
-# Navigate back to main project root
-cd /Users/seungbinkim/docuements/dev/fe-infra
-
-# Create symlink
-ln -s ../../claude-skills/skills/<skill-name> .claude/skills/<skill-name>
-
-# Verify symlink created
-ls -la .claude/skills/
-```
-
-6. **Create project-specific configuration (if needed)**:
-
-```bash
-# Create config file in main project
+# In the target project, create config file
 # File: .claude/config/<skill-name>.md or .yaml
+mkdir -p .claude/config
 
 # Contents based on skill requirements
-```
-
-7. **Update main project to reference new submodule commit**:
-
-```bash
-# In main project root
-git add .claude/skills/<skill-name>  # Symlink
-git add .claude/config/<skill-name>.*  # Config (if created)
-git add claude-skills  # Updated submodule reference
-
-git status  # Verify changes
 ```
 
 ## Skill Creation Checklist
@@ -491,54 +443,19 @@ Before committing a new skill, verify:
 - [ ] Examples are clear and realistic
 - [ ] Configuration template provided (if applicable)
 - [ ] Skill integrates well with existing skills
-- [ ] Skill is committed to submodule (not main project)
-- [ ] Symlink created in main project
+- [ ] Skill is committed to repository
 - [ ] Project-specific config created (if needed)
-- [ ] No nested directories accidentally created
 
 ## Common Pitfalls to Avoid
 
 ### ❌ Creating Skill in Wrong Location
 
 ```bash
-# WRONG: Creating in main project
+# WRONG: Creating outside the skills directory
 mkdir .claude/skills/my-skill
 
-# CORRECT: Creating in submodule
-cd claude-skills && mkdir skills/my-skill
-```
-
-### ❌ Nested Submodule Directories
-
-```bash
-# Check for accidental nesting
-ls -la claude-skills/
-# Should NOT see: claude-skills/claude-skills/
-
-# If nested, remove:
-rm -rf claude-skills/claude-skills
-```
-
-### ❌ Forgetting Symlink
-
-```bash
-# Skill exists but not accessible in main project
-# MUST create symlink:
-ln -s ../../claude-skills/skills/<skill-name> .claude/skills/<skill-name>
-```
-
-### ❌ Modifying Skill Files in Main Project
-
-```bash
-# WRONG: Editing via symlink (modifies submodule)
-nano .claude/skills/<skill-name>/SKILL.md
-
-# CORRECT: Edit in submodule, commit, then update main project
-cd claude-skills
-nano skills/<skill-name>/SKILL.md
-git commit -am "fix(skill-name): Update instructions"
-cd ..
-git add claude-skills  # Update submodule reference
+# CORRECT: Creating in skills/ directory
+mkdir skills/my-skill
 ```
 
 ### ❌ Incomplete Frontmatter
@@ -585,32 +502,18 @@ After creating a skill, test it:
 2. **Test trigger phrases**: Use phrases mentioned in description
 3. **Verify configuration**: Ensure project-specific config is read correctly
 4. **Test with examples**: Run through example workflows
-5. **Check symlink**: Verify skill files are accessible
+5. **Check accessibility**: Verify skill files are accessible
 
 ## Post-Creation Workflow
 
 After creating a skill:
 
-1. **Push submodule changes**:
+1. **Push changes**:
 ```bash
-cd claude-skills
 git push origin main
 ```
 
-2. **Commit main project changes**:
-```bash
-cd /Users/seungbinkim/docuements/dev/fe-infra
-git add claude-skills .claude/skills/<skill-name> .claude/config/<skill-name>.*
-git commit -m "feat(tools): Add <skill-name> skill
-
-Add skill for [purpose].
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
-```
-
-3. **Update documentation**:
+2. **Update documentation**:
 - Add skill to project README if applicable
 - Update CLAUDE.md with new skill reference
 - Create skill-specific documentation if needed
@@ -618,14 +521,14 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ## Related Skills
 
 - **conventional-commits**: Use for creating commit messages when committing new skills
-- **git-strategy**: Reference for understanding submodule workflow
+- **git-strategy**: Reference for understanding git workflow
 - **pull-request-management**: Use when creating PRs for skill additions
 
 ## Notes
 
 - Skills should be **generic and reusable** across projects
 - Project-specific logic goes in **configuration files**, not skills
-- Use **submodule pattern** to share skills across repositories
+- Distribute skills via the Claude Code marketplace
 - Always test skill invocation before pushing
 - Keep skill instructions **clear and actionable**
 - Provide **realistic examples** from actual use cases

@@ -330,17 +330,13 @@ Remember: Different files serve different audiences.
 
 ## Project Configuration Location
 
-⚠️ **CRITICAL: Configuration File Management** ⚠️
-
-This skill is a **git submodule** shared across projects.
-
 **Configuration Pattern:**
 
-1. **Skill (READ-ONLY, shared):** `.claude/skills/maintaining-documentation/`
+1. **Skill (READ-ONLY, shared):** Installed via `claude install` from the marketplace
 2. **Implementation guides (READ-ONLY, shared):**
-   - `.claude/skills/maintaining-documentation/cdk-infrastructure.md`
-   - `.claude/skills/maintaining-documentation/react-frontend.md`
-   - `.claude/skills/maintaining-documentation/python-backend.md`
+   - `cdk-infrastructure.md`
+   - `react-frontend.md`
+   - `python-backend.md`
 3. **Project config (WRITABLE, project-specific):** `.claude/config/maintaining-documentation.yaml`
 
 **Config file specifies:**

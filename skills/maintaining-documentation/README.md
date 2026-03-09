@@ -63,9 +63,7 @@ For Python and backend service projects.
 ### 1. Install the Skill
 
 ```bash
-# If using as git submodule
-cd .claude/skills
-ln -s ../../claude-skills/skills/maintaining-documentation maintaining-documentation
+claude install kimseungbin/claude-skills
 ```
 
 ### 2. Create Project Configuration
@@ -282,9 +280,9 @@ Using different terms for the same concept across documentation files.
 
 ### Skill not found
 
-Ensure symlink exists:
+Ensure the skill is installed:
 ```bash
-ls -la .claude/skills/maintaining-documentation
+claude install kimseungbin/claude-skills
 ```
 
 ### Config not loaded

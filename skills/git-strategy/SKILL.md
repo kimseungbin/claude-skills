@@ -146,10 +146,6 @@ User: "Critical security vulnerability discovered in production"
 
 ## Project Configuration Location
 
-⚠️ **CRITICAL: Configuration File Management** ⚠️
-
-This skill is a **git submodule** shared across multiple projects.
-
 **Priority order:**
 
 1. **Project-specific configuration** (PRIMARY): `.claude/config/git-strategy.md` (checked first)
@@ -157,7 +153,7 @@ This skill is a **git submodule** shared across multiple projects.
 
 **Configuration Pattern:**
 
-- `.claude/skills/git-strategy/` → Symlink to submodule (READ-ONLY, shared across projects)
+- Skill files installed via `claude install` (READ-ONLY, shared)
 - `.claude/config/git-strategy.md` → Real file in project repo (WRITABLE, project-specific)
 
 **When user requests to document git workflow:**

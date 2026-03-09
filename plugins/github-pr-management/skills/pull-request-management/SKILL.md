@@ -226,7 +226,7 @@ When there are multiple documentation changes or multiple features, group them u
 - Slack integration marked complete
 - 9 new features added to backlog
 - ECS cost optimization docs improved
-- claude-skills submodule updated
+- claude-skills plugin updated
 ```
 
 ✅ **Nested structure (easy to scan):**
@@ -244,7 +244,7 @@ When there are multiple documentation changes or multiple features, group them u
   - ECS cost optimization documentation improved (FEATURE-07)
 
 - **Maintenance**
-  - claude-skills submodule updated
+  - claude-skills plugin updated
 ```
 
 **Benefits of nesting:**

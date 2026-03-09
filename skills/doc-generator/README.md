@@ -84,14 +84,10 @@ done
 
 ## Installation
 
-### As Git Submodule (Recommended)
+### Via Claude Code Marketplace
 
 ```bash
-# Add submodule (if not already added)
-git submodule add https://github.com/kimseungbin/claude-skills.git claude-skills
-
-# Create symlink
-ln -s ../../claude-skills/skills/doc-generator .claude/skills/doc-generator
+claude install kimseungbin/claude-skills
 ```
 
 ### Tools (installed on-demand via npx)

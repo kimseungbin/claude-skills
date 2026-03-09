@@ -63,8 +63,7 @@ Create `skills/nestjs-patterns/README.md`
    - Import/export patterns
 
 ### Installation Instructions
-- Git submodule setup
-- Symlink creation
+- Marketplace installation (`claude install @kimseungbin/claude-skills`)
 - Optional: Configuration file setup
 
 ### Usage Examples
