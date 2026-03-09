@@ -131,7 +131,10 @@ Mark current group as in_progress, then:
 **5d. Choose Subject**
 
 Format: `{type}({scope}): {subject}`
-- Imperative mood, capitalize first letter, no period, max 72 chars
+- Check `language` in project config (`en`, `mixed`, or `ko`)
+  - `en`: All English. Imperative mood, capitalize first letter, no period, max 72 chars
+  - `mixed`: Type/scope in English, subject in Korean (e.g., `feat(auth): 사용자 인증 기능 추가`)
+  - `ko`: All Korean including type/scope (e.g., `기능(인증): 사용자 인증 기능 추가`)
 
 **MUST ask user:** Always generate 2-4 subject line candidates and present them via AskUserQuestion. Include varying levels of detail/specificity so the user can pick or provide their own.
 
@@ -145,6 +148,8 @@ Use `body_conventions` from pre-loaded project config (if absent, read from samp
 - The subject line cannot fully convey **why** the change was made (non-obvious design decisions, rejected alternatives, constraints)
 - The subject line cannot cover **what** changed (multi-file changes where the subject omits important details)
 - There is a breaking change requiring `BREAKING CHANGE:` footer
+
+Body language: `en` → English, `mixed` or `ko` → Korean.
 
 When generating a body, focus on **why** — the reasoning and motivation:
 - **Why this approach?** Reference the actual conversation context — use reasons, decisions, and constraints discussed in the session. Do NOT infer or guess motivations; only include what was explicitly discussed.
