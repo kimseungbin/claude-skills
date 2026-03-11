@@ -1,0 +1,70 @@
+# Claude Skills Repository - Commit Configuration
+# Copy to: .claude/config/git/commit/main.yaml
+
+# Version must match plugin version for compatibility
+version: "1.0.5"
+
+project: claude-skills
+description: "Shared Claude Code skills and plugins repository"
+language: en
+
+# Format specification
+format:
+  pattern: "{type}({scope}): {subject}"
+  max_subject_length: 72
+  max_body_line_length: 100
+
+# Quick reference - core types
+types_quick:
+  feat: "New feature or capability"
+  fix: "Bug fix"
+  refactor: "Code change (neither bug fix nor feature)"
+  docs: "Documentation only"
+  chore: "Maintenance, tooling, dependencies"
+
+# Project scopes based on directory structure
+scopes_quick:
+  git: "Git workflow plugin (plugins/git/)"
+  codebase-index: "Codebase index plugin (plugins/codebase-index/)"
+  github-issue-writer: "Issue writer plugin (plugins/github-issue-writer/)"
+  github-pr-management: "PR management plugin (plugins/github-pr-management/)"
+  marketplace-feedback: "Marketplace feedback plugin (plugins/marketplace-feedback/)"
+  skills: "Shared skills (skills/)"
+  commands: "Slash commands (commands/)"
+  docs: "Documentation"
+
+# Footer conventions
+footer:
+  required: []
+  optional:
+    - "BREAKING CHANGE: description"
+    - "Refs #123 or Closes #123"
+
+# Type Decision Tree
+type_decision_tree:
+  - question: "What are you doing?"
+    answers:
+      adding_new_capability: "feat"
+      fixing_bug: "fix"
+      changing_code_structure: "refactor"
+      updating_docs_only: "docs"
+      updating_dependencies: "chore"
+
+# Scope Decision
+scope_decision:
+  - question: "Which plugin or area changed?"
+    git_plugin: "git"
+    codebase_index_plugin: "codebase-index"
+    issue_writer_plugin: "github-issue-writer"
+    pr_management_plugin: "github-pr-management"
+    feedback_plugin: "marketplace-feedback"
+    shared_skills: "skills"
+    slash_commands: "commands"
+    documentation: "docs"
+
+# Subject line conventions
+subject_conventions:
+  - "Use imperative mood: 'Add feature' not 'Added feature'"
+  - "Capitalize first letter"
+  - "No period at end"
+  - "Be specific"
