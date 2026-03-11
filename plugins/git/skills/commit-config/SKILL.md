@@ -116,6 +116,19 @@ Based on your project structure, here are suggested scopes:
 Add, remove, or confirm?
 ```
 
+After scopes are confirmed, ask which scopes have a dominant commit type using AskUserQuestion with `multiSelect: true`:
+
+```
+Any scopes that almost always use a specific type?
+Select scopes to assign a default_type (or skip):
+- git → chore (hooks, config are maintenance)
+- docs → docs (documentation only)
+- tools → chore (developer tooling)
+- [skip] — decide type per commit
+```
+
+For each selected scope, set `default_type` in the generated config. The commit skill will use this as the pre-selected type, skipping type deliberation unless the change clearly contradicts it.
+
 ### Step 5: Generate Config
 
 1. Run `mkdir -p .claude/config/git/commit`

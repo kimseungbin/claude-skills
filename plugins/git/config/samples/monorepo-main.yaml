@@ -51,6 +51,7 @@ scopes_quick:
       - "packages/*/package.json"
   tools:
     description: "Developer tooling (CI, scripts, Docker)"
+    default_type: "chore"
     patterns:
       - "scripts/**"
       - ".github/workflows/**"
@@ -58,12 +59,14 @@ scopes_quick:
       - "docker-compose*.yml"
   config:
     description: "Configuration files"
+    default_type: "chore"
     patterns:
       - ".eslintrc*"
       - ".prettierrc*"
       - "*.config.js"
   project:
     description: "Project documentation and Claude config"
+    default_type: "docs"
     patterns:
       - "CLAUDE.md"
       - ".claude/**"

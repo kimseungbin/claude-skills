@@ -23,6 +23,11 @@ types_quick:
   chore: "Maintenance, tooling, dependencies"
 
 # Simple scopes for small projects
+# String format: scope: "description"
+# Object format (with default_type):
+#   scope:
+#     description: "Description"
+#     default_type: "chore"  # Skip type deliberation for this scope
 scopes_quick:
   app: "Application code"
   config: "Configuration files"

@@ -115,9 +115,12 @@ Write commit groups to todo list:
 Mark current group as in_progress, then:
 
 **5a. Determine Type**
-1. Read `types/index.md` from config path
-2. If unclear, read specific file (e.g., `types/feat.yaml`)
-3. If still ambiguous between 2+ types, use AskUserQuestion to let user pick
+1. Check if the resolved scope has a `default_type` in `scopes_quick` config
+   - If `default_type` exists and the change fits (not a clear contradiction like a genuine bug fix): use it, skip steps 2-4
+   - If the change clearly contradicts the default (e.g., fixing broken behavior in a scope defaulting to `chore`): override and continue to step 2
+2. Read `types/index.md` from config path
+3. If unclear, read specific file (e.g., `types/feat.yaml`)
+4. If still ambiguous between 2+ types, use AskUserQuestion to let user pick
 
 **5b. Determine Scope**
 1. Read `scopes/index.md` from config path

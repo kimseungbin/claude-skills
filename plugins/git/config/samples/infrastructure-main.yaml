@@ -51,16 +51,19 @@ scopes_quick:
       - "config/**"
   deployment:
     description: "CI/CD and deployment pipelines"
+    default_type: "chore"
     patterns:
       - ".github/workflows/**"
       - "scripts/deploy*"
   tools:
     description: "Developer tooling"
+    default_type: "chore"
     patterns:
       - "scripts/**"
       - "*.config.js"
   project:
     description: "Project documentation"
+    default_type: "docs"
     patterns:
       - "README*.md"
       - "CLAUDE.md"
