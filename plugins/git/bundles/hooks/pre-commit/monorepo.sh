@@ -39,6 +39,9 @@ steps_init 6
 # Save list of staged files to re-add after auto-fix
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
 
+# Track whether any auto-fix step modified files
+_AUTO_FIXED=false
+
 # Customize this for your monorepo structure
 PACKAGES_DIR="packages"
 
@@ -65,7 +68,13 @@ echo ""
 print_step "Auto-fixing code formatting..."
 
 if npm run format 2>&1; then
-    print_success_indent "Code formatting fixed"
+    # Check if formatting actually changed any files
+    if git diff --quiet 2>/dev/null; then
+        print_success_indent "Formatting passed"
+    else
+        _AUTO_FIXED=true
+        print_success_indent "Formatting auto-fixed and re-staged"
+    fi
     # Re-add only originally staged files
     echo "$STAGED_FILES" | xargs -r git add
 else
@@ -83,7 +92,13 @@ echo ""
 print_step "Auto-fixing linting issues..."
 
 if npm run lint 2>&1; then
-    print_success_indent "Linting passed"
+    # Check if linting actually changed any files
+    if git diff --quiet 2>/dev/null; then
+        print_success_indent "Linting passed"
+    else
+        _AUTO_FIXED=true
+        print_success_indent "Linting auto-fixed and re-staged"
+    fi
     # Re-add only originally staged files
     echo "$STAGED_FILES" | xargs -r git add
 else
@@ -142,5 +157,9 @@ fi
 
 echo ""
 
-buffer_end "${GREEN}${SYM_CHECK} All pre-commit checks passed (6/6)${NC}"
+if [ "$_AUTO_FIXED" = true ]; then
+    buffer_end "${GREEN}${SYM_CHECK} All pre-commit checks passed${NC}\n  Auto-fixed and re-staged"
+else
+    buffer_end "${GREEN}${SYM_CHECK} All pre-commit checks passed${NC}"
+fi
 exit 0
