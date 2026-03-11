@@ -32,7 +32,9 @@ LIB_DIR="$SCRIPT_DIR/lib"
 source "$LIB_DIR/colors.sh"
 source "$LIB_DIR/output.sh"
 
-print_header "Pre-commit Checks (Monorepo)"
+# Buffer output so the result appears on the first line
+buffer_start
+steps_init 6
 
 # Save list of staged files to re-add after auto-fix
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
@@ -43,7 +45,7 @@ PACKAGES_DIR="packages"
 #############################################
 # 1. Clean build artifacts
 #############################################
-print_step "1/6" "Cleaning build artifacts..."
+print_step "Cleaning build artifacts..."
 
 if [[ -d "$PACKAGES_DIR" ]]; then
     find "$PACKAGES_DIR" -type f \( -name "*.js" -o -name "*.d.ts" -o -name "*.js.map" \) \
@@ -60,7 +62,7 @@ echo ""
 #############################################
 # 2. Auto-fix formatting
 #############################################
-print_step "2/6" "Auto-fixing code formatting..."
+print_step "Auto-fixing code formatting..."
 
 if npm run format 2>&1; then
     print_success_indent "Code formatting fixed"
@@ -69,6 +71,7 @@ if npm run format 2>&1; then
 else
     print_error_indent "Code formatting failed"
     echo -e "${YELLOW}Run 'npm run format' to see errors${NC}"
+    buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: code formatting${NC}"
     exit 1
 fi
 
@@ -77,7 +80,7 @@ echo ""
 #############################################
 # 3. Auto-fix linting
 #############################################
-print_step "3/6" "Auto-fixing linting issues..."
+print_step "Auto-fixing linting issues..."
 
 if npm run lint 2>&1; then
     print_success_indent "Linting passed"
@@ -86,6 +89,7 @@ if npm run lint 2>&1; then
 else
     print_error_indent "Linting failed"
     echo -e "${YELLOW}Run 'npm run lint' to see errors${NC}"
+    buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: linting${NC}"
     exit 1
 fi
 
@@ -94,13 +98,14 @@ echo ""
 #############################################
 # 4. Type check all workspaces
 #############################################
-print_step "4/6" "Type checking all workspaces..."
+print_step "Type checking all workspaces..."
 
 if npm run type-check 2>&1; then
     print_success_indent "Type checking passed"
 else
     print_error_indent "Type checking failed"
     echo -e "${YELLOW}Run 'npm run type-check' to see errors${NC}"
+    buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: type checking${NC}"
     exit 1
 fi
 
@@ -109,13 +114,14 @@ echo ""
 #############################################
 # 5. Build all packages
 #############################################
-print_step "5/6" "Building all packages..."
+print_step "Building all packages..."
 
 if npm run build 2>&1; then
     print_success_indent "Build successful"
 else
     print_error_indent "Build failed"
     echo -e "${YELLOW}Run 'npm run build' to see errors${NC}"
+    buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: build${NC}"
     exit 1
 fi
 
@@ -124,7 +130,7 @@ echo ""
 #############################################
 # 6. Clean build artifacts after validation
 #############################################
-print_step "6/6" "Cleaning build artifacts..."
+print_step "Cleaning build artifacts..."
 
 if [[ -d "$PACKAGES_DIR" ]]; then
     find "$PACKAGES_DIR" -type f \( -name "*.js" -o -name "*.d.ts" -o -name "*.js.map" \) \
@@ -136,12 +142,5 @@ fi
 
 echo ""
 
-#############################################
-# Summary
-#############################################
-print_success_banner "All pre-commit checks passed"
-echo ""
-echo -e "${DIM}Remember: Run tests before pushing${NC}"
-echo ""
-
+buffer_end "${GREEN}${SYM_CHECK} All pre-commit checks passed (6/6)${NC}"
 exit 0

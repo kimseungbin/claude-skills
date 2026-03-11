@@ -47,10 +47,11 @@ COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 
 # Check if commit message has the skill marker
 if ! echo "$COMMIT_MSG" | grep -q "Skill: commit"; then
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${RED}${SYM_CROSS:-✗} COMMIT BLOCKED${NC}"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    # Buffer output so the result appears on the first line
+    if type buffer_start &>/dev/null; then
+        buffer_start
+    fi
+
     echo ""
     echo "This commit was not created using the commit skill."
     echo ""
@@ -67,9 +68,9 @@ if ! echo "$COMMIT_MSG" | grep -q "Skill: commit"; then
     echo "  - Proper conventional commit format (type(scope): subject)"
     echo "  - Intelligent multi-commit splitting"
     echo "  - Follows project-specific rules"
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
+    if type buffer_end &>/dev/null; then
+        buffer_end "${RED}${SYM_CROSS:-✗} COMMIT BLOCKED: missing skill footer${NC}"
+    fi
     exit 1
 fi
 

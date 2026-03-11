@@ -80,36 +80,12 @@ else
 fi
 
 #############################################
-# Helper: Print header
-#############################################
-print_header_msg() {
-    if [[ "$HAS_LIB" == "true" ]]; then
-        print_header "Commit Message Validation"
-    else
-        echo ""
-        echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
-        echo -e "${BLUE}  Commit Message Validation${NC}"
-        echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
-    fi
-}
-
-#############################################
 # Helper: Print success
 #############################################
 print_success_msg() {
     local type="$1"
     local scope="$2"
-    if [[ "$HAS_LIB" == "true" ]]; then
-        print_success_indent "Format valid: ${type}(${scope})"
-        print_info "Message: ${FIRST_LINE}"
-        print_success_banner "Commit message accepted"
-    else
-        echo -e "${GREEN}  ✓ Format valid: ${type}(${scope})${NC}"
-        echo -e "${BLUE}Message: ${FIRST_LINE}${NC}"
-        echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
-        echo -e "${GREEN}  ✓ Commit message accepted${NC}"
-        echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
-    fi
+    echo -e "${GREEN}  ${SYM_CHECK:-✓} Format valid: ${type}(${scope})${NC}"
 }
 
 #############################################
@@ -141,19 +117,16 @@ print_error_msg() {
     echo -e "  ${YELLOW}Your message:${NC} $FIRST_LINE"
     echo ""
 
-    if [[ "$HAS_LIB" == "true" ]]; then
-        print_critical_banner "Commit rejected"
-    else
-        echo -e "${RED}═══════════════════════════════════════════════════════════${NC}"
-        echo -e "${RED}  ✗ Commit rejected${NC}"
-        echo -e "${RED}═══════════════════════════════════════════════════════════${NC}"
-    fi
 }
 
 #############################################
 # Main validation logic
 #############################################
-print_header_msg
+
+# Buffer output so the result appears on the first line
+if type buffer_start &>/dev/null; then
+    buffer_start
+fi
 
 # If no config file, skip validation with warning
 if [[ -z "$CONFIG_FILE" ]]; then
@@ -162,6 +135,9 @@ if [[ -z "$CONFIG_FILE" ]]; then
     echo -e "    Checked: .claude/config/conventional-commits.yaml"
     echo ""
     echo -e "${GREEN}  ✓ Commit message accepted (no validation)${NC}"
+    if type buffer_end &>/dev/null; then
+        buffer_end "${GREEN}✓ Commit message accepted (no validation)${NC}"
+    fi
     exit 0
 fi
 
@@ -180,6 +156,9 @@ ALLOWED_TYPES=$(awk '
 if [[ -z "$ALLOWED_TYPES" ]]; then
     echo -e "${YELLOW}  ⚠ Could not parse types from config${NC}"
     echo -e "${GREEN}  ✓ Commit message accepted (parse error)${NC}"
+    if type buffer_end &>/dev/null; then
+        buffer_end "${GREEN}✓ Commit message accepted (parse error)${NC}"
+    fi
     exit 0
 fi
 
@@ -197,6 +176,9 @@ ALLOWED_SCOPES=$(awk '
 if [[ -z "$ALLOWED_SCOPES" ]]; then
     echo -e "${YELLOW}  ⚠ Could not parse scopes from config${NC}"
     echo -e "${GREEN}  ✓ Commit message accepted (parse error)${NC}"
+    if type buffer_end &>/dev/null; then
+        buffer_end "${GREEN}✓ Commit message accepted (parse error)${NC}"
+    fi
     exit 0
 fi
 
@@ -207,6 +189,9 @@ COMMIT_REGEX="^(${ALLOWED_TYPES})\((${ALLOWED_SCOPES})\): .+"
 # Validate commit message
 if [[ ! "$FIRST_LINE" =~ $COMMIT_REGEX ]]; then
     print_error_msg "$ALLOWED_TYPES" "$ALLOWED_SCOPES"
+    if type buffer_end &>/dev/null; then
+        buffer_end "${RED}✗ Commit REJECTED: invalid message format${NC}"
+    fi
     exit 1
 fi
 
@@ -215,4 +200,7 @@ MATCHED_TYPE="${BASH_REMATCH[1]}"
 MATCHED_SCOPE="${BASH_REMATCH[2]}"
 
 print_success_msg "$MATCHED_TYPE" "$MATCHED_SCOPE"
+if type buffer_end &>/dev/null; then
+    buffer_end "${GREEN}✓ Commit message accepted${NC}"
+fi
 exit 0

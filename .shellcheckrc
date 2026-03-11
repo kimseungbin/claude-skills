@@ -1,0 +1,6 @@
+# Follow sourced files
+external-sources=true
+
+# SC1091: Can't follow dynamic source paths (e.g., source "$LIB_DIR/colors.sh")
+# SC2034: Variables defined in library files are used by sourcing scripts
+disable=SC1091,SC2034

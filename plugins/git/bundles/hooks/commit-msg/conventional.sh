@@ -116,10 +116,11 @@ fi
 pattern="^($TYPES)(\(.+\))?: .+"
 
 if ! echo "$SUBJECT" | grep -qE "$pattern"; then
-    echo ""
-    echo -e "${RED}═══════════════════════════════════════════════════════════${NC}"
-    echo -e "${RED}  ✗ Invalid commit message format${NC}"
-    echo -e "${RED}═══════════════════════════════════════════════════════════${NC}"
+    # Buffer available — use it for result-first display
+    if type buffer_start &>/dev/null; then
+        buffer_start
+    fi
+
     echo ""
     echo "Your commit message:"
     echo -e "  ${YELLOW}$SUBJECT${NC}"
@@ -133,10 +134,9 @@ if ! echo "$SUBJECT" | grep -qE "$pattern"; then
         echo -e "${GREEN}(Types loaded from: $CONFIG_FILE)${NC}"
         echo ""
     fi
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${YELLOW}Tip: Use --no-verify to skip (not recommended)${NC}"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
+    if type buffer_end &>/dev/null; then
+        buffer_end "${RED}✗ Commit REJECTED: invalid message format${NC}"
+    fi
     exit 1
 fi
 

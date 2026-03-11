@@ -1,13 +1,73 @@
 #!/bin/bash
 
-# Auto-bump plugin patch versions when plugin files change
-# Updates both plugin.json and marketplace.json
-# Skips if version was already manually bumped
+# Pre-commit hook for claude-skills repo
+# Checks:
+# 1. ShellCheck - lint all staged .sh files
+# 2. Version bump - auto-bump plugin patch versions
 
 set -e
 
+# Script directory and shared lib
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+LIB_DIR="$REPO_ROOT/plugins/git/bundles/base/.githooks/lib"
+
+# Source shared libraries
+source "$LIB_DIR/colors.sh"
+source "$LIB_DIR/output.sh"
+
+# Buffer output so the result appears on the first line
+buffer_start
+steps_init 2
+
 # Get list of staged files
 STAGED_FILES=$(git diff --cached --name-only)
+
+#############################################
+# 1. ShellCheck - lint staged shell scripts
+#############################################
+print_step "Running ShellCheck..."
+
+# Collect staged .sh files
+STAGED_SH_FILES=""
+for file in $STAGED_FILES; do
+    if [[ $file == *.sh && -f "$file" ]]; then
+        STAGED_SH_FILES="$STAGED_SH_FILES $file"
+    fi
+done
+
+if [[ -z "$STAGED_SH_FILES" ]]; then
+    print_success_indent "No shell scripts to check"
+elif ! command -v shellcheck &>/dev/null; then
+    print_warning_indent "ShellCheck not installed (brew install shellcheck)"
+else
+    SHELLCHECK_FAILED=false
+    SHELLCHECK_OUTPUT=""
+    # shellcheck disable=SC2086
+    if ! SHELLCHECK_OUTPUT=$(shellcheck $STAGED_SH_FILES 2>&1); then
+        SHELLCHECK_FAILED=true
+    fi
+
+    if [[ "$SHELLCHECK_FAILED" == true ]]; then
+        print_error_indent "ShellCheck found issues:"
+        echo ""
+        echo "$SHELLCHECK_OUTPUT"
+        echo ""
+        buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: ShellCheck${NC}"
+        exit 1
+    else
+        # Count checked files
+        FILE_COUNT=$(echo "$STAGED_SH_FILES" | wc -w | tr -d ' ')
+        print_success_indent "ShellCheck passed ($FILE_COUNT files)"
+    fi
+fi
+
+echo ""
+
+#############################################
+# 2. Auto-bump plugin patch versions
+#############################################
+print_step "Auto-bumping plugin versions..."
 
 # Track which plugins need version bump (using simple list for bash 3 compatibility)
 PLUGINS_TO_BUMP=""
@@ -25,6 +85,8 @@ $plugin_name"
     fi
 done
 
+BUMPED_COUNT=0
+
 # Bump version for each changed plugin
 for plugin_name in $PLUGINS_TO_BUMP; do
     [[ -z "$plugin_name" ]] && continue
@@ -39,7 +101,7 @@ for plugin_name in $PLUGINS_TO_BUMP; do
 
         # Skip if version was already manually bumped
         if [[ -n "$head_version" && "$current_version" != "$head_version" ]]; then
-            echo "Skipping $plugin_name: version already bumped ($head_version → $current_version)"
+            print_success_indent "Skipping $plugin_name: version already bumped ($head_version → $current_version)"
             continue
         fi
 
@@ -73,9 +135,19 @@ with open('$marketplace_json', 'w') as f:
                 git add "$marketplace_json"
             fi
 
-            echo "Auto-bumped $plugin_name: $current_version → $new_version"
+            print_success_indent "Auto-bumped $plugin_name: $current_version → $new_version"
+            ((BUMPED_COUNT++)) || true
         fi
     fi
 done
 
+if [[ $BUMPED_COUNT -eq 0 ]]; then
+    print_success_indent "No plugins to bump"
+else
+    print_success_indent "$BUMPED_COUNT plugin(s) bumped"
+fi
+
+echo ""
+
+buffer_end "${GREEN}${SYM_CHECK} All pre-commit checks passed${NC}"
 exit 0

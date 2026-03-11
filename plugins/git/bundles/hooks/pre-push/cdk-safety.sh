@@ -31,10 +31,12 @@ source "$LIB_DIR/colors.sh"
 source "$LIB_DIR/output.sh"
 source "$LIB_DIR/utils.sh"
 
-print_header "CDK Deployment Safety Check"
+# Buffer output so the result appears on the first line
+buffer_start
+steps_init 5
 
 # Get the branch being pushed
-while read local_ref local_sha remote_ref remote_sha
+while read -r local_ref _local_sha _remote_ref _remote_sha
 do
     # Extract branch name
     if [[ $local_ref =~ refs/heads/(.+) ]]; then
@@ -47,6 +49,7 @@ if [ -z "$BRANCH" ]; then
     BRANCH=$(get_current_branch)
     if [ -z "$BRANCH" ]; then
         print_warning "Cannot determine branch, skipping checks"
+        buffer_end "${YELLOW}${SYM_WARNING} CDK safety check skipped: unknown branch${NC}"
         exit 0
     fi
 fi
@@ -59,6 +62,7 @@ if is_deployment_branch "$BRANCH"; then
     print_info "${SYM_CHECK} Deployment branch detected - running safety checks"
 else
     print_success "Non-deployment branch - skipping checks"
+    buffer_end "${GREEN}${SYM_CHECK} CDK safety check skipped: non-deployment branch${NC}"
     exit 0
 fi
 
@@ -67,7 +71,7 @@ echo ""
 #############################################
 # Check 1: Build and Lint
 #############################################
-print_step "1/5" "Building and linting..."
+print_step "Building and linting..."
 
 # Build TypeScript
 BUILD_OUTPUT=$(mktemp)
@@ -80,6 +84,7 @@ if ! npm run build > "$BUILD_OUTPUT" 2>&1; then
     done
     echo ""
     rm -f "$BUILD_OUTPUT"
+    buffer_end "${RED}${SYM_CROSS} CDK safety FAILED: TypeScript compilation${NC}"
     exit 1
 fi
 rm -f "$BUILD_OUTPUT"
@@ -98,13 +103,14 @@ echo ""
 #############################################
 # Check 2: CDK Synth Validation
 #############################################
-print_step "2/5" "Validating CDK synthesis..."
+print_step "Validating CDK synthesis..."
 
 # Attempt to synthesize CDK stacks
 if ! npm run cdk synth > /tmp/cdk-synth-output.yaml 2>&1; then
     print_error_indent "CDK synthesis failed"
     echo -e "${YELLOW}Run 'npm run cdk synth' to see errors${NC}"
     cat /tmp/cdk-synth-output.yaml
+    buffer_end "${RED}${SYM_CROSS} CDK safety FAILED: synthesis${NC}"
     exit 1
 fi
 print_success_indent "CDK synthesis successful"
@@ -113,12 +119,12 @@ echo ""
 
 # Create temp directory for cdk diff output
 TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
+trap 'rm -rf "$TEMP_DIR"' EXIT
 
 #############################################
 # Check 3: CDK Diff Analysis
 #############################################
-print_step "3/5" "Analyzing CloudFormation changes..."
+print_step "Analyzing CloudFormation changes..."
 
 # Run cdk diff and capture output
 # Note: cdk diff exits with 1 if there are differences, which is expected
@@ -139,19 +145,19 @@ else
 fi
 
 # Check for updates (should be safe)
-UPDATES=$(grep -E "^\[~\]" "$TEMP_DIR/cdk-diff-output.txt" | wc -l | tr -d ' ')
+UPDATES=$(grep -cE "^\[~\]" "$TEMP_DIR/cdk-diff-output.txt" || true)
 if [ "$UPDATES" -gt 0 ]; then
     print_success_indent "${UPDATES} in-place updates detected (safe)"
 fi
 
 # Check for additions
-ADDITIONS=$(grep -E "^\[\+\]" "$TEMP_DIR/cdk-diff-output.txt" | wc -l | tr -d ' ')
+ADDITIONS=$(grep -cE "^\[\+\]" "$TEMP_DIR/cdk-diff-output.txt" || true)
 if [ "$ADDITIONS" -gt 0 ]; then
     print_success_indent "${ADDITIONS} new resources will be created"
 fi
 
 # Check for deletions
-DELETIONS=$(grep -E "^\[-\]" "$TEMP_DIR/cdk-diff-output.txt" | wc -l | tr -d ' ')
+DELETIONS=$(grep -cE "^\[-\]" "$TEMP_DIR/cdk-diff-output.txt" || true)
 if [ "$DELETIONS" -gt 0 ]; then
     print_warning_indent "${DELETIONS} resources will be deleted"
 fi
@@ -161,7 +167,7 @@ echo ""
 #############################################
 # Check 4: Fixed-Name Resource Safety Check
 #############################################
-print_step "4/5" "Checking fixed-name resource safety..."
+print_step "Checking fixed-name resource safety..."
 
 # Define resources with fixed names that require special handling
 # Customize this list for your infrastructure
@@ -234,16 +240,11 @@ else
         print_warning "Proceeding with resource replacement..."
         echo ""
     else
+        buffer_end "${RED}${SYM_CROSS} CDK safety BLOCKED: fixed-name resource replacement${NC}"
         exit 1
     fi
 fi
 
-echo ""
-
-#############################################
-# Summary
-#############################################
-print_success_banner "All safety checks passed"
 echo ""
 
 if [ -n "$REPLACEMENTS" ]; then
@@ -261,13 +262,10 @@ if [ "$ADDITIONS" -gt 0 ] || [ "$UPDATES" -gt 0 ] || [ "$DELETIONS" -gt 0 ]; the
     echo ""
 fi
 
-print_success "Safe to push to $BRANCH"
-echo ""
-
 #############################################
 # Check 5: File Size Warnings (non-blocking)
 #############################################
-print_step "5/5" "Checking file sizes..."
+print_step "Checking file sizes..."
 
 if [[ -x "$SCRIPT_DIR/scripts/check-file-sizes.sh" ]]; then
     # Run file size check (non-blocking)
@@ -279,4 +277,5 @@ fi
 
 echo ""
 
+buffer_end "${GREEN}${SYM_CHECK} All CDK safety checks passed${NC}"
 exit 0

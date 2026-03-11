@@ -27,7 +27,9 @@ LIB_DIR="$SCRIPT_DIR/lib"
 source "$LIB_DIR/colors.sh"
 source "$LIB_DIR/output.sh"
 
-print_header "Pre-commit Checks"
+# Buffer output so the result appears on the first line
+buffer_start
+steps_init 3
 
 # Save list of staged files to re-add after auto-fix
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
@@ -35,7 +37,7 @@ STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
 #############################################
 # 1. Auto-fix code formatting
 #############################################
-print_step "1/3" "Auto-fixing code formatting..."
+print_step "Auto-fixing code formatting..."
 
 if npm run format 2>&1; then
     print_success_indent "Code formatting fixed"
@@ -44,6 +46,7 @@ if npm run format 2>&1; then
 else
     print_error_indent "Code formatting failed"
     echo -e "${YELLOW}Run 'npm run format' to see errors${NC}"
+    buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: code formatting${NC}"
     exit 1
 fi
 
@@ -52,7 +55,7 @@ echo ""
 #############################################
 # 2. Auto-fix linting issues
 #############################################
-print_step "2/3" "Auto-fixing linting issues..."
+print_step "Auto-fixing linting issues..."
 
 if npm run lint 2>&1; then
     print_success_indent "Linting passed"
@@ -61,6 +64,7 @@ if npm run lint 2>&1; then
 else
     print_error_indent "Linting failed"
     echo -e "${YELLOW}Run 'npm run lint' to see errors${NC}"
+    buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: linting${NC}"
     exit 1
 fi
 
@@ -69,22 +73,18 @@ echo ""
 #############################################
 # 3. Type checking
 #############################################
-print_step "3/3" "Type checking..."
+print_step "Type checking..."
 
 if npm run type-check 2>&1; then
     print_success_indent "Type checking passed"
 else
     print_error_indent "Type checking failed"
     echo -e "${YELLOW}Run 'npm run type-check' to see errors${NC}"
+    buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: type checking${NC}"
     exit 1
 fi
 
 echo ""
 
-#############################################
-# Summary
-#############################################
-print_success_banner "All pre-commit checks passed"
-echo ""
-
+buffer_end "${GREEN}${SYM_CHECK} All pre-commit checks passed${NC}"
 exit 0
