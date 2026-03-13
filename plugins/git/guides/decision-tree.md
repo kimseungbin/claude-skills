@@ -33,7 +33,7 @@ Is it a monorepo (workspaces, lerna, nx)?
 
 - ✅ **Prettier** (auto-fix, always fast)
     - `npm run format` or `prettier --write`
-    - Auto-stage fixed files with `git add -u`
+    - Auto-stage only the fixed files with `git add -- <changed-files>`
 
 ### Usually Include (Fast)
 

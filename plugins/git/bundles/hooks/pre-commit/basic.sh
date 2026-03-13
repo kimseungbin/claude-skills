@@ -43,15 +43,19 @@ _AUTO_FIXED=false
 print_step "Auto-fixing code formatting..."
 
 if npm run format 2>&1; then
-    # Check if formatting actually changed any files
-    if git diff --quiet 2>/dev/null; then
+    # Re-stage only originally staged files that were modified by formatting
+    CHANGED_BY_FORMAT=$(echo "$STAGED_FILES" | while IFS= read -r f; do
+        [ -n "$f" ] && git diff --quiet -- "$f" 2>/dev/null || echo "$f"
+    done)
+    if [ -z "$CHANGED_BY_FORMAT" ]; then
         print_success_indent "Formatting passed"
     else
         _AUTO_FIXED=true
+        echo "$CHANGED_BY_FORMAT" | while IFS= read -r f; do
+            [ -n "$f" ] && git add -- "$f"
+        done
         print_success_indent "Formatting auto-fixed and re-staged"
     fi
-    # Re-add only originally staged files
-    echo "$STAGED_FILES" | xargs -r git add
 else
     print_error_indent "Code formatting failed"
     echo -e "${YELLOW}Run 'npm run format' to see errors${NC}"
@@ -67,15 +71,19 @@ echo ""
 print_step "Auto-fixing linting issues..."
 
 if npm run lint 2>&1; then
-    # Check if linting actually changed any files
-    if git diff --quiet 2>/dev/null; then
+    # Re-stage only originally staged files that were modified by linting
+    CHANGED_BY_LINT=$(echo "$STAGED_FILES" | while IFS= read -r f; do
+        [ -n "$f" ] && git diff --quiet -- "$f" 2>/dev/null || echo "$f"
+    done)
+    if [ -z "$CHANGED_BY_LINT" ]; then
         print_success_indent "Linting passed"
     else
         _AUTO_FIXED=true
+        echo "$CHANGED_BY_LINT" | while IFS= read -r f; do
+            [ -n "$f" ] && git add -- "$f"
+        done
         print_success_indent "Linting auto-fixed and re-staged"
     fi
-    # Re-add only originally staged files
-    echo "$STAGED_FILES" | xargs -r git add
 else
     print_error_indent "Linting failed"
     echo -e "${YELLOW}Run 'npm run lint' to see errors${NC}"

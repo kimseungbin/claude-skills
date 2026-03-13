@@ -125,7 +125,7 @@ npm run build
 Then commit again:
 
 ```bash
-git add -u  # Stage fixes
+git add -- <files-with-errors>  # Stage only the fixed files
 git commit -m "Your message"
 ```
 
