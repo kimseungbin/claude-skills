@@ -42,6 +42,9 @@ Use project-specific config if exists, otherwise use samples as reference.
 ### Config Exists
 !`test -f .claude/config/git/commit/main.yaml && echo "true" || echo "false"`
 
+### Version Check
+!`if [ -f .claude/config/git/commit/main.yaml ]; then cfg_ver=$(grep -m1 'plugin_version:' .claude/config/git/commit/main.yaml 2>/dev/null | awk '{print $2}' | tr -d '"'); if [ -n "$cfg_ver" ] && [ "$cfg_ver" != "1.0.8" ]; then echo "VERSION_MISMATCH: config=$cfg_ver, plugin=1.0.8. Run Skill(git:commit-config) to update."; fi; fi`
+
 ## Workflow
 
 ### Step 0: Check Config

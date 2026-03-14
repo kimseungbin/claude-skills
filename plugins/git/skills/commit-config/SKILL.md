@@ -139,8 +139,8 @@ For each selected scope, set `default_type` in the generated config. The commit 
 ### Step 6: Read Version Information (Update Flow)
 
 ```
-1. Read plugin version: claude-skills/plugins/git/.claude-plugin/plugin.json
-2. Read config version: .claude/config/git/commit/main.yaml
+1. Read plugin version: claude-skills/plugins/git/.claude-plugin/plugin.json → "version" field
+2. Read config version: .claude/config/git/commit/main.yaml → "plugin_version" field
 3. Display version comparison
 ```
 
@@ -172,13 +172,13 @@ New fields available:
 Which updates do you want to apply?
 [ ] Add new fields with defaults
 [ ] Update structural changes
-[ ] Keep current config (only update version)
+[ ] Keep current config (only bump plugin_version)
 ```
 
 For each selected update:
 1. Show the change that will be made
 2. Apply the edit
-3. Update the version field to match plugin version
+3. Update the plugin_version field to match the plugin's version
 
 ### Step 9: Summary
 
@@ -214,5 +214,5 @@ The following changes require manual review:
 Sample config: claude-skills/plugins/git/config/samples/{type}-main.yaml
 Your config: .claude/config/git/commit/main.yaml
 
-Please compare and update manually, then set version to "X.Y.Z"
+Please compare and update manually, then set plugin_version to match the plugin version
 ```

@@ -1,4 +1,5 @@
 #!/bin/bash
+# plugin_version: 1.0.8
 #
 # Pre-push hook for AWS CDK projects
 #
