@@ -135,6 +135,22 @@ with open('$marketplace_json', 'w') as f:
                 git add "$marketplace_json"
             fi
 
+            # Propagate version to all files containing hardcoded plugin_version
+            # 1. Sample configs (yaml): plugin_version: "X.Y.Z"
+            find "plugins/$plugin_name/config" -name '*.yaml' -exec \
+                sed -i '' "s/plugin_version: *\"[0-9]*\.[0-9]*\.[0-9]*\"/plugin_version: \"$new_version\"/" {} \; 2>/dev/null || true
+
+            # 2. Bundle scripts (bash comment): # plugin_version: X.Y.Z
+            find "plugins/$plugin_name/bundles" -name '*.sh' -exec \
+                sed -i '' "s/# plugin_version: *[0-9]*\.[0-9]*\.[0-9]*/# plugin_version: $new_version/" {} \; 2>/dev/null || true
+
+            # 3. SKILL.md version check scripts: hardcoded version string in !` blocks
+            find "plugins/$plugin_name/skills" -name 'SKILL.md' -exec \
+                sed -i '' "s/plugin=$current_version/plugin=$new_version/g; s/!= \"$current_version\"/!= \"$new_version\"/g" {} \; 2>/dev/null || true
+
+            # Re-stage propagated files
+            git add "plugins/$plugin_name/" 2>/dev/null || true
+
             print_success_indent "Auto-bumped $plugin_name: $current_version → $new_version"
             ((BUMPED_COUNT++)) || true
         fi
