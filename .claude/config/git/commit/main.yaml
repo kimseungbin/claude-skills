@@ -1,8 +1,7 @@
 # Claude Skills Repository - Commit Configuration
 # Copy to: .claude/config/git/commit/main.yaml
 
-# Version must match plugin version for compatibility
-version: "1.0.5"
+plugin_version: "1.0.8"
 
 project: claude-skills
 description: "Shared Claude Code skills and plugins repository"
@@ -29,6 +28,8 @@ scopes_quick:
   github-issue-writer: "Issue writer plugin (plugins/github-issue-writer/)"
   github-pr-management: "PR management plugin (plugins/github-pr-management/)"
   marketplace-feedback: "Marketplace feedback plugin (plugins/marketplace-feedback/)"
+  issue-manager: "Issue triage skill (.claude/skills/issue-manager/)"
+  skill-creator: "Skill creator (.claude/skills/skill-creator/)"
   skills: "Shared skills (skills/)"
   commands: "Slash commands (commands/)"
   docs: "Documentation"
@@ -58,6 +59,8 @@ scope_decision:
     issue_writer_plugin: "github-issue-writer"
     pr_management_plugin: "github-pr-management"
     feedback_plugin: "marketplace-feedback"
+    issue_manager: "issue-manager"
+    skill_creator: "skill-creator"
     shared_skills: "skills"
     slash_commands: "commands"
     documentation: "docs"
