@@ -85,7 +85,7 @@ Review the recent commit history above.
 4. Tests
 5. Documentation
 
-If splitting, present the plan as a table using AskUserQuestion:
+If splitting, use AskUserQuestion to present the split plan. Put the table in the `question` field and offer options like "Proceed with split" / "Single commit instead". Example table format:
 
 ```
 ┌─────┬──────────┬──────────┬────────────────────────────────────────┬──────────────────────────┐
@@ -99,7 +99,7 @@ If splitting, present the plan as a table using AskUserQuestion:
 └─────┴──────────┴──────────┴────────────────────────────────────────┴──────────────────────────┘
 ```
 
-Type and Scope columns show the preliminary analysis — these may be refined in Step 5.
+Type and Scope columns show the preliminary analysis — these may be refined in Step 5. Do NOT output the table as plain text — it must go through AskUserQuestion so the user can respond inline.
 
 ### Step 4: Track in Todo
 
