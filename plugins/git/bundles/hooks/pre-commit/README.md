@@ -13,16 +13,20 @@ Pre-commit hooks run before each commit to validate code quality.
 - Auto-fix linting (ESLint)
 - Type checking (TypeScript)
 
+**Runs on staged files only** via `npx prettier --write` and `npx eslint --fix`.
+
 **Required npm scripts:**
 ```json
 {
   "scripts": {
-    "format": "prettier --write .",
-    "lint": "eslint --fix .",
     "type-check": "tsc --noEmit"
   }
 }
 ```
+
+**Customizable extensions** (edit variables at the top of the hook):
+- `PRETTIER_EXTS` — file extensions for Prettier
+- `LINT_EXTS` — file extensions for ESLint
 
 ---
 
@@ -31,18 +35,17 @@ Pre-commit hooks run before each commit to validate code quality.
 **For:** Projects with CSS/design system that enforce design tokens
 
 **Checks:**
-- Auto-fix formatting (Prettier)
-- Auto-fix linting (ESLint)
-- CSS linting (Stylelint)
+- Auto-fix formatting (Prettier) — staged files only
+- Auto-fix linting (ESLint) — staged files only
+- CSS linting (Stylelint) — staged files only
 - Type checking (TypeScript)
+
+**Runs on staged files only** via `npx prettier`, `npx eslint`, and `npx stylelint`.
 
 **Required npm scripts:**
 ```json
 {
   "scripts": {
-    "format": "prettier --write .",
-    "lint": "eslint --fix .",
-    "lint:css": "stylelint 'src/**/*.css'",
     "type-check": "tsc --noEmit"
   }
 }
@@ -64,12 +67,12 @@ Pre-commit hooks run before each commit to validate code quality.
 - Build all packages
 - Clean artifacts after validation
 
+**Runs format/lint on staged files only** via `npx prettier` and `npx eslint`.
+
 **Required npm scripts:**
 ```json
 {
   "scripts": {
-    "format": "prettier --write .",
-    "lint": "eslint --fix .",
     "type-check": "tsc --noEmit",
     "build": "npm run build --workspaces"
   }

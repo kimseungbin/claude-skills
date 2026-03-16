@@ -283,6 +283,18 @@ ls -la skills/
 tree skills/skill-name
 ```
 
+## Plugin Versioning
+
+When bumping a plugin version, update **all** files that reference the version — not just the files affected by the change. This keeps the entire plugin at a consistent version number.
+
+**Files to update for each plugin:**
+- `.claude-plugin/plugin.json` — the `"version"` field (source of truth)
+- All `# plugin_version:` comments in hook/bundle `.sh` files
+- All `plugin_version:` fields in config sample `.yaml` files
+- Version-check strings in `SKILL.md` files (e.g., `!` shell commands that compare versions)
+
+**No automated script exists** — version bumps are manual inline edits. Search for the old version string across the plugin directory to find all occurrences.
+
 ## Notes
 
 - Skills in `skills/` are the source of truth

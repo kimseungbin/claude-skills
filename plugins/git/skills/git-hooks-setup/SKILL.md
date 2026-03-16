@@ -12,7 +12,7 @@ Generate custom git hooks tailored to your project's needs.
 ## Pre-loaded Context
 
 ### Installed Hook Versions
-!`if [ -d .githooks ]; then for f in .githooks/pre-commit .githooks/commit-msg .githooks/pre-push; do [ -f "$f" ] && ver=$(grep -m1 'plugin_version:' "$f" 2>/dev/null | awk '{print $3}') && [ -n "$ver" ] && [ "$ver" != "1.0.8" ] && echo "OUTDATED: $(basename $f) has plugin_version=$ver, current=1.0.8"; done; fi`
+!`if [ -d .githooks ]; then for f in .githooks/pre-commit .githooks/commit-msg .githooks/pre-push; do [ -f "$f" ] && ver=$(grep -m1 'plugin_version:' "$f" 2>/dev/null | awk '{print $3}') && [ -n "$ver" ] && [ "$ver" != "1.0.9" ] && echo "OUTDATED: $(basename $f) has plugin_version=$ver, current=1.0.9"; done; fi`
 
 ## When to Use This Skill
 

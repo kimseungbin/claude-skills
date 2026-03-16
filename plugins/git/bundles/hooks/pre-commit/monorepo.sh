@@ -1,5 +1,5 @@
 #!/bin/bash
-# plugin_version: 1.0.8
+# plugin_version: 1.0.9
 #
 # Pre-commit hook for monorepo projects
 #
@@ -7,8 +7,8 @@
 #
 # Checks:
 # - Clean build artifacts
-# - Auto-fix formatting
-# - Auto-fix linting
+# - Auto-fix formatting — staged files only
+# - Auto-fix linting — staged files only
 # - Type check all workspaces
 # - Build all packages
 # - Clean artifacts after validation
@@ -21,6 +21,7 @@
 #
 # Customize:
 #   - Adjust PACKAGES_DIR for your monorepo structure
+#   - Adjust PRETTIER_EXTS / LINT_EXTS for your file types
 #   - Modify workspace commands for your package manager
 
 set -e
@@ -46,6 +47,28 @@ _AUTO_FIXED=false
 # Customize this for your monorepo structure
 PACKAGES_DIR="packages"
 
+# File extensions for each tool (customize for your project)
+PRETTIER_EXTS="ts tsx js jsx json css scss md html yaml yml svelte vue"
+LINT_EXTS="ts tsx js jsx svelte vue"
+
+# Filter staged files by extensions
+filter_by_ext() {
+    local exts="$1"
+    echo "$STAGED_FILES" | while IFS= read -r f; do
+        [ -z "$f" ] && continue
+        local ext="${f##*.}"
+        for e in $exts; do
+            if [ "$ext" = "$e" ]; then
+                echo "$f"
+                break
+            fi
+        done
+    done
+}
+
+STAGED_FORMAT_FILES=$(filter_by_ext "$PRETTIER_EXTS")
+STAGED_LINT_FILES=$(filter_by_ext "$LINT_EXTS")
+
 #############################################
 # 1. Clean build artifacts
 #############################################
@@ -68,25 +91,29 @@ echo ""
 #############################################
 print_step "Auto-fixing code formatting..."
 
-if npm run format 2>&1; then
-    # Re-stage only originally staged files that were modified by formatting
-    CHANGED_BY_FORMAT=$(echo "$STAGED_FILES" | while IFS= read -r f; do
-        [ -n "$f" ] && git diff --quiet -- "$f" 2>/dev/null || echo "$f"
-    done)
-    if [ -z "$CHANGED_BY_FORMAT" ]; then
-        print_success_indent "Formatting passed"
-    else
-        _AUTO_FIXED=true
-        echo "$CHANGED_BY_FORMAT" | while IFS= read -r f; do
-            [ -n "$f" ] && git add -- "$f"
-        done
-        print_success_indent "Formatting auto-fixed and re-staged"
-    fi
+if [ -z "$STAGED_FORMAT_FILES" ]; then
+    print_success_indent "No formattable files staged, skipping"
 else
-    print_error_indent "Code formatting failed"
-    echo -e "${YELLOW}Run 'npm run format' to see errors${NC}"
-    buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: code formatting${NC}"
-    exit 1
+    if echo "$STAGED_FORMAT_FILES" | xargs npx prettier --write 2>&1; then
+        # Re-stage files modified by formatting
+        CHANGED_BY_FORMAT=$(echo "$STAGED_FORMAT_FILES" | while IFS= read -r f; do
+            [ -n "$f" ] && git diff --quiet -- "$f" 2>/dev/null || echo "$f"
+        done)
+        if [ -z "$CHANGED_BY_FORMAT" ]; then
+            print_success_indent "Formatting passed"
+        else
+            _AUTO_FIXED=true
+            echo "$CHANGED_BY_FORMAT" | while IFS= read -r f; do
+                [ -n "$f" ] && git add -- "$f"
+            done
+            print_success_indent "Formatting auto-fixed and re-staged"
+        fi
+    else
+        print_error_indent "Code formatting failed"
+        echo -e "${YELLOW}Run 'npx prettier --check <file>' to see errors${NC}"
+        buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: code formatting${NC}"
+        exit 1
+    fi
 fi
 
 echo ""
@@ -96,25 +123,29 @@ echo ""
 #############################################
 print_step "Auto-fixing linting issues..."
 
-if npm run lint 2>&1; then
-    # Re-stage only originally staged files that were modified by linting
-    CHANGED_BY_LINT=$(echo "$STAGED_FILES" | while IFS= read -r f; do
-        [ -n "$f" ] && git diff --quiet -- "$f" 2>/dev/null || echo "$f"
-    done)
-    if [ -z "$CHANGED_BY_LINT" ]; then
-        print_success_indent "Linting passed"
-    else
-        _AUTO_FIXED=true
-        echo "$CHANGED_BY_LINT" | while IFS= read -r f; do
-            [ -n "$f" ] && git add -- "$f"
-        done
-        print_success_indent "Linting auto-fixed and re-staged"
-    fi
+if [ -z "$STAGED_LINT_FILES" ]; then
+    print_success_indent "No lintable files staged, skipping"
 else
-    print_error_indent "Linting failed"
-    echo -e "${YELLOW}Run 'npm run lint' to see errors${NC}"
-    buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: linting${NC}"
-    exit 1
+    if echo "$STAGED_LINT_FILES" | xargs npx eslint --fix 2>&1; then
+        # Re-stage files modified by linting
+        CHANGED_BY_LINT=$(echo "$STAGED_LINT_FILES" | while IFS= read -r f; do
+            [ -n "$f" ] && git diff --quiet -- "$f" 2>/dev/null || echo "$f"
+        done)
+        if [ -z "$CHANGED_BY_LINT" ]; then
+            print_success_indent "Linting passed"
+        else
+            _AUTO_FIXED=true
+            echo "$CHANGED_BY_LINT" | while IFS= read -r f; do
+                [ -n "$f" ] && git add -- "$f"
+            done
+            print_success_indent "Linting auto-fixed and re-staged"
+        fi
+    else
+        print_error_indent "Linting failed"
+        echo -e "${YELLOW}Run 'npx eslint <file>' to see errors${NC}"
+        buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: linting${NC}"
+        exit 1
+    fi
 fi
 
 echo ""

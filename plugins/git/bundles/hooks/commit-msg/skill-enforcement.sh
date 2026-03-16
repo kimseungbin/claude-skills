@@ -1,5 +1,5 @@
 #!/bin/bash
-# plugin_version: 1.0.8
+# plugin_version: 1.0.9
 #
 # Commit-msg hook to enforce commit skill usage
 #
