@@ -1,7 +1,7 @@
 {
   "name": "git",
   "description": "Git workflow tools: Conventional Commits with smart splitting, and custom git hooks generation",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "author": {
     "name": "kimseungbin"
   },

@@ -43,7 +43,7 @@ Use project-specific config if exists, otherwise use samples as reference.
 !`test -f .claude/config/git/commit/main.yaml && echo "true" || echo "false"`
 
 ### Version Check
-!`if [ -f .claude/config/git/commit/main.yaml ]; then cfg_ver=$(grep -m1 'plugin_version:' .claude/config/git/commit/main.yaml 2>/dev/null | awk '{print $2}' | tr -d '"'); if [ -n "$cfg_ver" ] && [ "$cfg_ver" != "1.0.9" ]; then echo "VERSION_MISMATCH: config=$cfg_ver, plugin=1.0.9. Run Skill(git:commit-config) to update."; fi; fi`
+!`if [ -f .claude/config/git/commit/main.yaml ]; then grep -m1 'plugin_version:' .claude/config/git/commit/main.yaml 2>/dev/null | awk -v current="1.0.9" '{ver=$2; gsub(/"/, "", ver); if (ver != "" && ver != current) print "VERSION_MISMATCH: config=" ver ", plugin=" current ". Run Skill(git:commit-config) to update."}'; fi`
 
 ## Workflow
 
