@@ -153,6 +153,20 @@ Unified git workflow plugin combining commit generation and hook setup:
 
 ---
 
+### codebase-index
+**When to use:** After excessive codebase exploration, onboarding new codebases, or when config inheritance patterns are unclear
+
+Detects inefficient codebase exploration and provides tools to build navigation knowledge. Includes hooks that analyze exploration patterns and suggest indexing.
+
+**Skills:**
+- `maintain-index` - Create/maintain INDEX.md files mapping features to file paths
+- `file-headers` - Add JSDoc file-level summaries for quick file understanding
+- `config-index` - Guide through documenting config file inheritance patterns (CONFIG-INDEX.md)
+
+**Invoke:** `Skill(maintain-index)`, `Skill(file-headers)`, or `Skill(config-index)`
+
+---
+
 ### marketplace-feedback
 **When to use:** Submitting bug reports or feature requests for plugins in the claude-skills marketplace
 
@@ -285,15 +299,17 @@ tree skills/skill-name
 
 ## Plugin Versioning
 
-When bumping a plugin version, update **all** files that reference the version — not just the files affected by the change. This keeps the entire plugin at a consistent version number.
+Plugin patch versions are **auto-bumped by the pre-commit hook** (`.githooks/pre-commit`). When any file under `plugins/<name>/` is staged, the hook:
 
-**Files to update for each plugin:**
-- `.claude-plugin/plugin.json` — the `"version"` field (source of truth)
-- All `# plugin_version:` comments in hook/bundle `.sh` files
-- All `plugin_version:` fields in config sample `.yaml` files
-- Version-check strings in `SKILL.md` files (e.g., `!` shell commands that compare versions)
+1. Bumps the patch version in `.claude-plugin/plugin.json`
+2. Propagates the new version to all files that reference it:
+   - `# plugin_version:` comments in hook/bundle `.sh` files
+   - `plugin_version:` fields in config sample `.yaml` files
+   - Version-check strings in `SKILL.md` files
+3. Updates `.claude-plugin/marketplace.json` if it exists
+4. Re-stages all modified files
 
-**No automated script exists** — version bumps are manual inline edits. Search for the old version string across the plugin directory to find all occurrences.
+**Do not manually bump versions** — the hook handles it. If you need a major/minor bump, edit `plugin.json` before committing and the hook will detect the manual bump and skip auto-bumping.
 
 ## Notes
 
