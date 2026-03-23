@@ -458,6 +458,22 @@ mkdir .claude/skills/my-skill
 mkdir skills/my-skill
 ```
 
+### ❌ Using `$` in Pre-loaded Context Commands
+
+The `!` backtick syntax (`!`\`command\``) expands all `$` references before execution. This breaks awk field references, command substitution, and variable references.
+
+```markdown
+# WRONG: $2 expands to empty, $() causes permission errors
+!`grep pattern file | awk '{print $2}'`
+!`ver=$(grep version file); echo $ver`
+
+# CORRECT: Use cut/tr/sed instead of awk field references
+!`grep pattern file | cut -d: -f2 | tr -d ' "'`
+
+# CORRECT: Use pipes instead of $() command substitution
+!`grep version file | cut -d= -f2`
+```
+
 ### ❌ Incomplete Frontmatter
 
 ```markdown

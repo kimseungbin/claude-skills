@@ -1,5 +1,5 @@
 #!/bin/bash
-# plugin_version: 1.0.11
+# plugin_version: 1.0.12
 #
 # Pre-commit hook for simple TypeScript/JavaScript projects
 #

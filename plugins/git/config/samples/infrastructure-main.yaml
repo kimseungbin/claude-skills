@@ -2,7 +2,7 @@
 # For CDK, Terraform, Pulumi, and other IaC projects
 # Copy to: .claude/config/git/commit/main.yaml
 
-plugin_version: "1.0.11"
+plugin_version: "1.0.12"
 
 project: your-infrastructure-project
 description: "Infrastructure as Code project"
