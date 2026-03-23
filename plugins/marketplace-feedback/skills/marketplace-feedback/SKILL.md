@@ -47,21 +47,12 @@ All details are gathered via **AskUserQuestion** with free-text responses.
 1. **Title**: "Briefly describe the bug (this becomes the issue title)"
 2. **Description**: "What happened? What did you expect to happen instead?"
 3. **Reproduction steps**: "How can we reproduce this? Describe step by step."
-4. **Priority** (use AskUserQuestion with options):
-   - P2: Minor issue (Recommended)
-   - P0: Blocks usage entirely
-   - P1: Significant issue, workaround exists
-   - P3: Cosmetic / low impact
 
 **For Feature Requests**, ask sequentially:
 
 1. **Title**: "Briefly describe the feature (this becomes the issue title)"
 2. **Use case**: "What problem does this solve? Why do you need it?"
 3. **Proposed solution**: "How would you like this to work? (Skip if unsure)"
-4. **Priority** (use AskUserQuestion with options):
-   - P2: Normal priority (Recommended)
-   - P1: High value, needed soon
-   - P3: Nice to have
 
 ### Step 4: Collect Environment Info (Bug Reports Only)
 
@@ -93,18 +84,9 @@ gh label create "type:feature" --color "0e8a16" --description "Feature request" 
 # Plugin label
 gh label create "plugin:{plugin-name}" --color "0075ca" --description "Related to {plugin-name}" --force -R kimseungbin/claude-skills
 
-# Priority label
-gh label create "priority:{p0-p3}" --color "{color}" --description "{description}" --force -R kimseungbin/claude-skills
-
 # Source label
 gh label create "marketplace-feedback" --color "7057ff" --description "Submitted via marketplace-feedback plugin" --force -R kimseungbin/claude-skills
 ```
-
-Priority label colors:
-- `priority:p0` → `b60205` (dark red) — "Blocks usage entirely"
-- `priority:p1` → `d93f0b` (orange) — "Significant issue"
-- `priority:p2` → `fbca04` (yellow) — "Normal priority"
-- `priority:p3` → `c5def5` (light blue) — "Low impact"
 
 4. Create the issue:
 
@@ -113,7 +95,7 @@ gh issue create \
   -R kimseungbin/claude-skills \
   --title "[{plugin-name}] {user-title}" \
   --body "{composed-body}" \
-  --label "type:{bug|feature},plugin:{plugin-name},priority:{p0-p3},marketplace-feedback"
+  --label "type:{bug|feature},plugin:{plugin-name},marketplace-feedback"
 ```
 
 ### Step 6: Output
@@ -126,5 +108,5 @@ Issue created successfully!
   #{number}: [{plugin-name}] {title}
   {issue-url}
 
-  Labels: type:{type}, plugin:{name}, priority:{level}, marketplace-feedback
+  Labels: type:{type}, plugin:{name}, marketplace-feedback
 ```

@@ -1,7 +1,7 @@
 {
   "name": "marketplace-feedback",
   "description": "Submit bug reports and feature requests for claude-skills marketplace plugins",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": {
     "name": "kimseungbin"
   },
