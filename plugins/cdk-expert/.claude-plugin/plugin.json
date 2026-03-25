@@ -1,0 +1,10 @@
+{
+  "name": "cdk-expert",
+  "version": "0.1.1",
+  "description": "AWS CDK expert for infrastructure refactoring, CloudFormation safety, and construct patterns",
+  "author": {
+    "name": "kimseungbin"
+  },
+  "keywords": ["aws", "cdk", "cloudformation", "infrastructure"],
+  "skills": "./skills/"
+}

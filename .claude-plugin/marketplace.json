@@ -33,6 +33,12 @@
       "source": "./plugins/marketplace-feedback",
       "description": "Submit bug reports and feature requests for claude-skills marketplace plugins",
       "version": "1.0.3"
+    },
+    {
+      "name": "cdk-expert",
+      "source": "./plugins/cdk-expert",
+      "description": "AWS CDK expert for infrastructure refactoring, CloudFormation safety, and construct patterns",
+      "version": "0.1.1"
     }
   ]
 }

@@ -193,7 +193,7 @@ This skill can be customized using `.claude/config/cdk-expert.yaml` in your proj
 
 **Example config:**
 
-See [`config-template.yaml`](./config-template.yaml) for a complete example with detailed comments.
+See [`config/samples/cdk-expert.yaml`](../../config/samples/cdk-expert.yaml) for a complete example with detailed comments.
 
 ```yaml
 project: my-cdk-project

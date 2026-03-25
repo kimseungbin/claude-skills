@@ -20,13 +20,13 @@ claude-skills/
 │   ├── create-pr.md
 │   └── refactor-claude-md.md
 ├── skills/                         # Shared skills directory
-│   ├── cdk-expert/
 │   ├── claude-md-refactoring/
 │   ├── git-strategy/
 │   ├── maintaining-documentation/
 │   ├── nestjs-patterns/
 │   └── skill-creator/
 ├── plugins/                        # Standalone plugins
+│   ├── cdk-expert/                 # AWS CDK infrastructure patterns
 │   ├── codebase-index/             # Exploration detection and indexing
 │   ├── git/                        # Git workflow: commits + hooks
 │   ├── github-issue-writer/        # Issue management with sub-issues
@@ -84,15 +84,6 @@ Test skill for verifying symlinks work correctly in your environment.
 
 ---
 
-### cdk-expert
-**When to use:** AWS CDK infrastructure refactoring, CloudFormation resource replacement safety, CDK Nag warnings, construct patterns
-
-AWS CDK expert skill providing guidance on infrastructure patterns, CloudFormation safety, and best practices. Includes extensive documentation and MCP server integration. Supports project-specific configuration via `.claude/config/cdk-expert.yaml`.
-
-**Invoke:** `Skill(cdk-expert)`
-
----
-
 ### nestjs-patterns
 **When to use:** NestJS repository pattern implementation, dependency injection setup, testing strategies, ESM configuration
 
@@ -103,6 +94,20 @@ Provides NestJS-specific patterns and best practices including abstract class pa
 ## Available Plugins
 
 Plugins are standalone packages with multiple related skills.
+
+### cdk-expert
+**When to use:** AWS CDK infrastructure refactoring, CloudFormation resource replacement safety, CDK Nag warnings, construct patterns
+
+AWS CDK expert providing guidance on infrastructure patterns, CloudFormation safety, and best practices. Includes extensive documentation, MCP server integration, and project-specific configuration.
+
+**Skills:**
+- `cdk-expert` - CDK infrastructure guidance and safety checks
+
+**Configuration:** `.claude/config/cdk-expert.yaml` (copy from `config/samples/cdk-expert.yaml`)
+
+**Invoke:** `Skill(cdk-expert)`
+
+---
 
 ### github-pr-management
 **When to use:** Creating pull requests, filling PR templates, analyzing deployment impacts, managing environment promotions
