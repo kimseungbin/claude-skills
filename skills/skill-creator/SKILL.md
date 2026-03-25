@@ -474,6 +474,23 @@ The `!` backtick syntax (`!`\`command\``) expands all `$` references before exec
 !`grep version file | cut -d= -f2`
 ```
 
+### ❌ Using Relative File Paths in Pre-loaded Context Commands
+
+Pre-loaded `!` commands run relative to the **skill's base directory**, not the consumer project root. For marketplace plugins, this is the plugin's cache directory — so relative paths like `.claude/config/...` will not resolve to the consumer project.
+
+```markdown
+# WRONG: Resolves relative to skill directory, not project root
+!`cat .claude/config/my-skill/main.yaml 2>/dev/null || echo "NO_CONFIG"`
+!`test -f .claude/config/my-skill/main.yaml && echo "true" || echo "false"`
+
+# CORRECT: Move file checks to the workflow body using Bash/Read tools
+# These tools run in the consumer project's working directory
+```
+
+**Git commands are the exception** — `git status`, `git diff`, `git log` etc. work in pre-loaded context because git traverses up to find the `.git` directory regardless of CWD.
+
+**Rule:** Only use `!` commands for git commands or other CWD-independent operations. For any file path access, use Bash/Read/Glob tools in the workflow body instead.
+
 ### ❌ Incomplete Frontmatter
 
 ```markdown

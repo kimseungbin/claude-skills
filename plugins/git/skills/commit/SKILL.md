@@ -15,12 +15,10 @@ allowed-tools:
 
 You are an expert at creating high-quality git commits following the Conventional Commits specification.
 
-## Configuration Paths
+## Configuration
 
-- **Project-specific**: `.claude/config/git/commit/` (check first)
-- **Default samples**: `claude-skills/plugins/git/config/samples/`
-
-Use project-specific config if exists, otherwise use samples as reference.
+- **Project-specific config**: `.claude/config/git/commit/main.yaml`
+- Config is optional — the skill works with Conventional Commits defaults when no config exists
 
 ## Pre-loaded Context
 
@@ -36,23 +34,28 @@ Use project-specific config if exists, otherwise use samples as reference.
 ### Recent Commit History
 !`git log --oneline -30 --pretty=format:"%s" 2>/dev/null || echo "NO_HISTORY: initial repo, use Conventional Commits defaults"`
 
-### Project Config
-!`cat .claude/config/git/commit/main.yaml 2>/dev/null || echo "NO_CONFIG: Run Skill(git:commit-config) to set up project-specific configuration."`
-
-### Config Exists
-!`test -f .claude/config/git/commit/main.yaml && echo "true" || echo "false"`
-
-### Version Check
-!`if [ -f .claude/config/git/commit/main.yaml ]; then grep -m1 'plugin_version:' .claude/config/git/commit/main.yaml 2>/dev/null | cut -d: -f2 | tr -d ' "' | grep -vx "1.0.11" | sed 's/.*/VERSION_MISMATCH: config=&, plugin=1.0.12. Run Skill(git:commit-config) to update./'; fi`
-
 ## Workflow
 
 ### Step 0: Check Config
 
-If **Config Exists** above is `false`, ask the user with AskUserQuestion:
+Use **Bash** to check for and read the project config:
 
-- **Set up config** — Invoke `Skill(git:commit-config)` and stop
-- **Continue with defaults** — Proceed to Step 1 using samples as fallback
+```bash
+cat .claude/config/git/commit/main.yaml 2>/dev/null || echo "NO_CONFIG"
+```
+
+- If config exists, use it for types, scopes, language, and body conventions
+- If `NO_CONFIG`, ask the user with AskUserQuestion:
+  - **Set up config** — Invoke `Skill(git:commit-config)` and stop
+  - **Continue with defaults** — Proceed to Step 1 using Conventional Commits defaults
+
+If config exists, also check the version:
+
+```bash
+grep -m1 'plugin_version:' .claude/config/git/commit/main.yaml 2>/dev/null | cut -d: -f2 | tr -d ' "'
+```
+
+If the version is not `1.0.12`, warn: `VERSION_MISMATCH: Run Skill(git:commit-config) to update.`
 
 ### Step 1: Analyze All Changes
 

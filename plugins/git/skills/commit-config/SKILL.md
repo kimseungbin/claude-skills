@@ -17,7 +17,11 @@ Sets up and updates commit message configuration.
 
 ### Step 1: Detect Context
 
-!`test -f .claude/config/git/commit/main.yaml && echo "EXISTS" || echo "NEW"`
+Use **Bash** to check if a project config already exists:
+
+```bash
+test -f .claude/config/git/commit/main.yaml && echo "EXISTS" || echo "NEW"
+```
 
 - **NEW** → Initial setup (go to Step 2)
 - **EXISTS** → Update flow (go to Step 6)

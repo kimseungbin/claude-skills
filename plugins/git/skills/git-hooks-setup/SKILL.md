@@ -12,7 +12,14 @@ Generate custom git hooks tailored to your project's needs.
 ## Pre-loaded Context
 
 ### Installed Hook Versions
-!`grep -rn 'plugin_version:' .githooks/ 2>/dev/null | grep -v "1.0.12"`
+
+Check for outdated hook versions using **Bash**:
+
+```bash
+grep -rn 'plugin_version:' .githooks/ 2>/dev/null | grep -v "1.0.12"
+```
+
+If output is non-empty, hooks are outdated and should be updated.
 
 ## When to Use This Skill
 
