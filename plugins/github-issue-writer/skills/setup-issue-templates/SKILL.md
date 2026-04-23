@@ -1,7 +1,7 @@
 ---
 name: setup-issue-templates
 description: Interactive setup for GitHub issue templates
-allowed-tools: Read, Glob, Write, Bash, AskUserQuestion
+allowed-tools: Read, Glob, Write, Bash, ToolSearch, AskUserQuestion
 ---
 
 # Setup Issue Templates

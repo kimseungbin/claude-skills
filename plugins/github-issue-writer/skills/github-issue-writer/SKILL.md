@@ -1,7 +1,7 @@
 ---
 name: github-issue-writer
 description: Write structured GitHub issues (incidents, deployments, features)
-allowed-tools: Read, Glob, AskUserQuestion
+allowed-tools: Read, Glob, ToolSearch, AskUserQuestion
 ---
 
 # GitHub Issue Writer

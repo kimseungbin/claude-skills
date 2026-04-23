@@ -1,7 +1,7 @@
 ---
 name: github-sub-issues
 description: Create GitHub issues and manage sub-issue relationships
-allowed-tools: Read, Glob, Bash, AskUserQuestion
+allowed-tools: Read, Glob, Bash, ToolSearch, AskUserQuestion
 ---
 
 # GitHub Sub-Issues

@@ -26,13 +26,13 @@
       "name": "github-issue-writer",
       "source": "./plugins/github-issue-writer",
       "description": "Write structured GitHub issues (incidents, deployments, features) with mermaid diagrams",
-      "version": "2.0.2"
+      "version": "2.0.3"
     },
     {
       "name": "marketplace-feedback",
       "source": "./plugins/marketplace-feedback",
       "description": "Submit bug reports and feature requests for claude-skills marketplace plugins",
-      "version": "1.0.3"
+      "version": "1.0.4"
     },
     {
       "name": "cdk-expert",
