@@ -1,7 +1,7 @@
 # Claude Skills Repository - Commit Configuration
 # Copy to: .claude/config/git/commit/main.yaml
 
-plugin_version: "1.0.8"
+plugin_version: "1.0.14"
 
 project: claude-skills
 description: "Shared Claude Code skills and plugins repository"
