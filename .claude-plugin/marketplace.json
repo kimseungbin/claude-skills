@@ -14,7 +14,7 @@
       "name": "git",
       "source": "./plugins/git",
       "description": "Git workflow tools: Conventional Commits with smart splitting, and custom git hooks generation",
-      "version": "1.0.13"
+      "version": "1.0.14"
     },
     {
       "name": "korean-technical-translator",

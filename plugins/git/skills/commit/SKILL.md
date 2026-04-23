@@ -7,7 +7,10 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - TodoWrite
+  - ToolSearch
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
   - AskUserQuestion
 ---
 
@@ -107,18 +110,18 @@ If splitting, use AskUserQuestion to present the split plan. Put the table in th
 
 Type and Scope columns show the preliminary analysis — these may be refined in Step 5. Do NOT output the table as plain text — it must go through AskUserQuestion so the user can respond inline.
 
-### Step 4: Track in Todo
+### Step 4: Track in Tasks
 
-Write commit groups to todo list:
+Create tasks for each commit group using TaskCreate:
 ```
-[ ] Commit 1: deps changes (package.json, lock file)
-[ ] Commit 2: feature changes (src/feature.ts)
-[ ] Commit 3: test changes (tests/feature.test.ts)
+Commit 1: deps changes (package.json, lock file)
+Commit 2: feature changes (src/feature.ts)
+Commit 3: test changes (tests/feature.test.ts)
 ```
 
 ### Step 5: For Each Commit Group
 
-Mark current group as in_progress, then:
+Mark current group as in_progress using TaskUpdate, then:
 
 **5a. Determine Type**
 1. Check if the resolved scope has a `default_type` in `scopes_quick` config
@@ -172,7 +175,7 @@ Stage specific files and commit using HEREDOC for multi-line messages (subject +
 
 **If a pre-commit hook fails** (e.g., prettier, eslint): Do NOT fix files yourself. Report the error to the user and stop. You do not have permission to edit source files — only the user can decide how to resolve hook failures.
 
-Mark todo as completed, move to next group.
+Mark task as completed using TaskUpdate, move to next group.
 
 ### Step 6: Report and Terminate
 

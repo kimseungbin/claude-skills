@@ -2,7 +2,7 @@
 # For small projects with basic commit conventions
 # Copy to: .claude/config/git/commit/main.yaml
 
-plugin_version: "1.0.13"
+plugin_version: "1.0.14"
 
 project: your-project-name
 description: "Small project with simple structure"

@@ -6,6 +6,7 @@ allowed-tools:
   - Read
   - Edit
   - Glob
+  - ToolSearch
   - AskUserQuestion
 ---
 
