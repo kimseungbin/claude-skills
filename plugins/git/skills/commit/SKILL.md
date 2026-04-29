@@ -1,7 +1,6 @@
 ---
 name: commit
 description: Expert at creating Conventional Commits with intelligent multi-commit splitting, pattern learning from project history, and smart commit ordering. Use PROACTIVELY when committing changes or generating commit messages.
-context: fork
 allowed-tools:
   - Bash
   - Read

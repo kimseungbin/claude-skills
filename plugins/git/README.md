@@ -16,7 +16,6 @@ claude install kimseungbin/claude-skills/plugins/git
 
 Expert at creating Conventional Commits with intelligent multi-commit splitting, pattern learning from project history, and smart commit ordering.
 
-- **Context isolation**: Runs in separate context window (`context: fork`)
 - **Pattern learning**: Analyzes project's existing commit history
 - **Smart ordering**: Suggests logical commit order (deps before features)
 - **Multi-commit splitting**: Recommends splitting when appropriate

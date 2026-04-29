@@ -139,7 +139,6 @@ Issue management with sub-issue support via GraphQL API, mermaid diagrams, and G
 **When to use:** Creating commits with pattern learning and smart ordering, or setting up project-specific git hooks
 
 Unified git workflow plugin combining commit generation and hook setup:
-- Context isolation via `context: fork` (separate from main conversation)
 - Commit history analysis (learns project's existing patterns)
 - Smart commit ordering (deps → features → tests → docs)
 - Multi-commit splitting and implementation guides
