@@ -39,6 +39,12 @@
       "source": "./plugins/cdk-expert",
       "description": "AWS CDK expert for infrastructure refactoring, CloudFormation safety, and construct patterns",
       "version": "0.1.1"
+    },
+    {
+      "name": "tidy",
+      "source": "./plugins/tidy",
+      "description": "Organize and polish Obsidian notes via 7 sequential passes: typos, frontmatter, formatting, restructuring, diagrams, enrichment, linking",
+      "version": "0.1.1"
     }
   ]
 }

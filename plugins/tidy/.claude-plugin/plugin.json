@@ -1,0 +1,10 @@
+{
+  "name": "tidy",
+  "version": "0.1.1",
+  "description": "Organize and polish Obsidian notes via 7 sequential passes: typos, frontmatter, formatting, restructuring, diagrams, enrichment, linking. English and Korean.",
+  "author": {
+    "name": "kimseungbin"
+  },
+  "keywords": ["obsidian", "notes", "korean", "stt", "wikilinks", "mermaid"],
+  "skills": "./skills/"
+}
