@@ -12,181 +12,36 @@ This repository contains shared Claude Code skills designed for reuse across mul
 claude-skills/
 ├── .claude/
 │   ├── commands/                   # Local commands (copied for testing)
-│   │   ├── create-pr.md
-│   │   └── refactor-claude-md.md
-│   └── skills/                     # Local skills (symlinked from skills/)
-│       └── claude-md-refactoring@
+│   ├── config/                     # Project-specific plugin overrides
+│   ├── skills/                     # Local skills (symlinked from skills/, plus local-only)
+│   └── settings.local.json
+├── .claude-plugin/
+│   └── marketplace.json            # Marketplace registry
 ├── commands/                       # Slash commands (source files)
-│   ├── create-pr.md
-│   └── refactor-claude-md.md
 ├── skills/                         # Shared skills directory
 │   ├── claude-md-refactoring/
+│   ├── doc-generator/
 │   ├── git-strategy/
 │   ├── maintaining-documentation/
 │   ├── nestjs-patterns/
+│   ├── release-notes/
 │   └── skill-creator/
 ├── plugins/                        # Standalone plugins
-│   ├── cdk-expert/                 # AWS CDK infrastructure patterns
-│   ├── codebase-index/             # Exploration detection and indexing
-│   ├── git/                        # Git workflow: commits + hooks
-│   ├── github-issue-writer/        # Issue management with sub-issues
-│   └── github-pr-management/       # PR creation and management
+│   ├── cdk-expert/
+│   ├── codebase-index/
+│   ├── git/
+│   ├── github-issue-writer/
+│   ├── github-pr-management/
+│   ├── korean-technical-translator/
+│   ├── marketplace-feedback/
+│   └── tidy/
 ├── CLAUDE.md                       # This file
 └── README.md                       # Setup instructions for humans
 ```
 
 **Note:** In this repo, `.claude/commands/` contains **copied files** (not symlinks). Commands do not support symlinks in Claude Code.
 
-## Available Skills
-
-### maintaining-documentation
-**When to use:** After making code changes that affect project structure, architecture, or behavior
-
-Keeps documentation (CLAUDE.md, README.md, docs/) synchronized with code changes. Supports multiple project types via implementation guides (cdk-infrastructure, react-frontend, python-backend).
-
-**Invoke:** `Skill(maintaining-documentation)`
-
----
-
-### skill-creator
-**When to use:** Creating a new Claude Code skill or adding implementation guides to existing skills
-
-Guides through skill creation process following best practices and standardized structure. Supports hybrid pattern with project-type specific implementation guides.
-
-**Invoke:** `Skill(skill-creator)`
-
----
-
-### git-strategy
-**When to use:** Managing git workflow for environment-based infrastructure deployments (DEV → STAGING → PROD)
-
-Provides guidance on rollback procedures, emergency hotfixes, and branch management for infrastructure projects with multiple deployment environments.
-
-**Invoke:** `Skill(git-strategy)`
-
----
-
-### claude-md-refactoring
-**When to use:** One-time task to refactor existing CLAUDE.md files
-
-Separates AI instructions from human documentation, moving user-facing content to README.md while keeping technical details for Claude in CLAUDE.md.
-
-**Invoke:** `Skill(claude-md-refactoring)` or `/refactor-claude-md` command
-
----
-
-### test-symlink-skill
-**When to use:** Debugging symlink functionality in Claude Code
-
-Test skill for verifying symlinks work correctly in your environment.
-
-**Invoke:** `Skill(test-symlink-skill)`
-
----
-
-### nestjs-patterns
-**When to use:** NestJS repository pattern implementation, dependency injection setup, testing strategies, ESM configuration
-
-Provides NestJS-specific patterns and best practices including abstract class patterns, DI configuration, testing strategies, and ESM module configuration.
-
-**Invoke:** `Skill(nestjs-patterns)`
-
-## Available Plugins
-
-Plugins are standalone packages with multiple related skills.
-
-### cdk-expert
-**When to use:** AWS CDK infrastructure refactoring, CloudFormation resource replacement safety, CDK Nag warnings, construct patterns
-
-AWS CDK expert providing guidance on infrastructure patterns, CloudFormation safety, and best practices. Includes extensive documentation, MCP server integration, and project-specific configuration.
-
-**Skills:**
-- `cdk-expert` - CDK infrastructure guidance and safety checks
-
-**Configuration:** `.claude/config/cdk-expert.yaml` (copy from `config/samples/cdk-expert.yaml`)
-
-**Invoke:** `Skill(cdk-expert)`
-
----
-
-### github-pr-management
-**When to use:** Creating pull requests, filling PR templates, analyzing deployment impacts, managing environment promotions
-
-Comprehensive PR creation and management with interactive content selection, template compliance, confidence-based decision making, and deployment impact analysis.
-
-**Skills:**
-- `pull-request-management` - Main skill for PR creation
-
-**Invoke:** `Skill(pull-request-management)` or `/create-pr` command
-
----
-
-### github-issue-writer
-**When to use:** Writing structured GitHub issues with templates, sub-issues, and diagrams
-
-Issue management with sub-issue support via GraphQL API, mermaid diagrams, and GitHub callouts.
-
-**Skills:**
-- `github-issue-writer` - Write issues
-- `github-sub-issues` - Create sub-issues with parent-child linking
-- `setup-issue-templates` - Setup issue templates
-
-**Invoke:** `Skill(github-issue-writer)`
-
----
-
-### git
-**When to use:** Creating commits with pattern learning and smart ordering, or setting up project-specific git hooks
-
-Unified git workflow plugin combining commit generation and hook setup:
-- Commit history analysis (learns project's existing patterns)
-- Smart commit ordering (deps → features → tests → docs)
-- Multi-commit splitting and implementation guides
-- Pre-built hook bundles for common project types (TypeScript, monorepo, AWS CDK)
-
-**Configuration:**
-- Samples: `claude-skills/plugins/git/config/samples/` (reference templates)
-- Project-specific: `.claude/config/git/commit/main.yaml` (copy from samples)
-
-**Skills:**
-- `commit` - Main skill for commit generation
-- `commit-config` - Set up and update commit message configuration
-- `git-hooks-setup` - Git hook setup and generation
-
-**Invoke:** `Skill(commit)` or `Skill(git-hooks-setup)`
-
----
-
-### codebase-index
-**When to use:** After excessive codebase exploration, onboarding new codebases, or when config inheritance patterns are unclear
-
-Detects inefficient codebase exploration and provides tools to build navigation knowledge. Includes hooks that analyze exploration patterns and suggest indexing.
-
-**Skills:**
-- `maintain-index` - Create/maintain INDEX.md files mapping features to file paths
-- `file-headers` - Add JSDoc file-level summaries for quick file understanding
-- `config-index` - Guide through documenting config file inheritance patterns (CONFIG-INDEX.md)
-
-**Invoke:** `Skill(maintain-index)`, `Skill(file-headers)`, or `Skill(config-index)`
-
----
-
-### marketplace-feedback
-**When to use:** Submitting bug reports or feature requests for plugins in the claude-skills marketplace
-
-Submit feedback directly to the claude-skills GitHub Issues from any project. Auto-detects which plugin the issue relates to and creates structured, labeled issues.
-
-**Skills:**
-- `marketplace-feedback` - Submit bug reports and feature requests
-
-**Invoke:** `Skill(marketplace-feedback)`
-
-## Available Commands
-
-- **create-pr**: Invokes the pull-request-management skill
-- **refactor-claude-md**: Invokes the claude-md-refactoring skill
-
-**Note:** Commands are included automatically when installed via the marketplace.
+Skill, plugin, and command descriptions live in their own frontmatter (`SKILL.md`, `plugin.json`, command `.md` files) and are loaded into every session automatically. Don't duplicate them here.
 
 ## Working with This Repository
 
