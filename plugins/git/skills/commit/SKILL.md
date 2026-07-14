@@ -118,6 +118,21 @@ Commit 2: feature changes (src/feature.ts)
 Commit 3: test changes (tests/feature.test.ts)
 ```
 
+### Step 4.5: Verify Pre-Staged State
+
+Before committing any group, check for files already staged from a prior aborted attempt. A failed commit leaves the index dirty — e.g. the pre-commit hook auto-staged formatting fixes, then a test failed — and those files would otherwise be silently bundled into the next commit.
+
+1. List what is already staged:
+   ```bash
+   git diff --cached --name-only
+   ```
+2. Compare against the union of files across ALL planned commit groups (from Step 3/4). Any staged file NOT in the plan is unexpected.
+3. If unexpected pre-staged files exist, surface them via AskUserQuestion:
+   - **Include** — fold them into the appropriate commit group (ask which group, or add a new group)
+   - **Unstage** — run `git restore --staged <files>` to drop them from the index, leaving the working-tree changes intact
+   - **Abort** — stop the commit flow so the user can reconcile the index manually
+4. If the index is empty or contains only planned files, proceed silently — do not prompt.
+
 ### Step 5: For Each Commit Group
 
 Mark current group as in_progress using TaskUpdate, then:
@@ -170,7 +185,7 @@ When generating a body, focus on **why** — the reasoning and motivation:
 
 **5f. Execute Commit**
 
-Stage specific files and commit using HEREDOC for multi-line messages (subject + body + footers). For trivial commits without body, single `-m` is fine.
+Stage the group's specific files by name (never `git add -A` / `git add .`), so only planned files enter the commit — pre-staged state was already reconciled in Step 4.5. Commit using HEREDOC for multi-line messages (subject + body + footers). For trivial commits without body, single `-m` is fine.
 
 **If a pre-commit hook fails** (e.g., prettier, eslint): Do NOT fix files yourself. Report the error to the user and stop. You do not have permission to edit source files — only the user can decide how to resolve hook failures.
 
