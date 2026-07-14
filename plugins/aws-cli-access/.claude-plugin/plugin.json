@@ -1,0 +1,10 @@
+{
+  "name": "aws-cli-access",
+  "version": "0.1.1",
+  "description": "Grant/revoke AWS IAM Identity Center access to member accounts and configure matching CLI profiles that share an SSO session token cache",
+  "author": {
+    "name": "kimseungbin"
+  },
+  "keywords": ["aws", "sso", "iam-identity-center", "cli", "profile", "access-management"],
+  "skills": "./skills/"
+}

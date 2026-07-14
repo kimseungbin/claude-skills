@@ -1,0 +1,11 @@
+{
+  "_comment": "Copy this to ~/.aws/claude-aws-cli-access.json (resolved next to your AWS config file; honors AWS_CONFIG_FILE) or ~/.config/claude-code/aws-cli-access.json. These values are org-specific — never commit them.",
+  "sso_instance_arn": "arn:aws:sso:::instance/ssoins-xxxxxxxxxxxxxxxx",
+  "identity_store_id": "d-xxxxxxxxxx",
+  "principal_id": "00000000-0000-0000-0000-000000000000",
+  "principal_type": "USER",
+  "management_profile": "your-management-profile",
+  "sso_session_name": "your-sso-session",
+  "region": "us-east-1",
+  "default_role": "ReadOnlyAccess"
+}

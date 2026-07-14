@@ -45,6 +45,12 @@
       "source": "./plugins/tidy",
       "description": "Organize and polish Obsidian notes via 7 sequential passes: typos, frontmatter, formatting, restructuring, diagrams, enrichment, linking",
       "version": "0.1.1"
+    },
+    {
+      "name": "aws-cli-access",
+      "source": "./plugins/aws-cli-access",
+      "description": "Grant/revoke AWS IAM Identity Center access to member accounts and configure matching CLI profiles that share an SSO session token cache",
+      "version": "0.1.1"
     }
   ]
 }
