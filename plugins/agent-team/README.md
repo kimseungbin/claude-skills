@@ -27,7 +27,22 @@ That leaves file ownership as prose inside spawn prompts, honored only by conven
 
 ## Requirements
 
-- **`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.** Agent teams are experimental and off by default. Plugin `settings.json` honors only `agent` and `subagentStatusLine` — arbitrary `env` is ignored — so this plugin cannot enable teams for you. `/team` preflights the variable and says so rather than spawning nothing.
+**`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is required.** Agent teams are experimental and disabled by default: without it no team is set up at session start, no team directories are written, and Claude does not spawn or propose teammates.
+
+A plugin cannot set it for you. Plugin `settings.json` honors only the `agent` and `subagentStatusLine` keys, and unknown keys are silently ignored — so it has to go in your own settings or environment:
+
+```json
+// ~/.claude/settings.json or .claude/settings.local.json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+```
+
+Or per-shell: `export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
+
+It is read at session start, so set it before launching — toggling it mid-session has no effect. `/team` preflights it and tells you rather than spawning nothing and appearing broken.
 
 ## Scope
 

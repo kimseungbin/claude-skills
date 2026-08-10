@@ -25,10 +25,9 @@ Two pieces, per the issue:
 
 ## Constraints to honor
 
-- **Preflight `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.** Agent teams are experimental and
-  off by default. Plugin `settings.json` only honors `agent` and `subagentStatusLine`, so
-  this plugin cannot set it — detect it and tell the user rather than spawning nothing and
-  appearing broken.
+- **Preflight `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.** Agent teams are off by default and
+  this plugin cannot set it. If unset, stop and tell the user rather than spawning nothing
+  and appearing broken.
 - **`disable-model-invocation: true`** stays set. Teams cost significantly more tokens than
   a single session; spawning one is always an explicit user decision.
 - **A read-only review team is not the feature.** Reviewers debating one diff need no
