@@ -2,7 +2,7 @@
 # For CDK, Terraform, Pulumi, and other IaC projects
 # Copy to: .claude/config/git/commit/main.yaml
 
-plugin_version: "1.0.18"
+plugin_version: "1.0.19"
 
 project: your-infrastructure-project
 description: "Infrastructure as Code project"
@@ -67,6 +67,32 @@ scopes_quick:
       - "README*.md"
       - "CLAUDE.md"
       - ".claude/**"
+
+# Which diffs are worth reading
+#
+# never_read:  glob patterns whose diffs carry no semantic value. The skill sees
+#              them in the stat and commits them, but never loads their content.
+# commit_with: derived file -> the source it must ride along with. If the derived
+#              file changed but its source did NOT, the skill surfaces it rather
+#              than skipping — the derived file IS the change in that case.
+#
+# Unioned with `-diff` / `linguist-generated=true` entries in .gitattributes.
+# Only TRACKED files matter: gitignored, untracked output never reaches git diff.
+#
+# For CDK/Terraform the big win is synthesized templates. `cdk.out/` is normally
+# gitignored (no entry needed), but committed snapshot tests are not — a single
+# CDK snapshot update can be tens of thousands of lines of pure noise.
+diff_policy:
+  never_read:
+    - "**/*.lock"
+    - "**/.terraform.lock.hcl"
+    - "**/__snapshots__/**"
+    - "**/*.snapshot.json"
+    # Only if this repo commits synthesized output; a no-op when gitignored.
+    - "**/cdk.out/**"
+  commit_with:
+    "package-lock.json": "package.json"
+    "yarn.lock": "package.json"
 
 # Footer conventions - includes deployment safety
 footer:

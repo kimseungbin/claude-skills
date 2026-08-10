@@ -2,7 +2,7 @@
 # For multi-package projects with complex structure
 # Copy to: .claude/config/git/commit/main.yaml
 
-plugin_version: "1.0.18"
+plugin_version: "1.0.19"
 
 project: your-project-name
 description: "Monorepo with multiple packages"
@@ -70,6 +70,41 @@ scopes_quick:
       - "CLAUDE.md"
       - ".claude/**"
       - "README*.md"
+
+# Which diffs are worth reading
+#
+# never_read:  glob patterns whose diffs carry no semantic value. The skill sees
+#              them in the stat and commits them, but never loads their content.
+# commit_with: derived file -> the source file it must ride along with. If the
+#              derived file changed but its source did NOT, the skill surfaces it
+#              instead of skipping.
+#
+# Patterns are unioned with any `-diff` / `linguist-generated=true` entries in
+# .gitattributes.
+#
+# Only TRACKED files matter here. `git diff` never reports gitignored, untracked
+# files, so build output you already gitignore costs nothing and needs no entry.
+# These patterns earn their keep on files you are obliged to commit — lock files,
+# snapshots, checked-in codegen.
+#
+# A pattern with no `/` matches at any depth; one with a `/` is anchored to the
+# repo root. `**/` spans directories, a bare `*` does not.
+diff_policy:
+  never_read:
+    - "**/*.lock"
+    - "**/pnpm-lock.yaml"
+    # Snapshots and checked-in codegen: must be committed, never worth reading.
+    - "**/__snapshots__/**"
+    - "**/generated/**"
+    - "**/*.generated.*"
+    # Only relevant if this monorepo commits build output. If dist/ and build/
+    # are gitignored (the usual case), these two lines are harmless no-ops.
+    - "**/dist/**"
+    - "**/build/**"
+  commit_with:
+    "pnpm-lock.yaml": "package.json"
+    "package-lock.json": "package.json"
+    "yarn.lock": "package.json"
 
 # Footer conventions
 footer:

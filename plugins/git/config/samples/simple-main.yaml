@@ -2,7 +2,7 @@
 # For small projects with basic commit conventions
 # Copy to: .claude/config/git/commit/main.yaml
 
-plugin_version: "1.0.18"
+plugin_version: "1.0.19"
 
 project: your-project-name
 description: "Small project with simple structure"
@@ -31,6 +31,31 @@ scopes_quick:
   app: "Application code"
   config: "Configuration files"
   docs: "Documentation"
+
+# Which diffs are worth reading
+#
+# never_read:  glob patterns whose diffs carry no semantic value. The skill sees
+#              them in the stat and commits them, but never loads their content.
+# commit_with: derived file -> the source file it must ride along with. If the
+#              derived file changed but its source did NOT, the skill surfaces it
+#              instead of skipping (e.g. a lock file bumped by `npm audit fix` IS
+#              the change, and its diff must be read).
+#
+# Patterns are unioned with any `-diff` / `linguist-generated=true` entries in
+# .gitattributes. Omit this section entirely to fall back to the skill's built-in
+# defaults (common lock files only).
+#
+# Only TRACKED files matter — `git diff` never reports gitignored, untracked
+# files, so there is no need to list build output you already gitignore.
+# A pattern with no `/` matches at any depth; `**/` spans directories.
+diff_policy:
+  never_read:
+    - "**/*.lock"
+    - "package-lock.json"
+  commit_with:
+    "package-lock.json": "package.json"
+    "yarn.lock": "package.json"
+    "pnpm-lock.yaml": "package.json"
 
 # Footer conventions
 footer:

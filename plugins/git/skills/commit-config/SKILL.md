@@ -134,10 +134,30 @@ Select scopes to assign a default_type (or skip):
 
 For each selected scope, set `default_type` in the generated config. The commit skill will use this as the pre-selected type, skipping type deliberation unless the change clearly contradicts it.
 
+### Step 4.5: Detect Derived Files (diff_policy)
+
+The commit skill never loads diffs for derived files — lock files, snapshots, checked-in codegen. That list is project-specific, so detect it here and write it into `diff_policy`.
+
+**Only tracked files matter.** `git diff` never reports gitignored, untracked files, so build output the project already ignores costs nothing and needs no entry. Scan the index, not the working tree:
+
+```bash
+git ls-files | grep -iE '(^|/)([a-z-]*\.lock|.*-lock\.(json|yaml)|go\.sum|Gemfile\.lock|\.terraform\.lock\.hcl)$|(^|/)__snapshots__/|\.generated\.|(^|/)(generated|dist|build|cdk\.out)/'
+```
+
+Group the hits and confirm them in **one** AskUserQuestion — never prompt per file:
+
+- **Lock files** → add to `never_read`, and pair each with its manifest in `commit_with` (`package-lock.json` → `package.json`, `Cargo.lock` → `Cargo.toml`, `go.sum` → `go.mod`)
+- **Snapshots / checked-in codegen** → add to `never_read`, no pairing
+- **Tracked build output** (`dist/`, `build/`, `cdk.out/`) → add to `never_read`, **and** mention that these are usually gitignored instead. Report it as advice only: *"these look like build output that is tracked; consider `.gitignore` + `git rm --cached`."* Never untrack anything — that is a repo-wide decision with CI and deploy consequences, and `.gitignore` alone does not untrack an already-committed file.
+
+Write patterns with gitignore-style depth semantics: no `/` means "match at any depth", a `/` anchors to the repo root, `**/` spans directories.
+
+If `.gitattributes` already marks files `-diff` or `linguist-generated=true`, do not duplicate them — the commit skill unions those in automatically.
+
 ### Step 5: Generate Config
 
 1. Run `mkdir -p .claude/config/git/commit`
-2. Generate config with selected types, language, and scopes
+2. Generate config with selected types, language, scopes, and the `diff_policy` from Step 4.5
 3. Write to `.claude/config/git/commit/main.yaml`
 4. Go to Step 9
 

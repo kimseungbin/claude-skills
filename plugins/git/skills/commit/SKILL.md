@@ -27,14 +27,16 @@ You are an expert at creating high-quality git commits following the Conventiona
 ### Current Changes
 !`git status`
 
-### Staged Diff
-!`git diff --staged`
+### Change Shape (staged / unstaged, derived files excluded)
+!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/changed.sh" stat 2>/dev/null || { git diff --staged --stat; echo "---"; git diff --stat; }`
 
-### Unstaged Diff
-!`git diff`
+### Derived Files Changed Without Their Source
+!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/changed.sh" check-pairs 2>/dev/null || true`
 
 ### Recent Commit History
-!`git log --oneline -30 --pretty=format:"%s" 2>/dev/null || echo "NO_HISTORY: initial repo, use Conventional Commits defaults"`
+!`git log --oneline -10 --pretty=format:"%s" 2>/dev/null || echo "NO_HISTORY: initial repo, use Conventional Commits defaults"`
+
+**Full diffs are deliberately NOT pre-loaded.** The stat above is enough to group files into commits. A whole-tree diff is unbounded — on a large refactor it can exceed the context window before the skill has read a single instruction.
 
 ## Workflow
 
@@ -67,11 +69,18 @@ If `VERSION_MISMATCH` is printed, warn: `Run Skill(git:commit-config) to update.
 
 ### Step 1: Analyze All Changes
 
-Review the pre-loaded context above. Identify what files changed and group by area/purpose.
+Review the pre-loaded context above. The stat lists every changed file with its churn — group by area/purpose from that alone. Do not read diffs yet.
 
-**Skip derived files** - don't read their diffs, just commit with source:
-- Lock files (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`) → commit with `package.json`
-- Generated code → commit with generator config/source
+**Derived files are already excluded.** The stat comes from `scripts/changed.sh`, which applies the project's `diff_policy.never_read` patterns (plus any `-diff` / `linguist-generated` entries in `.gitattributes`) as git pathspec exclusions. Anything it lists under `# excluded by diff_policy` still gets committed — its diff is simply never loaded. Do not go read those files; the exclusion is the point.
+
+Files listed under **Derived Files Changed Without Their Source** are the exception: a lock file that moved without its manifest *is* the change (e.g. `npm audit fix`). Read those diffs and describe them.
+
+**Read other diffs only when the stat is not enough** — an ambiguous type/scope, or a body that needs the actual change. Always scope the read to the group at hand, and go through the script so exclusions still apply:
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/changed.sh" diff <files in this group>
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/changed.sh" diff --staged <files in this group>
+```
 
 ### Step 2: Learn Project Style
 
@@ -143,22 +152,24 @@ Before committing any group, check for files already staged from a prior aborted
 
 Mark current group as in_progress using TaskUpdate, then:
 
+> **Config layouts.** A project config is either **single-file** (`main.yaml` only — the layout `commit-config` generates) or **split** (`main.yaml` plus `types/`, `scopes/`, `guides/` directories, hand-built from the samples for complex repos). The drill-down reads below apply to split configs only. **On a single-file config those paths do not exist — use the `*_quick` maps and decision trees in `main.yaml` and do not go looking for them.** One `ls` of the config directory settles which layout you have.
+
 **5a. Determine Type**
 1. Check if the resolved scope has a `default_type` in `scopes_quick` config
    - If `default_type` exists and the change fits (not a clear contradiction like a genuine bug fix): use it, skip steps 2-4
    - If the change clearly contradicts the default (e.g., fixing broken behavior in a scope defaulting to `chore`): override and continue to step 2
-2. Read `types/index.md` from config path
-3. If unclear, read specific file (e.g., `types/feat.yaml`)
+2. Split config: read `types/index.md`. Single-file: use `types_quick` + `type_decision_tree`
+3. Split config, still unclear: read the specific file (e.g., `types/feat.yaml`)
 4. If still ambiguous between 2+ types, use AskUserQuestion to let user pick
 
 **5b. Determine Scope**
-1. Read `scopes/index.md` from config path
-2. If unclear, read specific file for pattern matching
+1. Split config: read `scopes/index.md`. Single-file: use `scopes_quick` + `scope_decision`
+2. Split config, still unclear: read the specific file for pattern matching
 3. If still ambiguous or multiple scopes could apply, use AskUserQuestion to let user pick
 
 **5c. Quality Check**
-1. Read `guides/index.md` - run quick 5-question check
-2. If title vague, read `guides/specificity.yaml`
+1. Split config: read `guides/index.md` and run its quick check. Single-file: apply `subject_conventions` from `main.yaml`
+2. Split config, title still vague: read `guides/specificity.yaml`
 
 **5d. Choose Subject**
 
