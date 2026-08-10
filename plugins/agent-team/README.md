@@ -2,7 +2,9 @@
 
 Split a task across role-specialized teammates — a code writer, a test writer, a docs writer — and keep them from stepping on each other's files.
 
-> **Status: scaffold only.** The `/team` skill is a placeholder and does nothing yet. Tracked in
+> **Status: one teammate, no enforcement.** `/team` spawns a `test-writer` teammate that owns
+> test files while you implement. The ownership boundary is stated in the agent definition and
+> the spawn prompt — nothing rejects an out-of-bounds write yet. Tracked in
 > [issue #28](https://github.com/kimseungbin/claude-skills/issues/28).
 
 ## Why a plugin
@@ -11,9 +13,17 @@ A teammate is a full, independent Claude Code session, not a subagent. When a su
 
 That leaves file ownership as prose inside spawn prompts, honored only by convention. Nothing rejects an out-of-bounds write.
 
-## What it will ship
+## What ships today
+
+**`/team [what to test]`** preflights the env var, spawns a teammate named `test-writer` using the plugin's `test-writer` agent definition, verifies from the team config that both the name and agent type landed, then implements alongside it.
+
+The definition (`agents/test-writer.md`) restricts the teammate's `tools` and instructs it to report a failing test rather than edit the implementation to make it pass — the failure mode that turns a real defect into a green run. That instruction is the role's whole point, and today it rests on the prompt rather than on enforcement.
+
+## What it still needs
 
 1. **A declarative role → owned-globs map**, enforced by one `PreToolUse` hook on `Edit|Write` returning `permissionDecision: "deny"` with a reason. The declarative `if` field is not suitable — the docs call it best-effort, and it fails open.
+
+   Keys are **teammate names**, not agent types. A teammate's recorded agent type is absent whenever the lead spawns without naming a definition, which is the common case — so a type-keyed map would match nothing and leave that teammate unconstrained. Names are always present. This is why `/team` pins the name it spawns instead of letting the lead improvise one, and why it spawns `test-writer` under a `test-writer` definition so the two agree.
 
    ```jsonc
    {
@@ -23,7 +33,9 @@ That leaves file ownership as prose inside spawn prompts, honored only by conven
    }
    ```
 
-2. **`/team` — the protocol.** Which roles to spawn, the ownership map for the task at hand, turn-taking and round caps, the approval gate, and what each teammate reads before starting. None of this is expressible in an agent definition.
+2. **The rest of the protocol.** `/team` currently spawns one fixed role. Still missing: the other writer roles (`code-writer`, `docs-writer`), choosing which to spawn for a given task, turn-taking and round caps, and the approval gate. None of this is expressible in an agent definition.
+
+3. **A `Bash` answer.** The teammate needs `Bash` to run tests, which makes any `Edit|Write` path restriction bypassable via `sed -i`, a redirect, or `git checkout`. A hook on `Edit|Write` alone will not close this.
 
 ## Requirements
 
