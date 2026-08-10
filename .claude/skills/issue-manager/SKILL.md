@@ -1,6 +1,6 @@
 ---
 name: issue-manager
-description: Manage and triage marketplace feedback issues on kimseungbin/claude-skills
+description: Manage and triage open issues on kimseungbin/claude-skills
 allowed-tools:
   - Bash
   - Glob
@@ -12,7 +12,7 @@ allowed-tools:
 
 # Issue Manager
 
-Manage marketplace feedback issues filed on `kimseungbin/claude-skills`.
+Manage open issues filed on `kimseungbin/claude-skills`, whether submitted through the `marketplace-feedback` plugin or created directly.
 
 **Target repository:** `kimseungbin/claude-skills`
 
@@ -24,10 +24,12 @@ Issues are tracked with status labels:
 - `status:triaged` → Reviewed and categorized, awaiting action
 - `status:in-progress` → Actively being worked on
 
+**Status labels are mutually exclusive.** An issue carries at most one `status:*` label at a time. When applying a status, always remove any existing `status:*` label in the same `gh issue edit` call — never let them accumulate. Closed issues carry none; the `remove-status-labels` workflow strips them automatically on close.
+
 ## Pre-loaded Context
 
 ### Open Issues
-!`gh issue list -R kimseungbin/claude-skills --label "marketplace-feedback" --state open --json number,title,labels,createdAt,url --limit 50 | jq -r 'def get_label(prefix): [.labels[].name | select(startswith(prefix)) | ltrimstr(prefix)] | first // "—"; def has_status: [.labels[].name | select(startswith("status:"))] | length > 0; def clean_title: .title | gsub("^\\[[^]]*\\] "; ""); def unattended_rows: [.[] | select(has_status | not)]; def attended_rows: [.[] | select(has_status)]; "#### Unattended\n" + (if (unattended_rows | length) == 0 then "\n(none)" else "\n| # | Type | Plugin | Priority | Title | Created |\n|---|------|--------|----------|-------|---------|\n" + (unattended_rows | map("| #\(.number) | \(get_label("type:") | if . == "bug" then "Bug" elif . == "feature" then "Feature" else . end) | \(get_label("plugin:")) | \(get_label("priority:") | if . != "—" then (. | ascii_upcase) else . end) | \(clean_title) | \(.createdAt[:10]) |") | join("\n")) end) + "\n\n#### Attended\n" + (if (attended_rows | length) == 0 then "\n(none)" else "\n| # | Status | Type | Plugin | Priority | Title | Created |\n|---|--------|------|--------|----------|-------|---------|\n" + (attended_rows | map("| #\(.number) | \(get_label("status:")) | \(get_label("type:") | if . == "bug" then "Bug" elif . == "feature" then "Feature" else . end) | \(get_label("plugin:")) | \(get_label("priority:") | if . != "—" then (. | ascii_upcase) else . end) | \(clean_title) | \(.createdAt[:10]) |") | join("\n")) end)'`
+!`gh issue list -R kimseungbin/claude-skills --state open --json number,title,labels,createdAt,url --limit 100 | jq -r 'def get_label(prefix): [.labels[].name | select(startswith(prefix)) | ltrimstr(prefix)] | first // "—"; def has_status: [.labels[].name | select(startswith("status:"))] | length > 0; def clean_title: .title | gsub("^\\[[^]]*\\] "; ""); def unattended_rows: [.[] | select(has_status | not)] | sort_by(.createdAt); def attended_rows: [.[] | select(has_status)] | sort_by(.createdAt); "#### Unattended\n" + (if (unattended_rows | length) == 0 then "\n(none)" else "\n| # | Type | Plugin | Priority | Title | Created |\n|---|------|--------|----------|-------|---------|\n" + (unattended_rows | map("| #\(.number) | \(get_label("type:") | if . == "bug" then "Bug" elif . == "feature" then "Feature" else . end) | \(get_label("plugin:")) | \(get_label("priority:") | if . != "—" then (. | ascii_upcase) else . end) | \(clean_title) | \(.createdAt[:10]) |") | join("\n")) end) + "\n\n#### Attended\n" + (if (attended_rows | length) == 0 then "\n(none)" else "\n| # | Status | Type | Plugin | Priority | Title | Created |\n|---|--------|------|--------|----------|-------|---------|\n" + (attended_rows | map("| #\(.number) | \(get_label("status:")) | \(get_label("type:") | if . == "bug" then "Bug" elif . == "feature" then "Feature" else . end) | \(get_label("plugin:")) | \(get_label("priority:") | if . != "—" then (. | ascii_upcase) else . end) | \(clean_title) | \(.createdAt[:10]) |") | join("\n")) end)'`
 
 ## Workflow
 
@@ -100,9 +102,13 @@ If the issue already has a priority label, skip this step.
 
 **3d. Apply Action**
 
-- **Triaged**: Add label and confirm.
+- **Triaged**: Set the status label, clearing any other `status:*` first.
   ```bash
-  gh issue edit {number} -R kimseungbin/claude-skills --add-label "status:triaged"
+  # Remove any existing status:* label, then apply the new one
+  existing=$(gh issue view {number} -R kimseungbin/claude-skills --json labels \
+    --jq '[.labels[].name | select(startswith("status:")) | select(. != "status:triaged")] | join(",")')
+  gh issue edit {number} -R kimseungbin/claude-skills \
+    ${existing:+--remove-label "$existing"} --add-label "status:triaged"
   ```
   Confirm: `✓ #{number} marked as triaged (P{x})`
 
