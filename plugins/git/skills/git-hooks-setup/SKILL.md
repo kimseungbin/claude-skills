@@ -13,13 +13,18 @@ Generate custom git hooks tailored to your project's needs.
 
 ### Installed Hook Versions
 
-Check for outdated hook versions using **Bash**:
+Check for outdated hook versions using **Bash**. Derive the expected version from a bundled hook — those are the files copied into `.githooks/`, so the check tracks releases with no edit here:
 
 ```bash
-grep -rn 'plugin_version:' .githooks/ 2>/dev/null | grep -v "1.0.12"
+EXPECTED=$(grep -m1 '# plugin_version:' "${CLAUDE_PLUGIN_ROOT}/bundles/hooks/pre-commit/basic.sh" 2>/dev/null | cut -d: -f2 | tr -d ' ')
+if [ -n "$EXPECTED" ]; then
+  grep -rn 'plugin_version:' .githooks/ 2>/dev/null | grep -v "$EXPECTED" || echo "HOOKS_UP_TO_DATE ($EXPECTED)"
+else
+  echo "EXPECTED_UNKNOWN: could not read bundled hook version"
+fi
 ```
 
-If output is non-empty, hooks are outdated and should be updated.
+If output is non-empty, those hooks are outdated and should be updated. Never hardcode a version literal here — the comparison must always be derived at runtime.
 
 ## When to Use This Skill
 

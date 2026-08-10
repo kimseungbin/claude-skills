@@ -51,13 +51,19 @@ cat .claude/config/git/commit/main.yaml 2>/dev/null || echo "NO_CONFIG"
   - **Set up config** — Invoke `Skill(git:commit-config)` and stop
   - **Continue with defaults** — Proceed to Step 1 using Conventional Commits defaults
 
-If config exists, also check the version:
+If config exists, also check the version. Derive the expected version from the bundled sample config — that is exactly what a `commit-config` regen writes, so the check stays correct across releases with no edit here:
 
 ```bash
-grep -m1 'plugin_version:' .claude/config/git/commit/main.yaml 2>/dev/null | cut -d: -f2 | tr -d ' "'
+EXPECTED=$(grep -m1 'plugin_version:' "${CLAUDE_PLUGIN_ROOT}/config/samples/simple-main.yaml" 2>/dev/null | cut -d: -f2 | tr -d ' "')
+ACTUAL=$(grep -m1 'plugin_version:' .claude/config/git/commit/main.yaml 2>/dev/null | cut -d: -f2 | tr -d ' "')
+if [ -n "$EXPECTED" ] && [ "$ACTUAL" != "$EXPECTED" ]; then
+  echo "VERSION_MISMATCH: config is '$ACTUAL', skill expects '$EXPECTED'"
+else
+  echo "VERSION_OK"
+fi
 ```
 
-If the version is not `1.0.12`, warn: `VERSION_MISMATCH: Run Skill(git:commit-config) to update.`
+If `VERSION_MISMATCH` is printed, warn: `Run Skill(git:commit-config) to update.` Never hardcode a version literal in this file — the comparison must always be derived at runtime.
 
 ### Step 1: Analyze All Changes
 
@@ -188,6 +194,38 @@ When generating a body, focus on **why** — the reasoning and motivation:
 Stage the group's specific files by name (never `git add -A` / `git add .`), so only planned files enter the commit — pre-staged state was already reconciled in Step 4.5. Commit using HEREDOC for multi-line messages (subject + body + footers). For trivial commits without body, single `-m` is fine.
 
 **If a pre-commit hook fails** (e.g., prettier, eslint): Do NOT fix files yourself. Report the error to the user and stop. You do not have permission to edit source files — only the user can decide how to resolve hook failures.
+
+**5g. Verify the Commit Matches What Was Staged**
+
+A pre-commit hook that auto-fixes and re-stages whole files (`git add -- <file>`) can widen the commit beyond the planned set — sweeping in files, or unstaged hunks of a partially-staged file, that belong to a later group. The commit then succeeds while its message describes something other than its diff, and nothing surfaces the mismatch.
+
+Capture the staged file list immediately **before** committing, then compare it against what actually landed. Run the snapshot, the commit, and the comparison in a **single Bash invocation** — shell variables do not survive across separate calls, so this replaces the bare `git commit` in 5f:
+
+```bash
+PLANNED=$(git diff --cached --name-only | sort)
+
+git commit -F - <<'MSG'
+<subject + body + footers>
+MSG
+
+LANDED=$(git show --pretty=format: --name-only HEAD | sed '/^$/d' | sort)
+comm -13 <(echo "$PLANNED") <(echo "$LANDED")   # files the hook added, if any
+```
+
+**Not every addition is a problem.** Legitimate re-staging hooks exist — version bumpers, code generators, formatters acting on files already in this group. Classify what came back:
+
+- **Extra files that belong to a LATER commit group** → this is the real failure. The later group's changes are now committed under this message, and its own commit will be empty or wrong.
+- **Extra files in no planned group** (generated or bumped by the hook) → expected side effect. Report them in the Step 6 summary and continue; do not prompt.
+
+Only when the first case occurs, stop and surface it via AskUserQuestion:
+
+- **Amend** — re-stage only the planned files and `git commit --amend` to restore the intended scope
+- **Accept and replan** — keep the wider commit, then recompute the remaining groups (the swept-in changes are already committed, so later groups must drop them)
+- **Reset** — `git reset --soft HEAD~1` to undo the commit and let the user reconcile manually
+
+Do NOT proceed to the next group in that case — the remaining commit messages were planned against a file distribution that no longer holds.
+
+> Root cause is the project's hook, not the skill. If a project hits this repeatedly, its pre-commit hook should be check-only (`prettier --check`) with auto-fix moved to edit time, rather than re-staging during the commit.
 
 Mark task as completed using TaskUpdate, move to next group.
 

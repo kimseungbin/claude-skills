@@ -144,9 +144,23 @@ with open('$marketplace_json', 'w') as f:
             find "plugins/$plugin_name/bundles" -name '*.sh' -exec \
                 sed -i '' "s/# plugin_version: *[0-9]*\.[0-9]*\.[0-9]*/# plugin_version: $new_version/" {} \; 2>/dev/null || true
 
-            # 3. SKILL.md version check scripts: hardcoded version string in !` blocks
-            find "plugins/$plugin_name/skills" -name 'SKILL.md' -exec \
-                sed -i '' "s/plugin=$current_version/plugin=$new_version/g; s/!= \"$current_version\"/!= \"$new_version\"/g" {} \; 2>/dev/null || true
+            # SKILL.md version checks are NOT propagated into — they must derive the
+            # expected version at runtime (from a sample config or bundled hook).
+            # A hardcoded literal freezes silently, so fail loudly instead of patching it.
+            # Match only version-check lines (keyword + semver), so skill frontmatter
+            # `version:` fields and illustrative examples don't false-positive.
+            STALE_LITERALS=$(grep -rnE 'plugin_version|VERSION_MISMATCH' "plugins/$plugin_name/skills" --include='SKILL.md' 2>/dev/null \
+                | grep -E '[0-9]+\.[0-9]+\.[0-9]+' || true)
+            if [[ -n "$STALE_LITERALS" ]]; then
+                print_error_indent "Hardcoded version literal in $plugin_name SKILL.md version check:"
+                echo ""
+                echo "$STALE_LITERALS"
+                echo ""
+                print_hint "Derive the expected version at runtime instead, e.g.:"
+                print_command "EXPECTED=\$(grep -m1 'plugin_version:' \"\${CLAUDE_PLUGIN_ROOT}/config/samples/simple-main.yaml\" | cut -d: -f2 | tr -d ' \"')"
+                buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: hardcoded plugin version${NC}"
+                exit 1
+            fi
 
             # Re-stage propagated files
             git add "plugins/$plugin_name/" 2>/dev/null || true
