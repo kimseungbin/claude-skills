@@ -51,6 +51,12 @@
       "source": "./plugins/aws-cli-access",
       "description": "Grant/revoke AWS IAM Identity Center access to member accounts and configure matching CLI profiles that share an SSO session token cache",
       "version": "0.1.1"
+    },
+    {
+      "name": "agent-team",
+      "source": "./plugins/agent-team",
+      "description": "Spawn implementation agent teams that split a task across role-specialized teammates \u2014 code, tests, docs \u2014 each with its own tools and model, coordinated by a /team protocol with hook-enforced file ownership",
+      "version": "0.1.1"
     }
   ]
 }
