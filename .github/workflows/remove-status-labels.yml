@@ -1,0 +1,28 @@
+name: Remove status labels on close
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  remove-status-labels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Strip all status:* labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          labels=$(gh issue view "$ISSUE" -R "$REPO" --json labels \
+            --jq '[.labels[].name | select(startswith("status:"))] | join(",")')
+          if [ -n "$labels" ]; then
+            gh issue edit "$ISSUE" -R "$REPO" --remove-label "$labels"
+            echo "Removed from #$ISSUE: $labels"
+          else
+            echo "#$ISSUE has no status:* labels"
+          fi
