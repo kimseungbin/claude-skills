@@ -78,6 +78,15 @@ Handle its reports as they arrive:
 - **Failure it attributes to its own test** — let it fix its test.
 - **A request for a change outside its files** (a missing export, an untestable private) — that is yours to make. Make it and tell the teammate.
 
+**The report is the signal, not the files.** It arrives minutes after the writes that produced it, and often after the teammate has gone idle — long enough that reading its files and drawing conclusions feels like the obvious move. Do not. Every conclusion drawn from artifacts alone in this plugin's own trial runs was wrong: a suite judged incomplete was already fixed, and a teammate judged unable to report had sent a full one that had not surfaced yet.
+
+Two specific traps:
+
+- **An empty `inboxes/team-lead.json` means delivered, not unsent.** It is a queue that drains on delivery, never an archive. It is not evidence of silence.
+- **The `tools:` list in `agents/*.md` is not an inventory of what a teammate can do.** Teammates get `SendMessage` whether or not the definition lists it.
+
+Wait for the report before concluding, and before shutting the teammate down — a shutdown does not flush a pending message to you.
+
 When the work is done, tell the teammate to shut down by name.
 
 ## Known limits
