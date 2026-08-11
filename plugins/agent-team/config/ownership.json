@@ -20,7 +20,16 @@
     "files; test-infra owns everything that makes them runnable. The negations on",
     "test-writer hand the shared machinery to test-infra, and the '!**/tsconfig*'",
     "entry exists because 'tsconfig.test.json' matches '**/*.test.*' by accident —",
-    "a TypeScript compiler config is not a test file."
+    "a TypeScript compiler config is not a test file.",
+    "",
+    "EVERY role carries '!.claude/**', and any role added later must too. That",
+    "directory holds the machinery that governs the agents themselves — this",
+    "ownership map, the agent definitions, settings, and the configuration of",
+    "whatever hooks a project has installed. Enforcement an agent can rewrite is",
+    "not enforcement: a role able to edit its own map grants itself any path, and",
+    "a role able to edit a quality gate's command config can neuter the gate",
+    "silently, leaving no failure behind to report. Changing anything under",
+    ".claude/ is a human decision, like the root tsconfig.json."
   ],
   "test-writer": [
     "**/*.test.*",
@@ -28,6 +37,7 @@
     "test/**",
     "tests/**",
     "__tests__/**",
+    "!.claude/**",
     "!**/tsconfig*.json",
     "!**/__mocks__/**",
     "!**/__snapshots__/**",
@@ -58,6 +68,7 @@
     "test/utils/**",
     "tests/helpers/**",
     "tests/fixtures/**",
-    "tests/utils/**"
+    "tests/utils/**",
+    "!.claude/**"
   ]
 }
