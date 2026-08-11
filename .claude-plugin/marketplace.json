@@ -56,7 +56,7 @@
       "name": "agent-team",
       "source": "./plugins/agent-team",
       "description": "Spawn implementation agent teams that split a task across role-specialized teammates \u2014 code, tests, docs \u2014 each with its own tools and model, coordinated by a /team protocol with hook-enforced file ownership",
-      "version": "0.1.4"
+      "version": "0.1.5"
     }
   ]
 }

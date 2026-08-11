@@ -1,6 +1,6 @@
 {
   "name": "agent-team",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Spawn implementation agent teams that split a task across role-specialized teammates — code, tests, docs — each with its own tools and model, coordinated by a /team protocol with hook-enforced file ownership",
   "author": {
     "name": "kimseungbin"
