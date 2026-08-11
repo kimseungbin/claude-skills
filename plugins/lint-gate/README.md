@@ -20,7 +20,9 @@ So the rule is: **run what is valid on a partial file, when the file is partial.
 
 ## Configure
 
-Copy `config/samples/lint-gate.json` to `.claude/config/lint-gate.json` in your project:
+**`/lint-setup`** does this for you: it detects what the project already uses, proposes a toolchain only if there genuinely is none, records the commands, and verifies each one actually runs. That last check matters more than it sounds — a linter that reports problems but exits 0, which some do by default, will never trigger the gate, and a gate that cannot fail is worse than no gate because it looks configured.
+
+To do it by hand, copy `config/samples/lint-gate.json` to `.claude/config/lint-gate.json` in your project:
 
 ```json
 {
