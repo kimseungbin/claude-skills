@@ -40,6 +40,8 @@ Use the `Agent` tool. Three things are non-negotiable:
 2. **Name it exactly `test-writer`.** Do not improvise a name or add a suffix. The name is not what the map matches, but keeping it identical to the agent type is what makes the team config readable and keeps every role's two identities in step.
 3. **It must be a teammate, not a subagent.** A subagent reports back and exits; a teammate is an independent session you can message. If a subagent gets spawned instead, say so rather than proceeding — the whole point is a peer that works while you do.
 
+**Also spawn `test-infra` when the harness is in the way.** Symptoms: no runner configured, tests that cannot resolve imports, a coverage gate in the path, a monorepo package with no config of its own, or golden files that need review. Same rules — name it `test-infra`, use the `test-infra` agent type. Do not spawn it speculatively; on a project whose suite already runs, `test-writer` alone is the whole team.
+
 Spawn prompt — fill in the specifics, keep the boundary verbatim:
 
 > You are the test writer on a two-agent team. The lead is implementing; you write the tests.

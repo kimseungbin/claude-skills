@@ -20,6 +20,8 @@ That leaves file ownership as prose inside spawn prompts, honored only by conven
 
 The definition (`agents/test-writer.md`) restricts the teammate's `tools` and instructs it to report a failing test rather than edit the implementation to make it pass — the failure mode that turns a real defect into a green run.
 
+A second role ships alongside it: **`test-infra`** (`agents/test-infra.md`), which owns the harness — runner and coverage config, mocks, golden files, shared fixtures and utilities — so that `test-writer` can write tests that actually run. They are split because they fail differently. `test-writer` is tempted to edit the implementation; `test-infra` is tempted to loosen the harness, and its worst move is a suite-wide snapshot update (`vitest -u`), which rewrites the record of what the system *should* do into a description of what it currently does. Each definition names its own prohibition, which is where a role definition earns its keep.
+
 **A `PreToolUse` hook enforces the boundary.** `hooks/enforce-ownership.ts` matches the acting agent against `config/ownership.json` and returns `permissionDecision: "deny"` with a reason naming what the role does own and how to escalate. The declarative `if` field is not used — the docs call it best-effort, and it fails open.
 
 ### What this does and does not enforce
@@ -34,13 +36,25 @@ The hook also fails open by design on every error — unparseable input, a missi
 
 `config/ownership.json` maps **agent type** to owned globs. A project can override it wholesale at `.claude/config/agent-team/ownership.json`.
 
+`test-writer` and `test-infra` are deliberately **disjoint**: test files belong to one, everything that makes them runnable to the other. Negation always wins in the matcher — there is no last-match-wins precedence — so entries are written to be non-overlapping rather than layered, and the negations on `test-writer` are what hand the shared machinery over:
+
 ```jsonc
 {
-  "code-writer": ["src/**"],
-  "test-writer": ["**/*.test.*", "**/*.spec.*", "test/**", "tests/**", "__tests__/**"],
-  "docs-writer": ["**/*.md", "!BACKLOG.md"],
+  "test-writer": [
+    "**/*.test.*", "**/*.spec.*", "test/**", "tests/**", "__tests__/**",
+    "!**/tsconfig*.json",                      // tsconfig.test.json matches *.test.* by accident
+    "!**/__mocks__/**", "!**/__snapshots__/**", "!**/*.snap",
+    "!test/helpers/**", "!test/fixtures/**", "!test/utils/**",
+  ],
+  "test-infra": [
+    "**/vitest.config.*", "**/vitest.workspace.*", "**/jest.config.*",
+    "**/tsconfig.test.json", "**/__mocks__/**", "**/__snapshots__/**", "**/*.snap",
+    "test/helpers/**", "test/fixtures/**", "test/utils/**",
+  ],
 }
 ```
+
+The root `tsconfig.json` belongs to **neither** — the lead compiles against it, so `test-infra` reads it freely and asks before changing it.
 
 Globs match the path **relative to the project root**; `*` stays within a segment, `**` crosses any depth including zero, `?` is one character, everything else is literal, and a leading `!` subtracts. A path outside the project is denied. An agent type with no entry is **unconstrained** — so a teammate spawned without a definition, which arrives as `general-purpose`, is not restricted. Denying every unknown type instead would block agents from unrelated plugins this map knows nothing about.
 
