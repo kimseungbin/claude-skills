@@ -23,15 +23,24 @@ The definition (`agents/test-writer.md`) restricts the teammate's `tools` and in
 
 1. **A declarative role → owned-globs map**, enforced by one `PreToolUse` hook on `Edit|Write` returning `permissionDecision: "deny"` with a reason. The declarative `if` field is not suitable — the docs call it best-effort, and it fails open.
 
-   Keys are **teammate names**, not agent types. A teammate's recorded agent type is absent whenever the lead spawns without naming a definition, which is the common case — so a type-keyed map would match nothing and leave that teammate unconstrained. Names are always present. This is why `/team` pins the name it spawns instead of letting the lead improvise one, and why it spawns `test-writer` under a `test-writer` definition so the two agree.
+   Keys are **agent types**, not teammate names. This is settled by probe rather than inference: a `PreToolUse` hook dumping its own stdin during a real `/team` run shows the teammate's `Write` carrying `"agent_type": "test-writer"` and `"agent_id": "atest-writer-e749ef3ae68ee067"`, and **no `name` field at all**. A name-keyed map has nothing to match on. The teammate's name survives only as a substring of the opaque `agent_id`, and recovering it means parsing an undocumented format.
+
+   Two details that only the payload reveals:
+
+   - **`agent_type` arrives unnamespaced.** The team `config.json` records `"agentType": "agent-team:test-writer"`, but the hook receives the bare `"test-writer"`. Key the map on the bare form.
+   - **`session_id` does not identify the writer.** An in-process teammate reports the *lead's* `session_id`. What separates them is that lead-authored payloads carry no `agent_id` and no `agent_type` at all, while teammate payloads carry both. So the hook's own rule is: no `agent_type` means the lead, which the map must not constrain.
+
+   The earlier rationale for name-keying — that a recorded agent type is absent whenever the lead spawns without naming a definition — described `config.json`, not hook stdin, and does not transfer. The real consequence of that case survives in a different form: a teammate spawned without a definition arrives as `general-purpose`, which matches no role entry and is therefore unconstrained. That is a limit of any keying scheme here, not an argument for names. `/team` still pins name and agent type to the same string, which now costs nothing and keeps the two readings of the config consistent.
 
    ```jsonc
    {
      "code-writer": ["src/**"],
-     "test-writer": ["**/*.test.ts", "**/*.spec.ts", "test/**"],
+     "test-writer": ["**/*.test.*", "**/*.spec.*", "test/**", "tests/**", "__tests__/**"],
      "docs-writer": ["**/*.md", "!BACKLOG.md"],
    }
    ```
+
+   The `test-writer` globs must stay in step with `agents/test-writer.md`, which claims `tests/`, `__tests__/`, and non-TS test files. A map narrower than the definition denies writes the role explicitly authorizes.
 
 2. **The rest of the protocol.** `/team` currently spawns one fixed role. Still missing: the other writer roles (`code-writer`, `docs-writer`), choosing which to spawn for a given task, turn-taking and round caps, and the approval gate. None of this is expressible in an agent definition.
 

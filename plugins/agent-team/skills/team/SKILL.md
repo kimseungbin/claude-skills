@@ -34,8 +34,8 @@ Then read enough to brief the teammate properly: the implementation under test, 
 
 Use the `Agent` tool. Three things are non-negotiable:
 
-1. **Name it exactly `test-writer`.** Do not improvise a name or add a suffix. The ownership map keys off the teammate's name, so a name this skill did not choose is a teammate the map will not match once enforcement lands.
-2. **Use the `test-writer` agent type**, so the definition's `tools` allowlist applies and its body is appended to the teammate's system prompt.
+1. **Use the `test-writer` agent type.** This is the one that matters for enforcement: the `PreToolUse` payload carries `agent_type` and no teammate name, so the agent type is what the ownership map keys on. It also applies the definition's `tools` allowlist and appends its body to the teammate's system prompt.
+2. **Name it exactly `test-writer`.** Do not improvise a name or add a suffix. The name is not what the map matches, but keeping it identical to the agent type is what makes the team config readable and keeps every role's two identities in step.
 3. **It must be a teammate, not a subagent.** A subagent reports back and exits; a teammate is an independent session you can message. If a subagent gets spawned instead, say so rather than proceeding — the whole point is a peer that works while you do.
 
 Spawn prompt — fill in the specifics, keep the boundary verbatim:
@@ -58,11 +58,13 @@ Do not take the spawn at face value — confirm the teammate's recorded identity
 cat "$HOME/.claude/teams/session-${CLAUDE_CODE_SESSION_ID:0:8}/config.json"
 ```
 
-In `members`, the teammate's entry should read `"name": "test-writer"` with `"agentType": "test-writer"`.
+In `members`, the teammate's entry should read `"name": "test-writer"` with `"agentType": "agent-team:test-writer"`.
 
 - **No such directory** — no team formed. The spawn produced a subagent; return to step 3.
-- **`agentType` absent, or `general-purpose`** — the agent definition was not applied. Report this: the teammate is running as a generic agent without the definition's `tools` allowlist, so its role is prose-only.
-- **A name other than `test-writer`** — say so plainly and re-spawn. Silently accepting an improvised name is how the ownership map ends up unable to match the teammate it was written for.
+- **`agentType` absent, or `general-purpose`** — the agent definition was not applied. Report this: the teammate is running as a generic agent without the definition's `tools` allowlist, so its role is prose-only. It is also unconstrained by the ownership map, which matches on agent type.
+- **A name other than `test-writer`** — say so plainly and re-spawn. The map does not key on the name, but a name that disagrees with the agent type makes the team config lie about which role is running.
+
+The plugin-namespaced `agent-team:` prefix is expected here and appears only in `config.json`. The hook payload receives the bare `test-writer`, which is the form the ownership map uses — do not copy the namespaced string into the map.
 
 ## Step 5: Work in parallel
 
