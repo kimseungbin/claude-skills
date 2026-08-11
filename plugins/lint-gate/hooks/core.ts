@@ -29,6 +29,8 @@ export type Decision = { block: false } | { block: true; reason: string }
 
 const CONFIG_KEYS = ['format', 'lint', 'typecheck'] as const
 
+const TRIGGERS: readonly Trigger[] = ['PostToolUse', 'Stop', 'TeammateIdle']
+
 /**
  * A malformed config degrades to "run nothing" rather than throwing. This runs
  * inside a hook on every edit; a config typo must not be able to break a
@@ -59,8 +61,12 @@ export function resolveConfig(raw: unknown): GateConfig {
 export function commandsFor(trigger: Trigger, config: GateConfig): Array<{ name: string; command: string }> {
 	const wanted: Array<keyof GateConfig> = trigger === 'PostToolUse' ? ['format'] : ['lint', 'typecheck']
 
+	// Blank is dropped here as well as in resolveConfig. GateConfig cannot
+	// express "non-blank", so trusting a caller to have resolved it is an
+	// invariant held only by convention — and an empty command reaching the
+	// runner fails, which would produce a block from a config typo.
 	return wanted
-		.filter((name) => typeof config[name] === 'string')
+		.filter((name) => typeof config[name] === 'string' && (config[name] as string).trim() !== '')
 		.map((name) => ({ name, command: config[name] as string }))
 }
 
@@ -124,6 +130,7 @@ function buildReason(failures: CommandResult[]): string {
  * has already been told about, forever.
  */
 export function decide({
+	trigger,
 	results,
 	alreadyBlocked,
 	stopHookActive,
@@ -133,6 +140,11 @@ export function decide({
 	alreadyBlocked: string[]
 	stopHookActive?: boolean
 }): Decision {
+	// This is the only function here that can block, so an input it does not
+	// recognize must not produce one. The decision is otherwise independent of
+	// which trigger fired.
+	if (!TRIGGERS.includes(trigger)) return { block: false }
+
 	const failures = (Array.isArray(results) ? results : []).filter((result) => result && !result.ok)
 	if (failures.length === 0) return { block: false }
 

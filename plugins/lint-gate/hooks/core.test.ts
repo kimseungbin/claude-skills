@@ -172,6 +172,63 @@ describe('commandsFor', () => {
 		})
 	}
 
+	/**
+	 * `GateConfig` cannot express "non-blank", so `commandsFor` must not rely on having
+	 * been handed a `resolveConfig` result. A blank command reaches the runner, fails,
+	 * and produces a block — the gate punishing the agent for a config typo.
+	 */
+	describe('blank commands are not commands', () => {
+		const blanks: Array<[string, string]> = [
+			['an empty string', ''],
+			['a single space', ' '],
+			['spaces', '    '],
+			['a tab', '\t'],
+			['a newline', '\n'],
+			['mixed whitespace', ' \t\n '],
+		]
+
+		for (const [label, blank] of blanks) {
+			it(`drops a format of ${label}`, () => {
+				assert.deepEqual(commandsFor('PostToolUse', { format: blank }), [])
+			})
+		}
+
+		for (const trigger of ['Stop', 'TeammateIdle'] as const) {
+			for (const [label, blank] of blanks) {
+				it(`drops a lint of ${label} on ${trigger}`, () => {
+					assert.deepEqual(commandsFor(trigger, { lint: blank, typecheck: TYPECHECK }), [
+						{ name: 'typecheck', command: TYPECHECK },
+					])
+				})
+
+				it(`drops a typecheck of ${label} on ${trigger}`, () => {
+					assert.deepEqual(commandsFor(trigger, { lint: LINT, typecheck: blank }), [
+						{ name: 'lint', command: LINT },
+					])
+				})
+			}
+
+			it(`yields nothing on ${trigger} when both are blank`, () => {
+				assert.deepEqual(commandsFor(trigger, { lint: '', typecheck: '   ' }), [])
+			})
+		}
+
+		it('never emits an entry whose command is blank', () => {
+			const junk: GateConfig = { format: ' ', lint: '', typecheck: '\t' }
+			for (const trigger of ['PostToolUse', 'Stop', 'TeammateIdle'] as const) {
+				for (const entry of commandsFor(trigger, junk)) {
+					assert.fail(`${trigger} emitted a blank command: ${JSON.stringify(entry)}`)
+				}
+			}
+		})
+
+		it('keeps a padded command rather than mistaking it for blank', () => {
+			const [entry] = commandsFor('Stop', { lint: '  eslint .  ' })
+			assert.equal(entry?.name, 'lint', 'padding is not emptiness')
+			assert.equal(entry?.command.trim(), LINT)
+		})
+	})
+
 	it('names each command after the config key it came from', () => {
 		for (const entry of commandsFor('Stop', FULL)) {
 			assert.equal(entry.command, FULL[entry.name as keyof GateConfig], `${entry.name} must carry its own command`)
@@ -458,6 +515,50 @@ describe('decide — when to block', () => {
 
 	it('tolerates an empty alreadyBlocked list', () => {
 		assertBlocked(decideFor([fail('lint', LINT, 'boom')], { alreadyBlocked: [] }))
+	})
+})
+
+/**
+ * `decide` is the only function here that can block, so an input it does not
+ * recognize must not produce one. This is also the only place the trigger
+ * parameter matters — for recognized triggers the decision is trigger-independent.
+ */
+describe('decide — fails open on an unrecognized trigger', () => {
+	const results = [fail('lint', LINT, 'boom')]
+
+	function decideWithTrigger(trigger: unknown): Decision {
+		return decide({ trigger: trigger as Trigger, results, alreadyBlocked: [] })
+	}
+
+	const unrecognized: Array<[string, unknown]> = [
+		['an unknown name', 'Nope'],
+		['a lowercase Stop', 'stop'],
+		['a differently cased TeammateIdle', 'teammateidle'],
+		['a trailing space', 'Stop '],
+		['an empty string', ''],
+		['undefined', undefined],
+		['null', null],
+		['a number', 42],
+		['an object', {}],
+		['an array of triggers', ['Stop']],
+		['a boolean', true],
+	]
+
+	for (const [label, trigger] of unrecognized) {
+		it(`does not block for ${label}`, () => {
+			assert.deepEqual(decideWithTrigger(trigger), { block: false }, `${JSON.stringify(trigger)} must fail open`)
+		})
+	}
+
+	it('still blocks for each recognized trigger', () => {
+		for (const trigger of ['PostToolUse', 'Stop', 'TeammateIdle'] as const) {
+			assertBlocked(decideWithTrigger(trigger), `${trigger} is recognized and must still block`)
+		}
+	})
+
+	it('matches the trigger exactly, not by prefix or substring', () => {
+		assertPassed(decideWithTrigger('Stopped'), 'a longer name that starts with Stop is not Stop')
+		assertPassed(decideWithTrigger('PreStop'), 'a longer name that ends with Stop is not Stop')
 	})
 })
 
