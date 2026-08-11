@@ -1,0 +1,17 @@
+{
+  "description": "Denies teammate edits that fall outside the role's owned globs",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^(Write|Edit|MultiEdit|NotebookEdit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/enforce-ownership.ts\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

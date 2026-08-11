@@ -1,0 +1,6 @@
+{
+  "$comment": "Marks this directory as ESM so Node does not attempt a CommonJS parse of the .ts hook files first, which emits MODULE_TYPELESS_PACKAGE_JSON on every hook invocation and forces a reparse. No dependencies and no install step — the hooks run on Node's built-in type stripping.",
+  "name": "agent-team-hooks",
+  "private": true,
+  "type": "module"
+}

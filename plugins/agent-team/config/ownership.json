@@ -1,0 +1,25 @@
+{
+  "$comment": [
+    "Ownership map: agent type -> globs that agent type may Edit/Write.",
+    "Keyed on agent_type because the PreToolUse payload carries agent_type and",
+    "no teammate name. Use the UNNAMESPACED type ('test-writer'), which is what",
+    "the hook receives — not the 'agent-team:test-writer' form that config.json",
+    "records.",
+    "",
+    "Globs are matched against paths relative to the project root. Supported:",
+    "'*' (one segment), '**' (any depth), '?' (one character). A leading '!'",
+    "excludes. A path matches when it hits at least one non-'!' glob and no '!'",
+    "glob.",
+    "",
+    "An agent type with no entry here is UNCONSTRAINED. Keep each entry in step",
+    "with the matching agents/<role>.md — a map narrower than the definition",
+    "denies writes the role was explicitly told it owns."
+  ],
+  "test-writer": [
+    "**/*.test.*",
+    "**/*.spec.*",
+    "test/**",
+    "tests/**",
+    "__tests__/**"
+  ]
+}

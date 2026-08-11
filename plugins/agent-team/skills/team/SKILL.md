@@ -10,8 +10,8 @@ allowed-tools: Bash Read Glob Grep Agent AskUserQuestion
 
 Spawns one teammate: **`test-writer`**, which owns test files while you keep writing source.
 
-> **Current scope.** One teammate, no enforcement. File ownership is stated in the spawn
-> prompt and the agent definition, not yet enforced by a hook — see [Known limits](#known-limits).
+> **Current scope.** One teammate. File ownership is enforced against tool-level edits by a
+> `PreToolUse` hook, but `Bash` bypasses it — see [Known limits](#known-limits).
 > Tracked in [issue #28](https://github.com/kimseungbin/claude-skills/issues/28).
 
 ## Step 1: Preflight
@@ -19,10 +19,12 @@ Spawns one teammate: **`test-writer`**, which owns test files while you keep wri
 Agent teams are experimental and off by default, and this plugin cannot enable them.
 
 ```bash
-echo "teams=${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-UNSET}"
+echo "teams=${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-UNSET}" && node --version 2>/dev/null || echo "node=MISSING"
 ```
 
-If the value is anything other than `1`, **stop here.** Tell the user teams are disabled, that it must be set in their own settings or environment, and that it is read at session start so the session needs restarting afterward. Do not attempt to spawn — the Agent tool will produce a subagent instead of a teammate, silently giving them something that looks right and behaves differently.
+If the teams value is anything other than `1`, **stop here.** Tell the user teams are disabled, that it must be set in their own settings or environment, and that it is read at session start so the session needs restarting afterward. Do not attempt to spawn — the Agent tool will produce a subagent instead of a teammate, silently giving them something that looks right and behaves differently.
+
+If Node is missing or older than 23.6, do **not** stop — spawn anyway, but say plainly that the ownership hook cannot run and the boundary is back to convention for this session. The hook is TypeScript executed by Node's type stripping, and it fails open, so an old runtime costs enforcement silently unless you say so.
 
 ## Step 2: Settle the task
 
@@ -80,6 +82,7 @@ When the work is done, tell the teammate to shut down by name.
 
 ## Known limits
 
-- **Ownership is convention, not enforcement.** Nothing rejects an out-of-bounds write yet. The teammate has `Edit` and `Write`, and the boundary holds only because the definition and spawn prompt say so — the same unenforced arrangement this plugin exists to replace. The `PreToolUse` deny hook is the next piece of work.
-- **`Bash` is an open door.** The teammate needs it to run tests, but it also makes any Edit-level path restriction bypassable via `sed -i`, `git checkout`, or a redirect. A hook scoped to `Edit|Write` will not close this.
+- **`Bash` is an open door.** `hooks/enforce-ownership.ts` rejects `Write`, `Edit`, `MultiEdit` and `NotebookEdit` outside the role's globs, but the teammate needs `Bash` to run tests, and `Bash` reaches any file via `sed -i`, `git checkout`, or a redirect. The hook blocks the honest path and makes the boundary legible; it is not a sandbox. Claim *enforced against tool-level edits*, never *enforced file ownership*.
+- **The hook fails open.** Unparseable input, a missing or malformed map, or a Node older than 23.6 all result in the write being allowed. That is deliberate — a hook that bricks a session is worse than one that misses — but it means enforcement can be absent without any signal, which is why step 1 checks Node.
+- **An agent type with no map entry is unconstrained.** A teammate spawned without a definition arrives as `general-purpose` and matches nothing, so it is not restricted at all. Only roles named in `config/ownership.json` are enforced.
 - **Permission prompts surface in the lead session.** The teammate's prompts appear where you are, not in its own transcript. Pre-approving the project's test command before spawning avoids interrupting it.
