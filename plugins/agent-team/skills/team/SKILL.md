@@ -87,7 +87,19 @@ Two specific traps:
 
 Wait for the report before concluding, and before shutting the teammate down — a shutdown does not flush a pending message to you.
 
-When the work is done, tell the teammate to shut down by name.
+When the work is done, tell the teammate to shut down by name — then **verify it actually went**, rather than trusting the request:
+
+```bash
+python3 -c "import json;print([m['name'] for m in json.load(open('$HOME/.claude/teams/session-${CLAUDE_CODE_SESSION_ID:0:8}/config.json'))['members']])"
+```
+
+A shut-down teammate disappears from `members`. A shutdown request is not guaranteed to land: in this plugin's own trial runs one teammate ignored three of them over fifteen minutes, with an empty inbox each time — so the requests were delivered and drained — while it kept emitting idle notifications. Another accepted an identically-formed request seconds later and terminated normally. The cause is not understood.
+
+Practical handling:
+
+- **Do not retry more than once.** If a second request does not land, further ones will not either, and they add noise to a session you are still working in.
+- **A stuck teammate is survivable.** It is idle, it owns nothing once its work is committed, and it ends with the session. Say so and move on rather than blocking on it.
+- **Track teammates by name carefully when you re-spawn.** A second `test-writer` in one session becomes `test-writer-2`, and it is easy to shut down the wrong one and believe you are clean. Verifying against `members` catches this; assuming does not.
 
 ## Known limits
 
