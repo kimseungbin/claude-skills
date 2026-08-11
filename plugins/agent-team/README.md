@@ -51,6 +51,26 @@ Keys are **agent types, not teammate names**, settled by probe rather than infer
 
 Keying on the type also survives name collisions: re-spawning a `test-writer` in a session that already had one yields the name `test-writer-2`, while the agent type is unchanged.
 
+### Identifying the agent in other hooks
+
+`PreToolUse` and `TeammateIdle` carry **different, non-overlapping** identifiers. Both were probed by dumping raw hook stdin:
+
+| Hook | Identity on stdin | Absent |
+| --- | --- | --- |
+| `PreToolUse` | `agent_type`, `agent_id` | no name |
+| `TeammateIdle` | `teammate_name`, `team_name` | no type, no id |
+
+A hook that needs the *role* from `TeammateIdle` therefore has to join: read `$HOME/.claude/teams/<team_name>/config.json`, find the member whose `name` equals `teammate_name`, take its `agentType`, and strip the `agent-team:` prefix to get the form the ownership map uses.
+
+**Do not shortcut that join by assuming the name equals the agent type.** `/team` pins them equal, which is why that hedge is worth keeping — but a re-spawn in the same session yields `test-writer-2` and breaks the invariant exactly when a long session needs it most.
+
+Two further behaviors, both verified rather than assumed:
+
+- **`TeammateIdle` can block.** Returning `{"decision":"block","reason":"…"}` puts the teammate back to work with the reason as its instruction. That is what makes a lint- or typecheck-on-idle gate possible at all, rather than notification-only.
+- **It fires on every idle transition**, not once per teammate. Any blocking gate needs its own guard against re-blocking forever.
+
+Hooks added to `settings.json` take effect immediately; a session restart is not needed to pick them up.
+
 Each entry must stay in step with the matching `agents/<role>.md`. A map narrower than the definition denies writes the role was explicitly told it owns.
 
 ## What it still needs
