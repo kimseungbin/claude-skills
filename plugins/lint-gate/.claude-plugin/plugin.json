@@ -1,0 +1,9 @@
+{
+  "name": "lint-gate",
+  "version": "0.1.1",
+  "description": "Formats each edit and gates lint and typecheck until an agent believes it is finished, so intermediate states are never reported as defects",
+  "author": {
+    "name": "kimseungbin"
+  },
+  "keywords": ["hooks", "lint", "formatting", "typecheck", "quality-gate", "agent-teams"]
+}

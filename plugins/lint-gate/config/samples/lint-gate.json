@@ -1,0 +1,20 @@
+{
+  "$comment": [
+    "Copy to .claude/config/lint-gate.json in your project. All three keys are optional;",
+    "an absent key means that check never runs. There are no defaults — a command is only",
+    "run if the project asked for it by name.",
+    "",
+    "format   runs after every Edit/Write, on that one file. Use {file} to place the path,",
+    "         otherwise it is appended. The path is shell-quoted for you.",
+    "lint     runs on Stop and TeammateIdle, never per-edit.",
+    "typecheck runs on Stop and TeammateIdle, after lint.",
+    "",
+    "Formatting is per-edit because it is a syntactic transform that is valid on any file",
+    "that parses. Linting and typechecking are not: an import added in one edit and used in",
+    "the next reads as an unused import in between, and a half-written function reads as a",
+    "syntax error. Reporting those would train the agent to undo correct work."
+  ],
+  "format": "npx prettier --write {file}",
+  "lint": "npm run lint",
+  "typecheck": "npm run typecheck"
+}
