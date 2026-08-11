@@ -222,10 +222,17 @@ describe('commandsFor', () => {
 			}
 		})
 
-		it('keeps a padded command rather than mistaking it for blank', () => {
-			const [entry] = commandsFor('Stop', { lint: '  eslint .  ' })
-			assert.equal(entry?.name, 'lint', 'padding is not emptiness')
-			assert.equal(entry?.command.trim(), LINT)
+		/**
+		 * Trim answers "is this blank?" and is then thrown away. What runs is what
+		 * the project configured — a module that silently rewrites configured values
+		 * stops being predictable from the config file.
+		 */
+		it('keeps a padded command verbatim rather than mistaking it for blank', () => {
+			assert.deepEqual(commandsFor('Stop', { lint: '  eslint .  ' }), [{ name: 'lint', command: '  eslint .  ' }])
+		})
+
+		it('does not rewrite a command that is already unpadded', () => {
+			assert.deepEqual(commandsFor('PostToolUse', { format: FORMAT }), [{ name: 'format', command: FORMAT }])
 		})
 	})
 
