@@ -34,12 +34,34 @@ To do it by hand, copy `config/samples/lint-gate.json` to `.claude/config/lint-g
 
 All three keys are optional and there are **no defaults** — an absent key means that check never runs. A command is only ever run because the project named it. In `format`, `{file}` is replaced by the edited path; without the placeholder the path is appended. Either way it is shell-quoted, since it arrives from a tool payload.
 
+## Scoping lint to what the agent edited
+
+`lint` runs project-wide by default. On a repo with any pre-existing backlog, that means the gate fails at the end of **every** task, reporting problems in files the agent never opened. The honest response is "none of these are mine" — which is exactly what the block reason tries to discourage, and once it happens the agent has learned to discount every later report.
+
+`{files}` asks the narrower question instead. It expands to every path edited during this session, shell-quoted and space-joined:
+
+```json
+{
+  "format": "npx prettier --write --ignore-unknown {file}",
+  "lint": "npx eslint --no-warn-ignored {files}"
+}
+```
+
+- Paths accumulate on each `PostToolUse`, in the same per-session, per-teammate state as the blocked signatures — so in an agent team, one teammate is never linted against another's files.
+- **An empty list skips the command** rather than running it bare. A linter with no path argument silently checks nothing under some configs and errors under others; neither is a useful gate result, and if nothing was edited then nothing is owed.
+- Paths that no longer exist are dropped. An agent may write a file and then delete or rename it; handing that path to a linter exits non-zero on "no files matching", which would reach the agent as a failure it cannot act on.
+- A command **without** the placeholder keeps running project-wide, exactly as before. Nothing changes for a config that never asked for scoping.
+
+**`{files}` is for linters, not typecheckers.** `tsc --noEmit` needs the whole program; handing it individual paths breaks `tsconfig` resolution and quietly changes what is checked. The hook will not second-guess you — it runs the command the project wrote, `{files}` and all — so keep `typecheck` project-wide. `/lint-setup` says so when it writes the config.
+
+`{file}` and `{files}` are distinct: `{file}` is the single edited path and belongs in `format`, which runs per edit; `{files}` is the accumulated list and belongs in `lint`, which runs at the end.
+
 ## The two loop guards
 
 A blocking hook that fires repeatedly will bounce an agent forever if it reports something the agent cannot fix. Two guards prevent that:
 
 - **`stop_hook_active`** — a `Stop` hook that already blocked this turn does not block again.
-- **Blocked-signature memory** — failures are hashed by command name and output, and a signature already reported is not reported twice. Fix one failure and the signature changes, so the remaining ones still surface; fail to fix anything and the gate goes quiet rather than looping. State lives at `~/.claude/lint-gate/<session_id>.json`, scoped per teammate so two agents settling at different times cannot silence each other.
+- **Blocked-signature memory** — failures are hashed by command name and output, and a signature already reported is not reported twice. Fix one failure and the signature changes, so the remaining ones still surface; fail to fix anything and the gate goes quiet rather than looping. State lives at `~/.claude/lint-gate/<session_id>.json`, scoped per teammate so two agents settling at different times cannot silence each other. The same file holds the edited-path list that `{files}` consumes, under the same scope.
 
 `TeammateIdle` needs the second guard particularly, because it fires on *every* idle transition rather than once.
 
@@ -51,5 +73,5 @@ The gate **fails open everywhere**: no config, an unparseable config, a command 
 
 ## What this does not do
 
-- **It does not attribute failures to an agent.** On `TeammateIdle` it runs the project's lint, which may fail on files that teammate never touched. The block reason tells the agent to say so explicitly rather than silently fixing or ignoring another agent's file. Scoping the run to a role's owned globs is possible — `TeammateIdle` carries `teammate_name` and `team_name`, and the team config joins a name to its `agentType` — but it is not implemented here, and it would couple this plugin to a particular ownership map.
+- **It does not attribute failures by ownership.** A project-wide `lint` on `TeammateIdle` may fail on files that teammate never touched, and the block reason then tells the agent to say so explicitly rather than silently fixing or ignoring another agent's file. `{files}` narrows the run to what that teammate actually edited, which covers most of this in practice. Scoping to a role's *owned globs* is a different thing and is still not implemented — `TeammateIdle` carries `teammate_name` and `team_name`, and the team config joins a name to its `agentType`, so it is possible, but it would couple this plugin to a particular ownership map.
 - **It does not replace CI.** It runs what the project already defines, at moments an agent is likely to stop and declare success.

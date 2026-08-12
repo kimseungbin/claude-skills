@@ -55,8 +55,29 @@ Rules for this file:
 
 - **Omit what does not exist.** An absent key means that check never runs. Never invent a command hoping it works — a command that fails to spawn produces a failure the agent is then told to fix.
 - **`format` acts on one file.** `{file}` is replaced by the edited path, shell-quoted for you; without the placeholder the path is appended. If the project's formatter cannot take a single path, omit `format` rather than pointing it at the whole tree on every edit.
-- **`lint` and `typecheck` act on the project.** They run when an agent believes it is finished, not per edit.
-- **Never point a command at a laxer variant to make the gate quieter** — no `--max-warnings=999`, no narrowed path, no `|| true`. The whole value of the gate is that its failure means something.
+- **`lint` and `typecheck` run when an agent believes it is finished**, not per edit.
+- **Never point a command at a laxer variant to make the gate quieter** — no `--max-warnings=999`, no `|| true`, no hand-narrowed path chosen to dodge known failures. The whole value of the gate is that its failure means something. Scoping `lint` with `{files}` (below) is not this: it changes *which files are examined*, not how hard they are examined.
+
+### Step 3b: Decide whether `lint` should be scoped with `{files}`
+
+`{files}` expands to every path edited during the session. It is the answer to a specific problem: on a repo with a pre-existing lint backlog, a project-wide `lint` fails at the end of every task over files the agent never opened, and an agent that has been handed someone else's 31 errors once will discount the gate from then on.
+
+Count the existing failures first — Step 4 makes you run the command anyway. Then:
+
+- **Backlog is zero, or small enough to fix now:** keep `lint` project-wide. It is the stronger gate, and a clean repo pays nothing for it.
+- **Backlog is real and not yours to fix in this session:** scope it, and say you did.
+
+```json
+{
+  "format": "npx prettier --write --ignore-unknown {file}",
+  "lint": "npx eslint --no-warn-ignored {files}"
+}
+```
+
+Two things to check before writing `{files}`:
+
+- **The command must accept paths as trailing arguments.** `npm run lint {files}` does not — npm needs `npm run lint -- {files}`, and the underlying script must not already pin its own path (`eslint .` ignores anything you append). Verify in Step 4, not by assumption.
+- **Never put `{files}` in `typecheck`.** `tsc --noEmit` needs the whole program; individual paths break `tsconfig` resolution and silently change what is checked — it will appear to pass. The hook honors whatever you write, so this rule is yours to keep. If the user asks for a scoped typecheck anyway, say plainly that it would report less than it appears to, and leave `typecheck` project-wide.
 
 ## Step 4: Verify the commands actually run
 
@@ -70,9 +91,19 @@ Confirm that a passing command exits 0 and a failing one exits non-zero. A linte
 
 Then check the formatter on a single file and confirm it edits only that file.
 
+A command with `{files}` cannot be run as written, so substitute a path by hand and check both directions — that a real path is actually examined, and that the exit code still means something:
+
+```bash
+npx eslint --no-warn-ignored path/to/a/real/file.ts; echo "exit=$?"
+```
+
+If it exits 0 on a file you know has problems, the placeholder is being ignored — the command is pinned to its own path somewhere, and the gate would silently never fire.
+
 ## Step 5: Report
 
 State what was found versus what was added, the exact commands recorded, and anything deliberately omitted and why. If you declined to install something, say that too — a project left without a linter by choice should be visible in the transcript, not silently absent.
+
+If you scoped `lint` with `{files}`, report the pre-existing failure count you measured and say that those files are now outside what the gate examines. That number is the thing a user needs in order to decide whether to fix the backlog later, and scoping is the one choice here that makes the gate check *less* than it looks like it does.
 
 ## What this skill does not do
 

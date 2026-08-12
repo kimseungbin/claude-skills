@@ -1,10 +1,19 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync } from 'node:fs'
+import { existsSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 
-import { commandsFor, decide, failureSignature, formatCommand, resolveConfig } from './core.ts'
+import {
+	commandsFor,
+	decide,
+	failureSignature,
+	formatCommand,
+	resolveConfig,
+	scopeCommands,
+	tracksEditedFiles,
+	usesEditedFiles,
+} from './core.ts'
 import type { CommandResult, Decision, GateConfig, Trigger } from './core.ts'
 
 const FORMAT = 'prettier --write'
@@ -48,13 +57,13 @@ function assertBlocked(d: Decision, message?: string): string {
 }
 
 /**
- * Runs a built format command through a real shell and returns what it printed.
- * The base is `printf [%s]`, so a correctly quoted path yields exactly `[path]`:
- * one argument, nothing split, nothing else executed. Style-agnostic — it checks
- * the quoting works, not which quoting was chosen.
+ * Runs a built command through a real shell and returns what it printed. Every
+ * base here is `printf [%s]`, so a correctly quoted path yields exactly `[path]`
+ * and a correctly quoted list of N paths yields `[a][b]…`: one argument each,
+ * nothing split, nothing else executed. Style-agnostic — it checks the quoting
+ * works, not which quoting was chosen.
  */
-function shellSees(base: string, filePath: string): string {
-	const cmd = formatCommand(base, filePath)
+function runInShell(cmd: string): string {
 	try {
 		return execFileSync('/bin/sh', ['-c', cmd], {
 			encoding: 'utf8',
@@ -67,9 +76,74 @@ function shellSees(base: string, filePath: string): string {
 	}
 }
 
+/** What a shell sees for the one path a format command is built around. */
+function shellSees(base: string, filePath: string): string {
+	return runInShell(formatCommand(base, filePath))
+}
+
+/** What a shell sees for the path list a `{files}` command is narrowed to. */
+function shellSeesScoped(base: string, editedFiles: unknown[]): string {
+	const [entry] = scopeCommands([{ name: 'lint', command: base }], editedFiles as string[])
+	assert.ok(entry, `scopeCommands dropped a command it was supposed to fill: ${base}`)
+	return runInShell(entry.command)
+}
+
 function assertPathSurvivesShell(filePath: string, message?: string): void {
 	assert.equal(shellSees('printf [%s]', filePath), `[${filePath}]`, message ?? `path mangled or unquoted: ${filePath}`)
 }
+
+/**
+ * Three distinct ways a path can escape its quoting: word splitting, breaking the
+ * quoting scheme itself, and outright execution.
+ *
+ * Every path in this file funnels into the same `shellQuote`, so only the sweep
+ * below re-proves that function against the full table. The suites that reach it
+ * through a second route — a placeholder, a joined list — use these three, because
+ * what those suites are actually asserting is that the route reaches `shellQuote`
+ * at all, and a route that mangles a space mangles a backtick too.
+ */
+const REPRESENTATIVE_PATHS: Array<[string, string]> = [
+	['a space', '/tmp/my file.ts'],
+	['a single quote', "/tmp/it's.ts"],
+	['command substitution', '/tmp/a$(echo pwned).ts'],
+]
+
+/**
+ * A path is also a replacement string as far as `String.prototype.replace` is
+ * concerned: with a replacement string rather than a callback, `$&` re-inserts the
+ * token that was just consumed and `$1` inserts an empty string. Swept everywhere
+ * a token is substituted, since that grammar only exists on those routes and no
+ * amount of shell quoting protects against it.
+ */
+const REPLACEMENT_PATTERN_PATHS: Array<[string, string]> = [
+	['a regex replacement pattern', '/tmp/a$&b.ts'],
+	['a regex capture reference', '/tmp/a$1b.ts'],
+	['every replacement pattern at once', "/tmp/a$&$1$`$'$$b.ts"],
+]
+
+/** Every path a tool payload can legitimately carry that also means something to a shell. */
+const HOSTILE_PATHS: Array<[string, string]> = [
+	...REPRESENTATIVE_PATHS,
+	['a double quote', '/tmp/a"b.ts'],
+	['a semicolon', '/tmp/a;echo pwned;.ts'],
+	['a command separator', '/tmp/a && echo pwned.ts'],
+	['a pipe', '/tmp/a | echo pwned.ts'],
+	['backticks', '/tmp/a`echo pwned`.ts'],
+	['a variable reference', '/tmp/$HOME.ts'],
+	['a glob', '/tmp/*'],
+	['a tilde', '~/a.ts'],
+	['a newline', '/tmp/a\nb.ts'],
+	['a tab', '/tmp/a\tb.ts'],
+	['a backslash', '/tmp/a\\b.ts'],
+	['a redirect', '/tmp/a > pwned.ts'],
+	['a subshell', '/tmp/(a).ts'],
+	['a dash in the name', '/tmp/-rf.ts'],
+	['every trick at once', `/tmp/a'"\`$(echo x) ;&|>*.ts`],
+	...REPLACEMENT_PATTERN_PATHS,
+]
+
+/** The representatives plus the paths that only a substituted token can mangle. */
+const SUBSTITUTED_PATHS: Array<[string, string]> = [...REPRESENTATIVE_PATHS, ...REPLACEMENT_PATTERN_PATHS]
 
 describe('resolveConfig', () => {
 	it('keeps all three valid string fields', () => {
@@ -250,6 +324,130 @@ describe('commandsFor', () => {
 	})
 })
 
+describe('usesEditedFiles', () => {
+	it('recognises the placeholder', () => {
+		assert.equal(usesEditedFiles('eslint {files}'), true)
+	})
+
+	it('is indifferent to where the placeholder sits', () => {
+		const commands = [
+			'{files}',
+			'{files} --cache',
+			'eslint {files}',
+			'eslint {files} --max-warnings 0',
+			'eslint {files} {files}',
+			'eslint --ext .ts {files}\n',
+		]
+		for (const command of commands) {
+			assert.equal(usesEditedFiles(command), true, `must be recognised in: ${JSON.stringify(command)}`)
+		}
+	})
+
+	it('is false for a project-wide command', () => {
+		assert.equal(usesEditedFiles(LINT), false)
+		assert.equal(usesEditedFiles(TYPECHECK), false)
+		assert.equal(usesEditedFiles(''), false)
+	})
+
+	/**
+	 * The two tokens mean different things — one path versus every path this session
+	 * — and this is what decides whether the session records edited paths at all. A
+	 * per-file format command must not read as a request for the session's list.
+	 */
+	it('is not fooled by the singular {file}', () => {
+		assert.equal(usesEditedFiles('prettier --write {file}'), false)
+		assert.equal(usesEditedFiles('{file}'), false)
+		assert.equal(usesEditedFiles('cmp -s {file} {file}'), false)
+	})
+
+	it('is false for a near miss', () => {
+		const nearMisses = ['eslint { files }', 'eslint {FILES}', 'eslint {filess}', 'eslint {file}s', 'eslint $files', 'eslint files']
+		for (const command of nearMisses) {
+			assert.equal(usesEditedFiles(command), false, `must not be treated as scoped: ${command}`)
+		}
+	})
+})
+
+/**
+ * Answered on every edit, before anything is recorded, so that accumulating paths
+ * costs a project nothing unless one of its own checks asked to be scoped by them.
+ * Derived from the Stop-time set rather than the raw config, so it cannot answer
+ * yes for a command that would never run.
+ */
+describe('tracksEditedFiles', () => {
+	it('is true when lint is scoped', () => {
+		assert.equal(tracksEditedFiles({ lint: 'eslint {files}', typecheck: TYPECHECK }), true)
+	})
+
+	it('is true when typecheck is scoped', () => {
+		assert.equal(tracksEditedFiles({ lint: LINT, typecheck: 'tsc --noEmit {files}' }), true)
+	})
+
+	it('is true when both are scoped', () => {
+		assert.equal(tracksEditedFiles({ lint: 'eslint {files}', typecheck: 'tsc --noEmit {files}' }), true)
+	})
+
+	it('is true when a scoped lint is the only configured command', () => {
+		assert.equal(tracksEditedFiles({ lint: 'eslint {files}' }), true)
+	})
+
+	/**
+	 * `format` never runs at Stop, so nothing would ever consume the record — and
+	 * `formatCommand` already fills `{files}` from the single path it is handed.
+	 */
+	it('is false when only format is scoped', () => {
+		assert.equal(tracksEditedFiles({ format: 'prettier --write {files}' }), false)
+		assert.equal(tracksEditedFiles({ format: 'prettier --write {files}', lint: LINT, typecheck: TYPECHECK }), false)
+	})
+
+	it('is false for project-wide Stop commands', () => {
+		assert.equal(tracksEditedFiles(FULL), false)
+		assert.equal(tracksEditedFiles({ lint: LINT }), false)
+	})
+
+	it('is false for an empty config', () => {
+		assert.equal(tracksEditedFiles({}), false)
+	})
+
+	it('is false when the singular {file} is used at Stop time', () => {
+		assert.equal(tracksEditedFiles({ lint: 'eslint {file}' }), false)
+	})
+
+	/**
+	 * A string holding `{files}` can never itself be blank, so the reachable case is
+	 * a value `commandsFor` drops for another reason. Asking the Stop-time set
+	 * rather than the config is what makes that fall out for free.
+	 */
+	it('is false for a scoped command commandsFor would drop', () => {
+		assert.equal(tracksEditedFiles({ lint: ['eslint', '{files}'] as unknown as string }), false)
+		assert.equal(tracksEditedFiles({ lint: 42 as unknown as string, typecheck: '  ' }), false)
+		assert.equal(tracksEditedFiles(resolveConfig({ lint: { cmd: 'eslint {files}' } })), false)
+	})
+
+	it('agrees with the Stop-time command set for every config', () => {
+		const configs: GateConfig[] = [
+			{},
+			FULL,
+			{ lint: 'eslint {files}' },
+			{ typecheck: 'tsc --noEmit {files}' },
+			{ format: 'prettier --write {files}' },
+			{ format: 'prettier --write {files}', lint: LINT },
+			{ lint: '  ', typecheck: 'tsc {files}' },
+		]
+		for (const config of configs) {
+			const expected = commandsFor('Stop', config).some((c) => usesEditedFiles(c.command))
+			assert.equal(tracksEditedFiles(config), expected, `disagreed for ${JSON.stringify(config)}`)
+		}
+	})
+
+	/** As with `commandsFor`, a resolved junk config answers rather than throwing. */
+	it('is false for a resolved junk config', () => {
+		for (const junk of [null, undefined, 'lint: eslint {files}', 42, [], ['eslint {files}']]) {
+			assert.equal(tracksEditedFiles(resolveConfig(junk)), false, `must degrade for ${JSON.stringify(junk)}`)
+		}
+	})
+})
+
 describe('formatCommand', () => {
 	describe('placeholder substitution', () => {
 		it('substitutes {file} in the middle of the base', () => {
@@ -276,6 +474,75 @@ describe('formatCommand', () => {
 		})
 	})
 
+	/**
+	 * A format command written with `{files}` is honored rather than corrected: it
+	 * runs once per edit, so the list it asks for is the one file being formatted.
+	 */
+	describe('a base written with the plural {files}', () => {
+		it('substitutes the one path being formatted', () => {
+			assert.equal(shellSees('printf [%s] {files}', 'src/a.ts'), '[src/a.ts]')
+		})
+
+		/**
+		 * Whole tokens only: matching `{file}` inside `{files}` would consume the
+		 * plural's head and leave its `s}` tail behind as a stray shell argument.
+		 */
+		it('leaves no token and no stray tail behind', () => {
+			const cmd = formatCommand('prettier --write {files}', 'src/a.ts')
+			assert.doesNotMatch(cmd, /\{files?\}/, 'the placeholder must be consumed')
+			assert.doesNotMatch(cmd, /s\}/, 'no fragment of the plural token may survive as a stray argument')
+			assert.equal(cmd.split('src/a.ts').length - 1, 1, 'the path must appear once, not substituted and appended')
+		})
+
+		it('keeps the text on both sides of the placeholder', () => {
+			const cmd = formatCommand('prettier --write {files} --log-level warn', 'src/a.ts')
+			assert.match(cmd, /^prettier --write /)
+			assert.match(cmd, / --log-level warn$/, 'the tail of the base must survive')
+		})
+
+		it('substitutes every occurrence', () => {
+			assert.equal(shellSees('printf [%s] {files} {files}', 'src/a.ts'), '[src/a.ts][src/a.ts]')
+		})
+
+		it('fills both tokens when a base uses each', () => {
+			const cmd = formatCommand('cmp -s {file} {files}', 'src/a.ts')
+			assert.doesNotMatch(cmd, /\{files?\}/)
+			assert.doesNotMatch(cmd, /s\}/)
+			assert.equal(cmd.split('src/a.ts').length - 1, 2, 'both placeholders must be filled')
+			assert.equal(shellSees('printf [%s] {file} {files}', 'src/a.ts'), '[src/a.ts][src/a.ts]')
+		})
+
+		/**
+		 * Regression — the tokens were once filled in two passes, and an edited path
+		 * may itself contain the literal `{file}`. The second pass read that as a
+		 * placeholder and substituted into the middle of the quoted string the first
+		 * pass had just inserted, closing the quotes and leaving the remainder of the
+		 * path as live shell text: an injection, not merely a wrong path. What protects
+		 * against it is that a replacement is never rescanned — one pass over the
+		 * original base. `scopeCommands` never rescanned and was never affected.
+		 */
+		it('does not re-fill a {file} that arrived inside the path', () => {
+			assertPathSurvivesShell('/tmp/{file}/a.ts')
+			assert.equal(shellSees('printf [%s] {files}', '/tmp/{file}/a.ts'), '[/tmp/{file}/a.ts]')
+			assert.equal(shellSees('printf [%s] {file}', '/tmp/{file}/a.ts'), '[/tmp/{file}/a.ts]', 'the {file} base is fine')
+		})
+
+		it('does not re-fill a {files} that arrived inside the path', () => {
+			assert.equal(shellSees('printf [%s] {file}', '/tmp/{files}/a.ts'), '[/tmp/{files}/a.ts]')
+			assert.equal(shellSees('printf [%s] {files}', '/tmp/{files}/a.ts'), '[/tmp/{files}/a.ts]')
+		})
+
+		it('does not execute a command hidden behind a {file} in the path', () => {
+			// A marker file, because the injected command's own output would be
+			// indistinguishable from the path text printf echoes back.
+			const marker = `${SANDBOX}/injected-through-files-token`
+			const filePath = `/tmp/a{file};touch ${marker}`
+			const out = shellSees('printf [%s] {files}', filePath)
+			assert.equal(existsSync(marker), false, 'the injected command must never run')
+			assert.equal(out, `[${filePath}]`)
+		})
+	})
+
 	describe('appending when there is no placeholder', () => {
 		it('keeps the base intact at the front', () => {
 			const cmd = formatCommand('prettier --write', 'src/a.ts')
@@ -294,36 +561,21 @@ describe('formatCommand', () => {
 	})
 
 	describe('shell quoting — a mistake here is a shell injection', () => {
-		const hostile: Array<[string, string]> = [
-			['a space', '/tmp/my file.ts'],
-			['a single quote', "/tmp/it's.ts"],
-			['a double quote', '/tmp/a"b.ts'],
-			['a semicolon', '/tmp/a;echo pwned;.ts'],
-			['a command separator', '/tmp/a && echo pwned.ts'],
-			['a pipe', '/tmp/a | echo pwned.ts'],
-			['command substitution', '/tmp/a$(echo pwned).ts'],
-			['backticks', '/tmp/a`echo pwned`.ts'],
-			['a variable reference', '/tmp/$HOME.ts'],
-			['a glob', '/tmp/*'],
-			['a tilde', '~/a.ts'],
-			['a newline', '/tmp/a\nb.ts'],
-			['a tab', '/tmp/a\tb.ts'],
-			['a backslash', '/tmp/a\\b.ts'],
-			['a redirect', '/tmp/a > pwned.ts'],
-			['a subshell', '/tmp/(a).ts'],
-			['a dash in the name', '/tmp/-rf.ts'],
-			['every trick at once', `/tmp/a'"\`$(echo x) ;&|>*.ts`],
-		]
-
-		for (const [label, filePath] of hostile) {
+		for (const [label, filePath] of HOSTILE_PATHS) {
 			it(`survives ${label} when appended`, () => {
 				assertPathSurvivesShell(filePath)
 			})
 		}
 
-		for (const [label, filePath] of hostile) {
+		for (const [label, filePath] of SUBSTITUTED_PATHS) {
 			it(`survives ${label} when substituted into {file}`, () => {
 				assert.equal(shellSees('printf [%s] {file}', filePath), `[${filePath}]`, `path mangled: ${filePath}`)
+			})
+		}
+
+		for (const [label, filePath] of SUBSTITUTED_PATHS) {
+			it(`survives ${label} when substituted into {files}`, () => {
+				assert.equal(shellSees('printf [%s] {files}', filePath), `[${filePath}]`, `path mangled: ${filePath}`)
 			})
 		}
 
@@ -355,6 +607,267 @@ describe('formatCommand', () => {
 		it('is pure — the same inputs give the same command', () => {
 			assert.equal(formatCommand(FORMAT, 'src/a.ts'), formatCommand(FORMAT, 'src/a.ts'))
 		})
+
+		/**
+		 * Repeated rather than merely compared twice: a module-level `/g` regex carries
+		 * `lastIndex` across calls if it is ever driven by `.test()` or `.exec()`, which
+		 * makes every other call resume mid-string and miss the token — a bug that hides
+		 * from any single call and from any pair of calls on different bases.
+		 */
+		it('answers the same for a token base however many times it is called', () => {
+			for (const base of ['prettier --write {file}', 'prettier --write {files}', 'cmp -s {file} {files}']) {
+				const first = formatCommand(base, 'src/a.ts')
+				assert.doesNotMatch(first, /\{files?\}/, `the placeholder must be consumed: ${base}`)
+				for (let call = 2; call <= 5; call++) {
+					assert.equal(formatCommand(base, 'src/a.ts'), first, `call ${call} of ${base} differed from the first`)
+				}
+			}
+		})
+	})
+})
+
+describe('scopeCommands', () => {
+	const SCOPED_LINT = 'eslint {files}'
+	const scoped = { name: 'lint', command: SCOPED_LINT }
+	const wide = { name: 'typecheck', command: TYPECHECK }
+
+	describe('narrowing a scoped command', () => {
+		it('substitutes the one edited path', () => {
+			assert.equal(shellSeesScoped('printf [%s] {files}', ['src/a.ts']), '[src/a.ts]')
+		})
+
+		it('substitutes several paths as separate arguments, in order', () => {
+			assert.equal(
+				shellSeesScoped('printf [%s] {files}', ['src/a.ts', 'src/b.ts', 'src/c.ts']),
+				'[src/a.ts][src/b.ts][src/c.ts]',
+			)
+		})
+
+		it('substitutes every occurrence', () => {
+			assert.equal(shellSeesScoped('printf [%s] {files} {files}', ['src/a.ts', 'src/b.ts']), '[src/a.ts][src/b.ts][src/a.ts][src/b.ts]')
+		})
+
+		it('consumes the placeholder', () => {
+			const [entry] = scopeCommands([scoped], ['src/a.ts'])
+			assert.doesNotMatch(entry.command, /\{files\}/, 'a placeholder reaching the shell is a literal argument')
+			assert.ok(entry.command.includes('src/a.ts'), `the path must be in the command: ${entry.command}`)
+		})
+
+		it('keeps the text on both sides of the placeholder', () => {
+			const [entry] = scopeCommands([{ name: 'lint', command: 'eslint --max-warnings 0 {files} --cache' }], ['src/a.ts'])
+			assert.match(entry.command, /^eslint --max-warnings 0 /)
+			assert.match(entry.command, / --cache$/, 'the tail of the command must survive')
+		})
+
+		it('keeps the name of the command it narrowed', () => {
+			assert.deepEqual(scopeCommands([scoped, wide], ['src/a.ts']).map((c) => c.name), ['lint', 'typecheck'])
+		})
+
+		it('preserves command order', () => {
+			const commands = commandsFor('Stop', { lint: SCOPED_LINT, typecheck: 'tsc --noEmit {files}' })
+			assert.deepEqual(scopeCommands(commands, ['src/a.ts']).map((c) => c.name), ['lint', 'typecheck'])
+		})
+
+		it('carries exactly a name and a command', () => {
+			for (const entry of scopeCommands([scoped, wide], ['src/a.ts'])) {
+				assert.deepEqual(Object.keys(entry).sort(), ['command', 'name'], `${entry.name} leaked an extra key`)
+			}
+		})
+
+		it('narrows what tracksEditedFiles promised would be narrowed', () => {
+			const config: GateConfig = { format: 'prettier --write {file}', lint: SCOPED_LINT, typecheck: TYPECHECK }
+			assert.equal(tracksEditedFiles(config), true)
+
+			const [lint, typecheck] = scopeCommands(commandsFor('Stop', config), ['src/a.ts'])
+			assert.doesNotMatch(lint.command, /\{files\}/)
+			assert.equal(typecheck.command, TYPECHECK, 'the project-wide sibling is not the one being narrowed')
+		})
+	})
+
+	/**
+	 * Today's behavior for a project that never asked for scoping. A command without
+	 * the placeholder is project-wide by choice, so nothing about it changes — not
+	 * even when the session edited nothing.
+	 */
+	describe('a command without the placeholder passes through untouched', () => {
+		it('leaves the command string alone', () => {
+			assert.deepEqual(scopeCommands([wide], ['src/a.ts']), [wide])
+		})
+
+		it('leaves it alone for an empty list too', () => {
+			assert.deepEqual(scopeCommands([wide], []), [wide])
+		})
+
+		it('leaves a whole project-wide config alone', () => {
+			const commands = commandsFor('Stop', FULL)
+			assert.deepEqual(scopeCommands(commands, ['src/a.ts']), commands)
+			assert.deepEqual(scopeCommands(commands, []), commands)
+		})
+
+		/**
+		 * The singular `{file}` is documented as format-only — there is no single
+		 * path at Stop time — so the command string is passed through as the project
+		 * wrote it rather than guessed at.
+		 */
+		it('leaves a singular {file} verbatim rather than guessing', () => {
+			const perFile = { name: 'lint', command: 'eslint {file}' }
+			assert.deepEqual(scopeCommands([perFile], ['src/a.ts', 'src/b.ts']), [perFile])
+			assert.deepEqual(scopeCommands([perFile], []), [perFile], 'it is not scoped, so an empty list does not drop it')
+		})
+	})
+
+	/**
+	 * A linter handed no path argument silently checks nothing under some configs and
+	 * errors under others; neither is a useful gate result, and nothing was edited,
+	 * so nothing is owed.
+	 */
+	describe('an empty list drops the command rather than running it bare', () => {
+		it('drops a scoped command when nothing was edited', () => {
+			assert.deepEqual(scopeCommands([scoped], []), [])
+		})
+
+		it('drops every scoped command but keeps the project-wide sibling', () => {
+			const commands = [scoped, wide, { name: 'other', command: 'check {files} --strict' }]
+			assert.deepEqual(scopeCommands(commands, []), [wide])
+		})
+
+		it('drops the command wherever the placeholder sits in it', () => {
+			for (const command of ['{files}', 'eslint {files}', 'eslint {files} --cache', 'eslint {files} {files}']) {
+				assert.deepEqual(scopeCommands([{ name: 'lint', command }], []), [], `must drop: ${command}`)
+			}
+		})
+
+		it('never emits a command still holding the placeholder', () => {
+			const commands = [scoped, wide]
+			for (const files of [[], ['src/a.ts'], ['src/a.ts', 'src/b.ts']]) {
+				for (const entry of scopeCommands(commands, files)) {
+					assert.doesNotMatch(entry.command, /\{files\}/, `unfilled placeholder for ${JSON.stringify(files)}`)
+				}
+			}
+		})
+	})
+
+	describe('deduping', () => {
+		it('lists a repeated path once', () => {
+			assert.equal(shellSeesScoped('printf [%s] {files}', ['src/a.ts', 'src/a.ts']), '[src/a.ts]')
+		})
+
+		it('keeps first-seen order while deduping', () => {
+			assert.equal(
+				shellSeesScoped('printf [%s] {files}', ['src/b.ts', 'src/a.ts', 'src/b.ts', 'src/c.ts', 'src/a.ts']),
+				'[src/b.ts][src/a.ts][src/c.ts]',
+			)
+		})
+
+		it('does not conflate distinct paths that share a basename', () => {
+			assert.equal(shellSeesScoped('printf [%s] {files}', ['src/a.ts', 'test/a.ts']), '[src/a.ts][test/a.ts]')
+		})
+	})
+
+	/**
+	 * This runs inside a hook, so a throw is the one unacceptable outcome: junk must
+	 * cost the session a check, never the session itself.
+	 */
+	describe('fail open — junk degrades, never throws', () => {
+		const notArrays: Array<[string, unknown]> = [
+			['null', null],
+			['undefined', undefined],
+			['a string', 'src/a.ts'],
+			['a number', 42],
+			['a boolean', true],
+			['an object', { 0: 'src/a.ts', length: 1 }],
+		]
+
+		for (const [label, value] of notArrays) {
+			it(`yields no commands when commands is ${label}`, () => {
+				assert.deepEqual(scopeCommands(value as never, ['src/a.ts']), [])
+			})
+
+			it(`treats ${label} as no edited files`, () => {
+				assert.deepEqual(scopeCommands([scoped, wide], value as never), [wide])
+			})
+		}
+
+		it('discards non-string and empty entries from the list', () => {
+			assert.equal(
+				shellSeesScoped('printf [%s] {files}', ['src/a.ts', '', null, 42, undefined, {}, [], 'src/b.ts']),
+				'[src/a.ts][src/b.ts]',
+			)
+		})
+
+		it('drops the command when every entry is junk', () => {
+			assert.deepEqual(scopeCommands([scoped], ['', null, undefined, 0, {}] as never), [])
+		})
+
+		it('survives junk on both arguments at once', () => {
+			assert.deepEqual(scopeCommands(null as never, null as never), [])
+		})
+
+		it('returns an array even for nothing at all', () => {
+			assert.deepEqual(scopeCommands([], []), [])
+		})
+	})
+
+	describe('shell quoting the list — a mistake here is a shell injection', () => {
+		for (const [label, filePath] of SUBSTITUTED_PATHS) {
+			it(`survives ${label} as the only edited file`, () => {
+				assert.equal(shellSeesScoped('printf [%s] {files}', [filePath]), `[${filePath}]`, `path mangled: ${filePath}`)
+			})
+		}
+
+		for (const [label, filePath] of REPRESENTATIVE_PATHS) {
+			it(`survives ${label} beside ordinary paths`, () => {
+				assert.equal(
+					shellSeesScoped('printf [%s] {files}', ['src/a.ts', filePath, 'src/b.ts']),
+					`[src/a.ts][${filePath}][src/b.ts]`,
+					`path mangled among siblings: ${filePath}`,
+				)
+			})
+		}
+
+		it('keeps each path a single argument when several contain spaces', () => {
+			assert.equal(
+				shellSeesScoped('printf [%s] {files}', ['/tmp/my file.ts', '/tmp/other file.ts']),
+				'[/tmp/my file.ts][/tmp/other file.ts]',
+			)
+		})
+
+		it('does not execute a command injected from anywhere in the list', () => {
+			const out = shellSeesScoped('printf [%s] {files}', ['src/a.ts', '/tmp/x; echo pwned', 'src/b.ts'])
+			assert.doesNotMatch(out, /pwned$/m, 'the injected echo must never run')
+			assert.equal(out, '[src/a.ts][/tmp/x; echo pwned][src/b.ts]')
+		})
+
+		it('leaves no raw path in the built command', () => {
+			const [entry] = scopeCommands([scoped], ['/tmp/my file.ts'])
+			assert.doesNotMatch(entry.command, /(^|\s)\/tmp\/my file\.ts(\s|$)/, 'a bare path with a space is two arguments')
+		})
+
+		/** Either token, because a filled-in path must never be rescanned for either. */
+		it('does not treat a token inside a path as a placeholder', () => {
+			assert.equal(shellSeesScoped('printf [%s] {files}', ['/tmp/{files}/a.ts']), '[/tmp/{files}/a.ts]')
+			assert.equal(shellSeesScoped('printf [%s] {files}', ['/tmp/{file}/a.ts']), '[/tmp/{file}/a.ts]')
+			assert.equal(
+				shellSeesScoped('printf [%s] {files}', ['/tmp/{file}/a.ts', '/tmp/{files}/b.ts']),
+				'[/tmp/{file}/a.ts][/tmp/{files}/b.ts]',
+			)
+		})
+	})
+
+	it('does not mutate its inputs', () => {
+		const commands = [{ name: 'lint', command: SCOPED_LINT }, { name: 'typecheck', command: TYPECHECK }]
+		const editedFiles = ['src/b.ts', 'src/a.ts', 'src/b.ts']
+		const commandsSnapshot = structuredClone(commands)
+		const filesSnapshot = structuredClone(editedFiles)
+
+		scopeCommands(commands, editedFiles)
+
+		assert.deepEqual(commands, commandsSnapshot, 'narrowing must build new entries, not rewrite the caller ones')
+		assert.deepEqual(editedFiles, filesSnapshot, 'deduping must not reorder or shrink the caller list')
+	})
+
+	it('is pure — the same inputs give the same result', () => {
+		assert.deepEqual(scopeCommands([scoped], ['src/a.ts']), scopeCommands([scoped], ['src/a.ts']))
 	})
 })
 

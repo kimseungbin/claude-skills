@@ -9,11 +9,21 @@
  */
 
 import { execSync } from 'node:child_process'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 
-import { commandsFor, decide, failureSignature, formatCommand, resolveConfig, type CommandResult, type Trigger } from './core.ts'
+import {
+	commandsFor,
+	decide,
+	failureSignature,
+	formatCommand,
+	resolveConfig,
+	scopeCommands,
+	tracksEditedFiles,
+	type CommandResult,
+	type Trigger,
+} from './core.ts'
 
 interface Payload {
 	hook_event_name?: string
@@ -55,42 +65,76 @@ function run(command: string, cwd: string): { ok: boolean; output: string } {
 }
 
 /**
- * Blocked-signature memory, per session and per agent.
+ * Session memory, per session and per agent: which failures have been reported,
+ * and which files were edited.
  *
  * Scoped by teammate because two agents settling at different times must not
- * silence each other's failures.
+ * silence each other's failures, and must not lint each other's files.
+ *
+ * A file written by an older version holds a bare array of signatures per scope.
+ * That is read as absent rather than migrated — the worst outcome is one
+ * repeated block in a session that spanned the upgrade.
  */
+type Memory = 'blocked' | 'edited'
+
+interface ScopeState {
+	blocked?: string[]
+	edited?: string[]
+}
+
 function statePath(sessionId: string): string {
 	return path.join(os.homedir(), '.claude', 'lint-gate', `${sessionId}.json`)
 }
 
-function readBlocked(sessionId: string, scope: string): string[] {
+function readState(sessionId: string): Record<string, ScopeState> {
 	try {
-		const state = JSON.parse(readFileSync(statePath(sessionId), 'utf8')) as Record<string, string[]>
-		return Array.isArray(state?.[scope]) ? state[scope] : []
+		const parsed = JSON.parse(readFileSync(statePath(sessionId), 'utf8')) as unknown
+		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+		return parsed as Record<string, ScopeState>
 	} catch {
-		return []
+		return {}
 	}
 }
 
-function rememberBlocked(sessionId: string, scope: string, signature: string): void {
+function listFrom(state: Record<string, ScopeState>, scope: string, key: Memory): string[] {
+	const list = state[scope]?.[key]
+	return Array.isArray(list) ? list.filter((entry) => typeof entry === 'string') : []
+}
+
+function remembered(sessionId: string, scope: string, key: Memory): string[] {
+	return listFrom(readState(sessionId), scope, key)
+}
+
+/**
+ * Deduped on write as well as on read: the same file is edited many times in a
+ * session, and an append-only list would grow without bound for no added
+ * information. Signatures are hashes, so a repeat carries none either.
+ */
+function remember(sessionId: string, scope: string, key: Memory, values: string[]): void {
 	try {
 		const file = statePath(sessionId)
 		mkdirSync(path.dirname(file), { recursive: true })
 
-		let state: Record<string, string[]> = {}
-		try {
-			state = JSON.parse(readFileSync(file, 'utf8')) as Record<string, string[]>
-		} catch {
-			// First write for this session.
-		}
-
-		state[scope] = [...(Array.isArray(state[scope]) ? state[scope] : []), signature]
+		const state = readState(sessionId)
+		state[scope] = { ...(state[scope] ?? {}), [key]: [...new Set([...listFrom(state, scope, key), ...values])] }
 		writeFileSync(file, JSON.stringify(state))
 	} catch {
 		// If the memory cannot be written the gate simply repeats itself once
 		// more; that is better than failing the hook.
 	}
+}
+
+/**
+ * The edited paths still worth checking.
+ *
+ * An agent may write a file and then delete or rename it in the same session.
+ * Handing a linter a path that no longer exists exits non-zero on "no files
+ * matching", which would reach the agent as a lint failure it cannot act on.
+ * Resolved against the payload's cwd, since the hook's own working directory is
+ * not the project's.
+ */
+function editedFiles(sessionId: string, scope: string, cwd: string): string[] {
+	return remembered(sessionId, scope, 'edited').filter((file) => existsSync(path.resolve(cwd, file)))
 }
 
 function main(): void {
@@ -111,33 +155,40 @@ function main(): void {
 	if (!cwd) return
 
 	const config = loadConfig(cwd)
-	const commands = commandsFor(trigger, config)
-	if (commands.length === 0) return
+	const sessionId = payload.session_id ?? 'unknown-session'
+	const scope = payload.teammate_name ?? '__lead__'
 
-	// Formatting is fire-and-forget: the edit already happened, so there is
-	// nothing to block, and a formatter's own failure is not the agent's problem.
 	if (trigger === 'PostToolUse') {
 		const file = payload.tool_input?.file_path ?? payload.tool_input?.notebook_path
 		if (!file) return
-		run(formatCommand(commands[0].command, file), cwd)
+
+		// Recorded before anything is run, and whether or not there is anything
+		// to run: this is the only moment the edited path exists, and a project
+		// may configure a {files} lint without configuring format at all.
+		if (tracksEditedFiles(config)) remember(sessionId, scope, 'edited', [file])
+
+		// Formatting is fire-and-forget: the edit already happened, so there is
+		// nothing to block, and a formatter's own failure is not the agent's problem.
+		const [format] = commandsFor(trigger, config)
+		if (format) run(formatCommand(format.command, file), cwd)
 		return
 	}
 
-	const results: CommandResult[] = commands.map(({ name, command }) => ({ name, command, ...run(command, cwd) }))
+	const commands = scopeCommands(commandsFor(trigger, config), editedFiles(sessionId, scope, cwd))
+	if (commands.length === 0) return
 
-	const sessionId = payload.session_id ?? 'unknown-session'
-	const scope = payload.teammate_name ?? '__lead__'
+	const results: CommandResult[] = commands.map(({ name, command }) => ({ name, command, ...run(command, cwd) }))
 
 	const decision = decide({
 		trigger,
 		results,
-		alreadyBlocked: readBlocked(sessionId, scope),
+		alreadyBlocked: remembered(sessionId, scope, 'blocked'),
 		stopHookActive: payload.stop_hook_active === true,
 	})
 
 	if (!decision.block) return
 
-	rememberBlocked(sessionId, scope, failureSignature(results))
+	remember(sessionId, scope, 'blocked', [failureSignature(results)])
 	process.stdout.write(JSON.stringify({ decision: 'block', reason: decision.reason }))
 }
 

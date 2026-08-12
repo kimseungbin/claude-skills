@@ -70,9 +70,48 @@ export function commandsFor(trigger: Trigger, config: GateConfig): Array<{ name:
 		.map((name) => ({ name, command: config[name] as string }))
 }
 
+/**
+ * `{file}` is the one edited path, for `format`. `{files}` is every path edited
+ * this session, for `lint`.
+ *
+ * Neither token is a substring of the other — in `{files}` the `s` sits where
+ * `{file}`'s closing brace would be — so filling order is not the hazard.
+ * Filling in two *passes* is: an edited path may itself contain the literal
+ * `{file}`, and a later pass would treat that as a placeholder and substitute
+ * into the middle of the quoted string it had just inserted, closing the quotes
+ * and leaving the rest of the path as live shell text. So both tokens are
+ * consumed in one pass, through a replacement callback rather than a replacement
+ * string — the callback form also stops a `$&` in a path from being given its
+ * regex meaning.
+ */
+const FILE_TOKEN = '{file}'
+const FILES_TOKEN = '{files}'
+const EITHER_TOKEN = /\{files?\}/g
+
 /** POSIX single-quote escaping: close, escape, reopen. */
 function shellQuote(value: string): string {
 	return `'${value.split("'").join(`'\\''`)}'`
+}
+
+function fill(base: string, token: string, replacement: string): string {
+	return base.split(token).join(replacement)
+}
+
+/** Whether a command asks to be scoped to the files edited this session. */
+export function usesEditedFiles(command: string): boolean {
+	return command.includes(FILES_TOKEN)
+}
+
+/**
+ * Whether anything will consume a record of the edited paths.
+ *
+ * Asked on every edit, so that accumulating paths costs a project nothing unless
+ * one of its own check commands asked to be scoped by them. Derived from the
+ * Stop-time set rather than from the raw config, so it cannot answer yes for a
+ * command that would never run.
+ */
+export function tracksEditedFiles(config: GateConfig): boolean {
+	return commandsFor('Stop', config).some(({ command }) => usesEditedFiles(command))
 }
 
 /**
@@ -85,9 +124,41 @@ function shellQuote(value: string): string {
 export function formatCommand(base: string, filePath: string): string {
 	const quoted = shellQuote(filePath)
 
-	if (base.includes('{file}')) return base.split('{file}').join(quoted)
+	// Either token is filled with the single edited path. A format command
+	// written with {files} is honored rather than corrected: it runs per edit, so
+	// the list it would get is that one file anyway.
+	if (base.includes(FILE_TOKEN) || base.includes(FILES_TOKEN)) return base.replace(EITHER_TOKEN, () => quoted)
 
 	return `${base} ${quoted}`
+}
+
+/**
+ * Narrow Stop-time commands to the files edited this session.
+ *
+ * A project-wide `lint` on a repo with any pre-existing backlog fails at the end
+ * of every task, reporting files the agent never opened — which teaches the
+ * agent to discount the gate. `{files}` lets the project ask for the narrower
+ * question instead.
+ *
+ * An empty list drops the command rather than running it bare. A linter with no
+ * path argument silently checks nothing under some configs and errors under
+ * others; neither is a useful gate result, and nothing was edited, so nothing is
+ * owed. Commands without the placeholder pass through untouched, so a project
+ * that never asked for scoping keeps today's project-wide behavior.
+ */
+export function scopeCommands(
+	commands: Array<{ name: string; command: string }>,
+	editedFiles: string[],
+): Array<{ name: string; command: string }> {
+	// Deduped here rather than only at the storage layer: this is the pure,
+	// tested layer, and handing the same path to a linter twice is the kind of
+	// thing a caller should not have to have gotten right.
+	const paths = [...new Set((Array.isArray(editedFiles) ? editedFiles : []).filter((file) => typeof file === 'string' && file !== ''))]
+	const joined = paths.map(shellQuote).join(' ')
+
+	return (Array.isArray(commands) ? commands : [])
+		.filter(({ command }) => !usesEditedFiles(command) || paths.length > 0)
+		.map(({ name, command }) => (usesEditedFiles(command) ? { name, command: fill(command, FILES_TOKEN, joined) } : { name, command }))
 }
 
 /**
