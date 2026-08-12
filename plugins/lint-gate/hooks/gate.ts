@@ -174,7 +174,7 @@ function main(): void {
 		return
 	}
 
-	const commands = scopeCommands(commandsFor(trigger, config), editedFiles(sessionId, scope, cwd))
+	const commands = scopeCommands(commandsFor(trigger, config), editedFiles(sessionId, scope, cwd), cwd)
 	if (commands.length === 0) return
 
 	const results: CommandResult[] = commands.map(({ name, command }) => ({ name, command, ...run(command, cwd) }))

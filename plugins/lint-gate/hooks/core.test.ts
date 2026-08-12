@@ -24,6 +24,18 @@ const FULL: GateConfig = { format: FORMAT, lint: LINT, typecheck: TYPECHECK }
 
 const SANDBOX = mkdtempSync(`${tmpdir()}/lint-gate-quoting-`)
 
+/**
+ * The project root the scoping cases resolve against.
+ *
+ * `/tmp` because every hostile-path fixture below is already rooted there, so
+ * those cases stay about quoting rather than about bounding; relative entries
+ * like `src/a.ts` resolve under it too.
+ */
+const ROOT = '/tmp'
+
+/** Somewhere Claude Code legitimately writes that no project command can check. */
+const OUTSIDE = '/Users/someone/.claude/plans/refactor-the-gate.md'
+
 function fail(name: string, command: string, output: string): CommandResult {
 	return { name, command, ok: false, output }
 }
@@ -81,9 +93,17 @@ function shellSees(base: string, filePath: string): string {
 	return runInShell(formatCommand(base, filePath))
 }
 
+/**
+ * `scopeCommands` with a project root supplied, for the cases that are not about
+ * bounding. Cases that *are* pass one explicitly.
+ */
+function scopeIn(commands: unknown, editedFiles: unknown, root: unknown = ROOT): Array<{ name: string; command: string }> {
+	return scopeCommands(commands as never, editedFiles as never, root as never)
+}
+
 /** What a shell sees for the path list a `{files}` command is narrowed to. */
 function shellSeesScoped(base: string, editedFiles: unknown[]): string {
-	const [entry] = scopeCommands([{ name: 'lint', command: base }], editedFiles as string[])
+	const [entry] = scopeIn([{ name: 'lint', command: base }], editedFiles as string[])
 	assert.ok(entry, `scopeCommands dropped a command it was supposed to fill: ${base}`)
 	return runInShell(entry.command)
 }
@@ -648,28 +668,28 @@ describe('scopeCommands', () => {
 		})
 
 		it('consumes the placeholder', () => {
-			const [entry] = scopeCommands([scoped], ['src/a.ts'])
+			const [entry] = scopeIn([scoped], ['src/a.ts'])
 			assert.doesNotMatch(entry.command, /\{files\}/, 'a placeholder reaching the shell is a literal argument')
 			assert.ok(entry.command.includes('src/a.ts'), `the path must be in the command: ${entry.command}`)
 		})
 
 		it('keeps the text on both sides of the placeholder', () => {
-			const [entry] = scopeCommands([{ name: 'lint', command: 'eslint --max-warnings 0 {files} --cache' }], ['src/a.ts'])
+			const [entry] = scopeIn([{ name: 'lint', command: 'eslint --max-warnings 0 {files} --cache' }], ['src/a.ts'])
 			assert.match(entry.command, /^eslint --max-warnings 0 /)
 			assert.match(entry.command, / --cache$/, 'the tail of the command must survive')
 		})
 
 		it('keeps the name of the command it narrowed', () => {
-			assert.deepEqual(scopeCommands([scoped, wide], ['src/a.ts']).map((c) => c.name), ['lint', 'typecheck'])
+			assert.deepEqual(scopeIn([scoped, wide], ['src/a.ts']).map((c) => c.name), ['lint', 'typecheck'])
 		})
 
 		it('preserves command order', () => {
 			const commands = commandsFor('Stop', { lint: SCOPED_LINT, typecheck: 'tsc --noEmit {files}' })
-			assert.deepEqual(scopeCommands(commands, ['src/a.ts']).map((c) => c.name), ['lint', 'typecheck'])
+			assert.deepEqual(scopeIn(commands, ['src/a.ts']).map((c) => c.name), ['lint', 'typecheck'])
 		})
 
 		it('carries exactly a name and a command', () => {
-			for (const entry of scopeCommands([scoped, wide], ['src/a.ts'])) {
+			for (const entry of scopeIn([scoped, wide], ['src/a.ts'])) {
 				assert.deepEqual(Object.keys(entry).sort(), ['command', 'name'], `${entry.name} leaked an extra key`)
 			}
 		})
@@ -678,7 +698,7 @@ describe('scopeCommands', () => {
 			const config: GateConfig = { format: 'prettier --write {file}', lint: SCOPED_LINT, typecheck: TYPECHECK }
 			assert.equal(tracksEditedFiles(config), true)
 
-			const [lint, typecheck] = scopeCommands(commandsFor('Stop', config), ['src/a.ts'])
+			const [lint, typecheck] = scopeIn(commandsFor('Stop', config), ['src/a.ts'])
 			assert.doesNotMatch(lint.command, /\{files\}/)
 			assert.equal(typecheck.command, TYPECHECK, 'the project-wide sibling is not the one being narrowed')
 		})
@@ -691,17 +711,17 @@ describe('scopeCommands', () => {
 	 */
 	describe('a command without the placeholder passes through untouched', () => {
 		it('leaves the command string alone', () => {
-			assert.deepEqual(scopeCommands([wide], ['src/a.ts']), [wide])
+			assert.deepEqual(scopeIn([wide], ['src/a.ts']), [wide])
 		})
 
 		it('leaves it alone for an empty list too', () => {
-			assert.deepEqual(scopeCommands([wide], []), [wide])
+			assert.deepEqual(scopeIn([wide], []), [wide])
 		})
 
 		it('leaves a whole project-wide config alone', () => {
 			const commands = commandsFor('Stop', FULL)
-			assert.deepEqual(scopeCommands(commands, ['src/a.ts']), commands)
-			assert.deepEqual(scopeCommands(commands, []), commands)
+			assert.deepEqual(scopeIn(commands, ['src/a.ts']), commands)
+			assert.deepEqual(scopeIn(commands, []), commands)
 		})
 
 		/**
@@ -711,8 +731,8 @@ describe('scopeCommands', () => {
 		 */
 		it('leaves a singular {file} verbatim rather than guessing', () => {
 			const perFile = { name: 'lint', command: 'eslint {file}' }
-			assert.deepEqual(scopeCommands([perFile], ['src/a.ts', 'src/b.ts']), [perFile])
-			assert.deepEqual(scopeCommands([perFile], []), [perFile], 'it is not scoped, so an empty list does not drop it')
+			assert.deepEqual(scopeIn([perFile], ['src/a.ts', 'src/b.ts']), [perFile])
+			assert.deepEqual(scopeIn([perFile], []), [perFile], 'it is not scoped, so an empty list does not drop it')
 		})
 	})
 
@@ -723,26 +743,100 @@ describe('scopeCommands', () => {
 	 */
 	describe('an empty list drops the command rather than running it bare', () => {
 		it('drops a scoped command when nothing was edited', () => {
-			assert.deepEqual(scopeCommands([scoped], []), [])
+			assert.deepEqual(scopeIn([scoped], []), [])
 		})
 
 		it('drops every scoped command but keeps the project-wide sibling', () => {
 			const commands = [scoped, wide, { name: 'other', command: 'check {files} --strict' }]
-			assert.deepEqual(scopeCommands(commands, []), [wide])
+			assert.deepEqual(scopeIn(commands, []), [wide])
 		})
 
 		it('drops the command wherever the placeholder sits in it', () => {
 			for (const command of ['{files}', 'eslint {files}', 'eslint {files} --cache', 'eslint {files} {files}']) {
-				assert.deepEqual(scopeCommands([{ name: 'lint', command }], []), [], `must drop: ${command}`)
+				assert.deepEqual(scopeIn([{ name: 'lint', command }], []), [], `must drop: ${command}`)
 			}
 		})
 
 		it('never emits a command still holding the placeholder', () => {
 			const commands = [scoped, wide]
 			for (const files of [[], ['src/a.ts'], ['src/a.ts', 'src/b.ts']]) {
-				for (const entry of scopeCommands(commands, files)) {
+				for (const entry of scopeIn(commands, files)) {
 					assert.doesNotMatch(entry.command, /\{files\}/, `unfilled placeholder for ${JSON.stringify(files)}`)
 				}
+			}
+		})
+	})
+
+	/**
+	 * Regression coverage for #34. Claude Code writes outside the project as a
+	 * matter of course, and a tool that discovers its config per file fails the
+	 * whole invocation on one such path — so an unbounded list did not merely add
+	 * a false positive, it silently skipped every in-project file batched into the
+	 * same call.
+	 */
+	describe('bounding to the project root', () => {
+		it('keeps the in-project files when an outside path sits among them', () => {
+			assert.equal(
+				shellSeesScoped('printf [%s] {files}', ['src/a.ts', OUTSIDE, 'src/b.ts']),
+				'[src/a.ts][src/b.ts]',
+				'the in-project files are exactly what the gate was asked to check',
+			)
+		})
+
+		it('never lets an outside path reach the built command', () => {
+			const [entry] = scopeIn([scoped], ['src/a.ts', OUTSIDE])
+			assert.ok(entry, 'an in-project path was edited, so the command must survive')
+			assert.doesNotMatch(entry.command, /\.claude/, `an out-of-project path reached the shell: ${entry.command}`)
+		})
+
+		it('drops the command when every edited path was outside', () => {
+			assert.deepEqual(scopeIn([scoped], [OUTSIDE]), [], 'running nothing beats running something that cannot succeed')
+		})
+
+		it('keeps the project-wide sibling when every path was outside', () => {
+			assert.deepEqual(scopeIn([scoped, wide], [OUTSIDE]), [wide])
+		})
+
+		it('drops a path that escapes the root through ..', () => {
+			assert.equal(shellSeesScoped('printf [%s] {files}', ['../elsewhere/a.ts', 'src/a.ts']), '[src/a.ts]')
+		})
+
+		it('drops the root itself, which is not a file the gate was asked about', () => {
+			assert.deepEqual(scopeIn([scoped], [ROOT]), [])
+			assert.deepEqual(scopeIn([scoped], ['.']), [])
+		})
+
+		/** `..` is a path segment, not a string prefix. */
+		it('keeps a file whose name merely begins with ..', () => {
+			assert.equal(shellSeesScoped('printf [%s] {files}', ['..eslintrc.ts']), '[..eslintrc.ts]')
+		})
+
+		it('keeps a path that only passes through .. on its way back in', () => {
+			assert.equal(shellSeesScoped('printf [%s] {files}', ['src/../src/a.ts']), '[src/../src/a.ts]')
+		})
+
+		it('keeps an absolute in-project path', () => {
+			assert.equal(shellSeesScoped('printf [%s] {files}', [`${ROOT}/src/a.ts`]), `[${ROOT}/src/a.ts]`)
+		})
+
+		it('does not treat a sibling directory sharing the root prefix as inside', () => {
+			assert.deepEqual(scopeIn([scoped], ['/tmpfoo/a.ts'], '/tmp'), [], 'string prefixes are not path containment')
+		})
+
+		/**
+		 * An unusable root cannot be resolved against, so nothing can be shown to be
+		 * in project. Dropping the command fails open; passing the list through
+		 * unbounded is the bug this argument exists to prevent.
+		 */
+		it('drops scoped commands when the root is junk', () => {
+			// Called directly rather than through scopeIn: a default parameter fires on
+			// an explicit undefined, which would quietly test ROOT instead.
+			for (const root of [undefined, null, '', 42, {}, []]) {
+				assert.deepEqual(
+					scopeCommands([scoped, wide], ['src/a.ts'], root as never),
+					[wide],
+					`must not scope against root: ${JSON.stringify(root)}`,
+				)
 			}
 		})
 	})
@@ -780,11 +874,11 @@ describe('scopeCommands', () => {
 
 		for (const [label, value] of notArrays) {
 			it(`yields no commands when commands is ${label}`, () => {
-				assert.deepEqual(scopeCommands(value as never, ['src/a.ts']), [])
+				assert.deepEqual(scopeIn(value as never, ['src/a.ts']), [])
 			})
 
 			it(`treats ${label} as no edited files`, () => {
-				assert.deepEqual(scopeCommands([scoped, wide], value as never), [wide])
+				assert.deepEqual(scopeIn([scoped, wide], value as never), [wide])
 			})
 		}
 
@@ -796,15 +890,15 @@ describe('scopeCommands', () => {
 		})
 
 		it('drops the command when every entry is junk', () => {
-			assert.deepEqual(scopeCommands([scoped], ['', null, undefined, 0, {}] as never), [])
+			assert.deepEqual(scopeIn([scoped], ['', null, undefined, 0, {}] as never), [])
 		})
 
 		it('survives junk on both arguments at once', () => {
-			assert.deepEqual(scopeCommands(null as never, null as never), [])
+			assert.deepEqual(scopeIn(null as never, null as never), [])
 		})
 
 		it('returns an array even for nothing at all', () => {
-			assert.deepEqual(scopeCommands([], []), [])
+			assert.deepEqual(scopeIn([], []), [])
 		})
 	})
 
@@ -839,7 +933,7 @@ describe('scopeCommands', () => {
 		})
 
 		it('leaves no raw path in the built command', () => {
-			const [entry] = scopeCommands([scoped], ['/tmp/my file.ts'])
+			const [entry] = scopeIn([scoped], ['/tmp/my file.ts'])
 			assert.doesNotMatch(entry.command, /(^|\s)\/tmp\/my file\.ts(\s|$)/, 'a bare path with a space is two arguments')
 		})
 
@@ -860,14 +954,14 @@ describe('scopeCommands', () => {
 		const commandsSnapshot = structuredClone(commands)
 		const filesSnapshot = structuredClone(editedFiles)
 
-		scopeCommands(commands, editedFiles)
+		scopeIn(commands, editedFiles)
 
 		assert.deepEqual(commands, commandsSnapshot, 'narrowing must build new entries, not rewrite the caller ones')
 		assert.deepEqual(editedFiles, filesSnapshot, 'deduping must not reorder or shrink the caller list')
 	})
 
 	it('is pure — the same inputs give the same result', () => {
-		assert.deepEqual(scopeCommands([scoped], ['src/a.ts']), scopeCommands([scoped], ['src/a.ts']))
+		assert.deepEqual(scopeIn([scoped], ['src/a.ts']), scopeIn([scoped], ['src/a.ts']))
 	})
 })
 

@@ -60,7 +60,7 @@ Rules for this file:
 
 ### Step 3b: Decide whether `lint` should be scoped with `{files}`
 
-`{files}` expands to every path edited during the session. It is the answer to a specific problem: on a repo with a pre-existing lint backlog, a project-wide `lint` fails at the end of every task over files the agent never opened, and an agent that has been handed someone else's 31 errors once will discount the gate from then on.
+`{files}` expands to every path edited during the session that lies inside the project — paths outside it are dropped, since no project command could resolve them. It is the answer to a specific problem: on a repo with a pre-existing lint backlog, a project-wide `lint` fails at the end of every task over files the agent never opened, and an agent that has been handed someone else's 31 errors once will discount the gate from then on.
 
 Count the existing failures first — Step 4 makes you run the command anyway. Then:
 

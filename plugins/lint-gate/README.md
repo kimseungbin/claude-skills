@@ -48,7 +48,8 @@ All three keys are optional and there are **no defaults** — an absent key mean
 ```
 
 - Paths accumulate on each `PostToolUse`, in the same per-session, per-teammate state as the blocked signatures — so in an agent team, one teammate is never linted against another's files.
-- **An empty list skips the command** rather than running it bare. A linter with no path argument silently checks nothing under some configs and errors under others; neither is a useful gate result, and if nothing was edited then nothing is owed.
+- **Paths outside the project are dropped.** Claude Code writes outside it as a matter of course — plan mode lands a file under `~/.claude/plans`, memory under `~/.claude/projects` — while every command a gate can be configured with resolves from the project cwd. A tool that discovers its config per file (`eslint`, `stylelint`, `tsc` given a path list) fails the *entire* invocation on one such path, which would take the in-project files down with it and report a failure nothing in the repo can fix. Dropping them costs nothing: no project command could have checked them anyway.
+- **An empty list skips the command** rather than running it bare. A linter with no path argument silently checks nothing under some configs and errors under others; neither is a useful gate result, and if nothing was edited then nothing is owed. A session whose every edit landed outside the project therefore runs nothing, rather than something that cannot succeed.
 - Paths that no longer exist are dropped. An agent may write a file and then delete or rename it; handing that path to a linter exits non-zero on "no files matching", which would reach the agent as a failure it cannot act on.
 - A command **without** the placeholder keeps running project-wide, exactly as before. Nothing changes for a config that never asked for scoping.
 

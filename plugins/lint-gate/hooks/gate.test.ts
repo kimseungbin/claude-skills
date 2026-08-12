@@ -227,6 +227,19 @@ function remove(project: Project, relative: string): void {
 	rmSync(path.join(project.cwd, relative), { force: true })
 }
 
+/**
+ * Write a file Claude Code owns rather than the project — what plan mode and
+ * memory do. Under the project's HOME, so it is outside `cwd` while still really
+ * existing, which is what makes it survive the staleness filter and reach the
+ * command.
+ */
+function touchOutside(project: Project, relative: string): string {
+	const file = path.join(project.home, '.claude', relative)
+	mkdirSync(path.dirname(file), { recursive: true })
+	writeFileSync(file, 'x\n')
+	return file
+}
+
 function evidence(project: Project, name: string): string | null {
 	const file = path.join(project.cwd, name)
 	return existsSync(file) ? readFileSync(file, 'utf8') : null
@@ -502,6 +515,55 @@ for (const trigger of ['Stop', 'TeammateIdle'] as const) {
 			assertPassed(settle(project, trigger))
 
 			assert.deepEqual(pathsSeenBy(project), ['a.ts', 'src/b.ts'])
+		})
+
+		/**
+		 * Regression coverage for #34. Plan mode writes `~/.claude/plans/*.md` on
+		 * essentially every planning session, so this reproduced continuously once it
+		 * started.
+		 */
+		describe('paths outside the project', () => {
+			it('keeps an out-of-project path out of a {files} lint', () => {
+				const project = makeProject({ lint: LINT_ECHOING_FILES })
+				touch(project, 'a.ts')
+				edit(project, 'a.ts')
+				edit(project, touchOutside(project, 'plans/refactor-the-gate.md'))
+
+				assertPassed(settle(project, trigger))
+
+				assert.deepEqual(pathsSeenBy(project), ['a.ts'], 'only the project file is checkable by a project command')
+			})
+
+			/**
+			 * The severity of #34: a tool that discovers its config per file aborts the
+			 * whole invocation on one out-of-project path, so the in-project files
+			 * batched into the same call were never checked at all. The probe stands in
+			 * for that — it exits non-zero before recording anything if handed a path
+			 * under `.claude`.
+			 */
+			it('still checks the project files when the session also wrote outside it', () => {
+				const project = makeProject({
+					lint: String.raw`for f in {files}; do case "$f" in *.claude*) exit 1;; esac; done; printf '%s\n' {files} > received.txt`,
+				})
+				touch(project, 'a.ts')
+				touch(project, 'src/b.ts')
+				edit(project, 'a.ts')
+				edit(project, touchOutside(project, 'plans/refactor-the-gate.md'))
+				edit(project, 'src/b.ts')
+
+				assertPassed(settle(project, trigger), 'a path from outside the repo must not fail the project check')
+
+				assert.deepEqual(pathsSeenBy(project), ['a.ts', 'src/b.ts'], 'the in-project files must be checked, not skipped')
+			})
+
+			it('is skipped when every edit was outside the project', () => {
+				const project = makeProject({ lint: String.raw`printf '%s\n' {files} > ran.txt; exit 1` })
+				edit(project, touchOutside(project, 'plans/refactor-the-gate.md'))
+
+				assertPassed(settle(project, trigger))
+
+				assertDidNotRun(project, RAN, 'nothing checkable was edited, so the command must not run')
+			})
 		})
 
 		it('is skipped entirely when nothing was recorded', () => {

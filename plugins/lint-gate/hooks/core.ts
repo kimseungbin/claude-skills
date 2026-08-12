@@ -8,6 +8,7 @@
  */
 
 import { createHash } from 'node:crypto'
+import path from 'node:path'
 
 export type Trigger = 'PostToolUse' | 'Stop' | 'TeammateIdle'
 
@@ -133,27 +134,76 @@ export function formatCommand(base: string, filePath: string): string {
 }
 
 /**
- * Narrow Stop-time commands to the files edited this session.
+ * Whether an edited path lies inside the project.
+ *
+ * Lexical, not `realpath`: this layer does no I/O, and the question is which
+ * invocation can make sense of the path rather than whether the path is
+ * trustworthy. A symlink pointing out of the tree is therefore treated as
+ * inside — the gate is a correctness tool, not a sandbox boundary.
+ *
+ * Relative entries are resolved against the root first, so they are judged the
+ * same way the linter will read them. `..` is compared against a full segment,
+ * because a file legitimately named `..rc.ts` shares the prefix but not the
+ * meaning.
+ */
+function withinRoot(root: string, filePath: string): boolean {
+	const relative = path.relative(root, path.resolve(root, filePath))
+
+	// An absolute result means there is no path between the two at all — a
+	// different Windows drive.
+	if (relative === '' || path.isAbsolute(relative)) return false
+
+	return relative !== '..' && !relative.startsWith(`..${path.sep}`)
+}
+
+/**
+ * Narrow Stop-time commands to the files edited this session, bounded to the
+ * project.
  *
  * A project-wide `lint` on a repo with any pre-existing backlog fails at the end
  * of every task, reporting files the agent never opened — which teaches the
  * agent to discount the gate. `{files}` lets the project ask for the narrower
  * question instead.
  *
+ * Paths outside `root` are dropped. Claude Code writes outside the project as a
+ * matter of course — plan mode lands a file under `~/.claude/plans`, memory
+ * under `~/.claude/projects` — while every command a gate can be configured with
+ * resolves from the project cwd. A tool that discovers its config per file
+ * (eslint, stylelint, tsc given a path list) fails the *entire* invocation on one
+ * such path, so a single plan file would otherwise take the in-project files down
+ * with it: a failure nothing in the repo can fix, masking the check it was asked
+ * to run. Dropping them is not a loss, because no project command could have
+ * checked them anyway.
+ *
  * An empty list drops the command rather than running it bare. A linter with no
  * path argument silently checks nothing under some configs and errors under
  * others; neither is a useful gate result, and nothing was edited, so nothing is
- * owed. Commands without the placeholder pass through untouched, so a project
- * that never asked for scoping keeps today's project-wide behavior.
+ * owed. This covers a session whose every edit was out of project, which then
+ * runs nothing rather than something wrong. Commands without the placeholder pass
+ * through untouched, so a project that never asked for scoping keeps today's
+ * project-wide behavior.
  */
 export function scopeCommands(
 	commands: Array<{ name: string; command: string }>,
 	editedFiles: string[],
+	root: string,
 ): Array<{ name: string; command: string }> {
+	// An unusable root cannot be resolved against, so nothing can be shown to be
+	// in project and every scoped command drops. That direction is deliberate: the
+	// alternative is passing paths through unbounded, which is the failure this
+	// argument exists to prevent.
+	const bounded = typeof root === 'string' && root !== ''
+
 	// Deduped here rather than only at the storage layer: this is the pure,
 	// tested layer, and handing the same path to a linter twice is the kind of
 	// thing a caller should not have to have gotten right.
-	const paths = [...new Set((Array.isArray(editedFiles) ? editedFiles : []).filter((file) => typeof file === 'string' && file !== ''))]
+	const paths = [
+		...new Set(
+			(Array.isArray(editedFiles) ? editedFiles : [])
+				.filter((file) => typeof file === 'string' && file !== '')
+				.filter((file) => bounded && withinRoot(root, file)),
+		),
+	]
 	const joined = paths.map(shellQuote).join(' ')
 
 	return (Array.isArray(commands) ? commands : [])
