@@ -40,10 +40,10 @@ You are an expert at creating high-quality git commits following the Conventiona
 
 ## AskUserQuestion conventions
 
-Each ask point in this skill has an explicit call shape, labeled `C1`–`C8`. Fire the exact shape specified at its trigger — do not improvise a prompt.
+Each ask point in this skill has an explicit call shape, labeled `C1`–`C9`. Fire the exact shape specified at its trigger — do not improvise a prompt.
 
 - **Header chips** are ≤12 chars. **Labels** are 1–5 words.
-- **`(Recommended)`** goes on the first option, and only when a sensible default exists. C4 and C5 carry no marker — they exist precisely because the skill could not decide.
+- **`(Recommended)`** goes on the first option, and only when a sensible default exists. C4, C5 and C8 carry no marker — they exist precisely because the skill could not decide.
 - **`preview`** is a field on an *individual option* (`options[].preview`), not on the question. Use it only where options differ visually: **C2** and **C6** only. Never attach one to an approve/skip prompt, where every option would render the same panel.
 - **No call uses `multiSelect`.** Every decision here is mutually exclusive — one action, one type, one scope, one subject.
 - Free-text "Other" is always available to the user; never add an explicit "Other" or "Something else" option.
@@ -364,17 +364,58 @@ options:
 
 Free-text "Other" is the fastest edit path — treat typed text as the replacement body and re-fire C7 with it.
 
-**5f. Execute Commit**
+**5f. Footers**
+
+Footers follow the body, one per line, ordered: `BREAKING CHANGE:`, issue references, `Co-authored-by:`, `Skill: commit`.
+
+**The issue reference decides whether the issue closes.** GitHub acts only on closing keywords — `Closes`, `Fixes`, `Resolves`, and their `-d`/`-s` forms. `Refs` is inert: it cross-links the commit onto the issue's timeline and does nothing else. Choosing it for finished work leaves that issue open indefinitely, with no signal that anything is wrong.
+
+- Commit **fully implements** the issue's scope → `Closes #N`. On a `fix:` commit write `Fixes #N` instead; GitHub treats all closing keywords identically, so this is convention, not behavior.
+- Commit **advances but does not finish** the issue → `Refs #N`.
+- Commit merely touches code an issue mentions, claiming none of its scope → no issue footer.
+
+An issue whose written scope has **drifted** from the code still closes when the commit satisfies its intent. Record the deviation in the body — a stale catalog, a renumbering, extra cases found — rather than downgrading to `Refs`. Deviations that look partial are the most common reason completed work stays open.
+
+**One keyword per issue.** `Closes #12, #13` closes only #12 — the bare `#13` is parsed as a mention. Give each its own line, or repeat the keyword: `Closes #12, closes #13`.
+
+Footer only issue numbers established in this session — the user named them, or the work was scoped from them. Never infer a number from a branch name and never guess one.
+
+Auto-close fires when the commit reaches the **default branch**. On a feature branch the keyword lies dormant until merge; that is the intended behavior, so keep it rather than weakening it to `Refs`.
+
+If the commit clearly relates to an issue but its coverage of that issue's scope is genuinely unclear, fire **C8**.
+
+#### C8 — Issue reference
+
+**When:** the commit references an issue and it is genuinely unclear whether it completes that issue's scope. When the answer is obvious either way, write the footer and move on — do not fire.
+
+```yaml
+question: |
+  Commit: {subject}
+  Issue #{n}: {issue title}
+
+  Does this commit finish #{n}?
+header: "Issue ref"
+multiSelect: false
+options:
+  - label: "Closes it"
+    description: "Footer `Closes #{n}` — the issue auto-closes once this reaches the default branch."
+  - label: "Partial progress"
+    description: "Footer `Refs #{n}` — cross-links the commit, leaves the issue open."
+  - label: "No issue footer"
+    description: "The commit stands alone; #{n} is left untouched."
+```
+
+**5g. Execute Commit**
 
 Stage the group's specific files by name (never `git add -A` / `git add .`), so only planned files enter the commit — pre-staged state was already reconciled in Step 4.5. Commit using HEREDOC for multi-line messages (subject + body + footers). For trivial commits without body, single `-m` is fine.
 
 **If a pre-commit hook fails** (e.g., prettier, eslint): Do NOT fix files yourself. Report the error to the user and stop. You do not have permission to edit source files — only the user can decide how to resolve hook failures.
 
-**5g. Verify the Commit Matches What Was Staged**
+**5h. Verify the Commit Matches What Was Staged**
 
 A pre-commit hook that auto-fixes and re-stages whole files (`git add -- <file>`) can widen the commit beyond the planned set — sweeping in files, or unstaged hunks of a partially-staged file, that belong to a later group. The commit then succeeds while its message describes something other than its diff, and nothing surfaces the mismatch.
 
-Capture the staged file list immediately **before** committing, then compare it against what actually landed. Run the snapshot, the commit, and the comparison in a **single Bash invocation** — shell variables do not survive across separate calls, so this replaces the bare `git commit` in 5f:
+Capture the staged file list immediately **before** committing, then compare it against what actually landed. Run the snapshot, the commit, and the comparison in a **single Bash invocation** — shell variables do not survive across separate calls, so this replaces the bare `git commit` in 5g:
 
 ```bash
 PLANNED=$(git diff --cached --name-only | sort)
@@ -392,9 +433,9 @@ comm -13 <(echo "$PLANNED") <(echo "$LANDED")   # files the hook added, if any
 - **Extra files that belong to a LATER commit group** → this is the real failure. The later group's changes are now committed under this message, and its own commit will be empty or wrong.
 - **Extra files in no planned group** (generated or bumped by the hook) → expected side effect. Report them in the Step 6 summary and continue; do not prompt.
 
-Only when the first case occurs, stop and fire **C8**.
+Only when the first case occurs, stop and fire **C9**.
 
-#### C8 — Hook widened the commit
+#### C9 — Hook widened the commit
 
 **When:** a pre-commit hook re-staged files that belong to a LATER commit group. Not fired for generated or bumped files that belong to no group — those are reported in Step 6 and the flow continues.
 
@@ -448,4 +489,4 @@ guides/index.md ──→ Quick quality check
 - Match project's existing commit style (if history exists; otherwise use Conventional Commits defaults)
 - Add `Skill: commit` footer
 - For breaking changes: `BREAKING CHANGE: description`
-- Reference issues when mentioned: `Refs #123`
+- Issue footers are specified in **5f** — `Closes #N` when the commit finishes the issue, `Refs #N` only when it does not. Do not default to `Refs`.
