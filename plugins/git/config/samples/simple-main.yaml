@@ -2,7 +2,7 @@
 # For small projects with basic commit conventions
 # Copy to: .claude/config/git/commit/main.yaml
 
-plugin_version: "1.0.21"
+plugin_version: "1.0.22"
 
 project: your-project-name
 description: "Small project with simple structure"
@@ -64,6 +64,43 @@ footer:
     - "BREAKING CHANGE: description"
     # "Closes #123" when the commit finishes the issue; "Refs #123" only when it does not.
     - "Closes #123 or Refs #123"
+
+# Breaking-change detection (commit skill step 5e)
+#
+# The skill reads the group's diff and decides semantically whether the change
+# breaks a consumer. `hints` describe what counts as breaking in THIS project so
+# the skill knows where to look — they are attention hints, NOT regexes matched
+# against the diff. Matching text against a raw diff fires on comments, fixtures
+# and prose, and the resulting prompt fatigue is what the conditional design
+# exists to avoid.
+#
+# The skill prompts only when it can name the affected symbol, key or route.
+# Omit this section entirely to leave detection on with built-in signals only.
+breaking_changes:
+  detect: true
+
+  # marker: both | footer | bang
+  #   both   - "feat(app)!:" plus the BREAKING CHANGE footer. Every conventional
+  #            commits version bumper recognizes this; keep it unless a tool in
+  #            your pipeline mis-parses "!".
+  #   footer - footer only.
+  #   bang   - "!" only; leaves no room for migration instructions.
+  marker: both
+
+  hints:
+    - "A symbol was removed or renamed in the package's public exports"
+    - "A function gained a required parameter, or its return type narrowed"
+    - "A stored or serialized shape changed without a migration"
+    - "A config key was removed, renamed, or became required"
+
+  # Paths with no consumer-facing surface. Detection skips a group entirely when
+  # every one of its files matches here.
+  exempt_paths:
+    - "**/*.test.*"
+    - "**/*.spec.*"
+    - "**/__tests__/**"
+    - "**/fixtures/**"
+    - "docs/**"
 
 # Type Decision Tree
 type_decision_tree:

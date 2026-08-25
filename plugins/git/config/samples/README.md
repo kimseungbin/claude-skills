@@ -77,6 +77,39 @@ scopes_quick:
   # Add your scopes here
 ```
 
+### Tune Breaking-Change Detection
+
+Each `*-main.yaml` carries a `breaking_changes` section. The commit skill reads the group's diff and judges semantically whether the change breaks a consumer; this section tells it where to look.
+
+```yaml
+breaking_changes:
+  detect: true
+  marker: both
+  hints:
+    - "A symbol was removed or renamed in the package's public exports"
+  exempt_paths:
+    - "**/*.test.*"
+```
+
+| Key | Purpose |
+|-----|---------|
+| `detect` | Whether to run detection at all. `false` suits pre-`1.0.0` projects that break intentionally. |
+| `marker` | Which Conventional Commits form to write — see the table below. |
+| `hints` | Prose descriptions of what breaks a consumer *in this project*. Attention hints that steer the diff read, not regexes matched against it. |
+| `exempt_paths` | Globs with no consumer-facing surface. Detection skips a group when every file in it matches. |
+
+**Choosing `marker`:**
+
+| Value | Writes | When |
+|-------|--------|------|
+| `both` | `feat(api)!:` **and** the `BREAKING CHANGE:` footer | Default. The only form every conventional-commits version bumper recognizes; the `!` also shows up in `git log --oneline`. |
+| `footer` | footer only | A tool in the pipeline mis-parses `!`. |
+| `bang` | `!` only | The project genuinely wants no migration text. |
+
+The `BREAKING CHANGE:` token itself stays English at every `language` setting — version bumpers match it literally. Only the description after the colon is translated.
+
+**Write hints as prose, not patterns.** `"A construct's props interface dropped a property"` reads the way the skill reasons; `"removed.*props"` invites matching raw diff text, which fires on comments and fixtures and produces exactly the prompt fatigue the conditional design avoids.
+
 ### Add Custom Examples
 
 Create `.claude/config/git/commit/examples/my-project.yaml`:

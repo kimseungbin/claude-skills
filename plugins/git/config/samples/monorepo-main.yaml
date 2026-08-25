@@ -2,7 +2,7 @@
 # For multi-package projects with complex structure
 # Copy to: .claude/config/git/commit/main.yaml
 
-plugin_version: "1.0.21"
+plugin_version: "1.0.22"
 
 project: your-project-name
 description: "Monorepo with multiple packages"
@@ -114,6 +114,43 @@ footer:
     # "Closes #123" when the commit finishes the issue; "Refs #123" only when it does not.
     - "Closes #123 or Refs #123"
     - "Co-authored-by: Name <email>"
+
+# Breaking-change detection (commit skill step 5e)
+#
+# The skill reads the group's diff and decides semantically whether the change
+# breaks a consumer. `hints` describe what counts as breaking in THIS project so
+# the skill knows where to look — they are attention hints, NOT regexes matched
+# against the diff.
+#
+# In a monorepo the consumer is often a sibling package, and the same edit can be
+# breaking or not depending on which side of a package boundary it lands on. An
+# internal helper moving inside packages/shared/src/ breaks nobody; the same move
+# in packages/shared/src/index.ts breaks every dependent package.
+breaking_changes:
+  detect: true
+
+  # marker: both | footer | bang — see the samples README. "both" is the only
+  # setting every conventional-commits version bumper recognizes.
+  marker: both
+
+  hints:
+    - "A symbol left a package's public entry point (index.ts, package.json exports)"
+    - "A type in packages/shared changed shape in a way dependents must adapt to"
+    - "A workspace dependency range moved to a new major"
+    - "An HTTP route, request field or response field changed in the backend package"
+    - "A database migration drops or renames a column, or adds a non-nullable one"
+    - "An environment variable became required, or its accepted values changed"
+
+  # Paths with no consumer-facing surface. Detection skips a group entirely when
+  # every one of its files matches here. Note that a package's internal src is
+  # NOT exempt — only its tests are; a rename can still surface via exports.
+  exempt_paths:
+    - "**/*.test.*"
+    - "**/*.spec.*"
+    - "**/__tests__/**"
+    - "**/__mocks__/**"
+    - "**/fixtures/**"
+    - "docs/**"
 
 # Type Decision Tree
 type_decision_tree:

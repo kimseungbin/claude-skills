@@ -46,7 +46,10 @@ What language should commit messages use?
 | Scope | `auth` | `auth` | `인증` |
 | Subject | `Add user login` | `사용자 로그인 추가` | `사용자 로그인 추가` |
 | Body | English | Korean | Korean |
-| Footer keywords | `BREAKING CHANGE:` | `BREAKING CHANGE:` | `주요 변경:` |
+| Footer keywords | `BREAKING CHANGE:` | `BREAKING CHANGE:` | `BREAKING CHANGE:` |
+| Footer text | English | Korean | Korean |
+
+Footer **keywords** stay English at every language setting — `BREAKING CHANGE:`, `Closes`, `Co-authored-by:` are specification tokens that version bumpers and GitHub match literally, so a translated keyword silently stops working. Only the text after the colon follows `language`: `BREAKING CHANGE: parseConfig()는 더 이상 위치 인자를 받지 않습니다`.
 
 Add to config:
 
@@ -154,10 +157,56 @@ Write patterns with gitignore-style depth semantics: no `/` means "match at any 
 
 If `.gitattributes` already marks files `-diff` or `linguist-generated=true`, do not duplicate them — the commit skill unions those in automatically.
 
+### Step 4.6: Configure Breaking-Change Detection
+
+The commit skill detects breaking changes from the diff and prompts before committing (step 5e). What counts as breaking is project-specific, so capture it here as `breaking_changes`.
+
+**Establish what this project exposes**, then write hints describing changes to it. Detect the surfaces from the repo rather than asking cold:
+
+| Evidence in the repo | Surface to write hints for |
+|----------------------|----------------------------|
+| `package.json` has `exports`/`main`, or is published (`"private": false`) | Library API — exported symbols, signatures, types |
+| `openapi.*`, route files, a `controllers/` directory | HTTP API — routes, request and response fields |
+| `migrations/`, `prisma/schema.prisma`, `*.sql` | Database schema — columns, nullability, migrations |
+| `bin/` entry, `"bin"` in `package.json` | CLI — flags, subcommands, output format |
+| `cdk.json`, `*.tf`, `Pulumi.yaml` | Infrastructure — resource replacement, required manual steps |
+
+Confirm the detected surfaces in **one** AskUserQuestion — never prompt per surface:
+
+```
+This project exposes: a published package API and a database schema.
+I'll have the commit skill watch for breaking changes to both.
+- Both surfaces (Recommended) — write hints for each
+- Package API only — schema changes never break a consumer here
+- Skip detection — set detect: false
+```
+
+Then write the section, seeding `hints` from the matching sample (`simple`, `monorepo`, or `infrastructure`) and trimming to the confirmed surfaces:
+
+```yaml
+breaking_changes:
+  detect: true
+  marker: both        # both | footer | bang
+  hints:
+    - "A symbol was removed or renamed in the package's public exports"
+    - "A migration drops or renames a column, or adds a non-nullable one"
+  exempt_paths:
+    - "**/*.test.*"
+    - "docs/**"
+```
+
+Three rules to hold to when writing this section:
+
+- **Hints are prose, not regexes.** Write "a symbol left the public exports", not `"removed.*export"`. The skill reads the diff and judges semantically; a hint that looks like a pattern invites pattern-matching, which fires on comments and fixtures.
+- **`marker: both` is the default.** It is the only setting every conventional-commits version bumper recognizes. Change it only when a specific tool in the project's pipeline mis-parses `!`.
+- **Seed `exempt_paths` from what the repo actually has** — its test glob, its fixture directory, its docs root. A path that never carried a consumer-facing surface belongs here; a package's `src/` does not, since a rename there can still surface through its exports.
+
+If the project is pre-`1.0.0` and intentionally breaks without ceremony, set `detect: false` and note why in a comment — that is a real choice, and recording it stops the next `commit-config` run from re-proposing detection.
+
 ### Step 5: Generate Config
 
 1. Run `mkdir -p .claude/config/git/commit`
-2. Generate config with selected types, language, scopes, and the `diff_policy` from Step 4.5
+2. Generate config with selected types, language, scopes, the `diff_policy` from Step 4.5, and the `breaking_changes` from Step 4.6
 3. Write to `.claude/config/git/commit/main.yaml`
 4. Go to Step 9
 
@@ -214,6 +263,7 @@ Settings:
 - Language: Korean (subject + body)
 - Project type: simple
 - Scopes: app, config, docs
+- Breaking-change detection: on (package API, database schema)
 ```
 
 ## Non-Destructive Updates

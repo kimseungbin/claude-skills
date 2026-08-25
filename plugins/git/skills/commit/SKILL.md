@@ -40,11 +40,11 @@ You are an expert at creating high-quality git commits following the Conventiona
 
 ## AskUserQuestion conventions
 
-Each ask point in this skill has an explicit call shape, labeled `C1`–`C9`. Fire the exact shape specified at its trigger — do not improvise a prompt.
+Each ask point in this skill has an explicit call shape, labeled `C1`–`C10`. Fire the exact shape specified at its trigger — do not improvise a prompt.
 
 - **Header chips** are ≤12 chars. **Labels** are 1–5 words.
-- **`(Recommended)`** goes on the first option, and only when a sensible default exists. C4, C5 and C8 carry no marker — they exist precisely because the skill could not decide.
-- **`preview`** is a field on an *individual option* (`options[].preview`), not on the question. Use it only where options differ visually: **C2** and **C6** only. Never attach one to an approve/skip prompt, where every option would render the same panel.
+- **`(Recommended)`** goes on the first option, and only when a sensible default exists. C4, C5 and C9 carry no marker — they exist precisely because the skill could not decide. C7 carries one only when the affected surface is unambiguously public.
+- **`preview`** is a field on an *individual option* (`options[].preview`), not on the question. Use it only where options differ visually: **C2**, **C6** and **C7**. Never attach one to an approve/skip prompt, where every option would render the same panel.
 - **No call uses `multiSelect`.** Every decision here is mutually exclusive — one action, one type, one scope, one subject.
 - Free-text "Other" is always available to the user; never add an explicit "Other" or "Something else" option.
 
@@ -319,7 +319,69 @@ options:
 
 Free-text "Other" lets the user write their own subject; use it verbatim rather than re-running the candidates. If only one candidate is defensible, skip the call and use it — a one-option call is invalid.
 
-**5e. Generate Body (only when necessary)**
+**5e. Detect Breaking Changes**
+
+A missing `BREAKING CHANGE:` trailer is invisible at commit time and expensive later: CI that derives versions from conventional commits emits a minor or patch bump where a major was due, and consumers take the upgrade without warning. So the skill looks for breaking changes itself rather than waiting to be told.
+
+**Detect semantically, from the diff.** Read the group's diff (through `changed.sh`, as in Step 1) and judge whether the change removes or alters something a consumer outside this repo depends on. `breaking_changes.hints` in the project config lists what counts as breaking *in this project* — treat those as attention hints that tell you where to look, never as the trigger itself. Matching hint text against the raw diff fires on comments, fixtures and unrelated prose, and the resulting prompt fatigue is exactly what the conditional design exists to avoid.
+
+**Surfaces worth checking**, when the group touches them:
+
+| Surface | What breaks a consumer |
+|---------|------------------------|
+| Library / package API | Exported symbol removed or renamed; required parameter added; return or generic type narrowed; default changed |
+| HTTP / RPC API | Route removed or renamed; response field dropped; request field made required; status-code semantics changed |
+| Data & schema | Column or field dropped or renamed; non-nullable column added without default; a migration that is not reversible |
+| Configuration | Config key removed or renamed; a new key made required; a default flipped |
+| CLI | Flag or subcommand removed or renamed; positional arguments reordered; output format consumed by scripts changed |
+| Infrastructure | Resource replacement or deletion; a rename that forces re-create; a step the operator must perform before deploy lands |
+
+**Do not run detection when** any of these hold — each would produce noise, not signal:
+
+- `breaking_changes.detect` is `false` — the project has opted out, which is how a pre-`1.0.0` project that breaks without ceremony says so
+- The config has no `breaking_changes` section **and** the group touches no surface in the table above
+- Every file in the group matches `breaking_changes.exempt_paths` (tests, fixtures, internal-only modules, docs)
+- The removed or renamed symbol is not reachable from a public entry point — check the package's exports before treating a deletion as breaking
+
+**Fire C7 only on concrete evidence** — a specific symbol, key, route, column or resource you can name and quote. If detection turns up nothing nameable, say nothing and continue to 5f. A prompt the user answers "no" to every time trains them to answer "no" without reading.
+
+#### C7 — Breaking change confirmation
+
+**When:** detection found a named, quotable change to a consumer-facing surface. Never fired speculatively.
+
+Order the options so the skill's own assessment comes first. Carry `(Recommended)` on it only when the surface is unambiguously public — an export in the package entry point, a documented route, a released schema. When you could not establish that the surface is public, drop the marker: the user is settling what you could not.
+
+The previews show the **finished shape** of each outcome, not text that exists yet — the body itself is drafted in 5f. Sketch a one-line migration note in the "Yes" preview so the user sees what they are agreeing to; the real wording is confirmed at C8.
+
+````yaml
+question: |
+  Commit {n} of {N}: {subject}
+
+  This looks like a breaking change:
+    {named evidence — e.g. `parseConfig()` dropped its `legacy` overload (src/index.ts:88)}
+
+  Mark it breaking?
+header: "Breaking"
+multiSelect: false
+options:
+  - label: "Yes, mark breaking (Recommended)"
+    description: "Adds the ! marker and the BREAKING CHANGE footer — CI will bump the major version."
+    preview: |
+      feat(config)!: Replace parseConfig overloads with an options object
+
+      BREAKING CHANGE: parseConfig() no longer accepts a legacy positional
+      argument. Pass { legacy: true } instead.
+  - label: "Not breaking"
+    description: "The affected surface is internal or unreleased. Commits with no marker; CI bumps minor."
+    preview: |
+      feat(config): Replace parseConfig overloads with an options object
+````
+
+Free-text "Other" is how the user supplies their own wording for the trailer — take the typed text as the `BREAKING CHANGE:` description verbatim.
+
+On "Yes", write the marker per `breaking_changes.marker` (`both` unless the config says otherwise; see 5g), and treat a body as required in 5f — a breaking change the reader cannot act on is barely better than an unmarked one. The `!` goes into the subject already chosen at 5d, immediately before the colon; that is a mechanical edit, so do not re-fire C6 for it.
+
+**5f. Generate Body (only when necessary)**
 
 Use `body_conventions` from pre-loaded project config (if absent, read from samples config as fallback).
 
@@ -328,7 +390,7 @@ Use `body_conventions` from pre-loaded project config (if absent, read from samp
 **Generate body when:**
 - The subject line cannot fully convey **why** the change was made (non-obvious design decisions, rejected alternatives, constraints)
 - The subject line cannot cover **what** changed (multi-file changes where the subject omits important details)
-- There is a breaking change requiring `BREAKING CHANGE:` footer
+- 5e confirmed a breaking change — say what broke and what the consumer does instead
 
 Body language: `en` → English, `mixed` or `ko` → Korean.
 
@@ -336,9 +398,9 @@ When generating a body, focus on **why** — the reasoning and motivation:
 - **Why this approach?** Reference the actual conversation context — use reasons, decisions, and constraints discussed in the session. Do NOT infer or guess motivations; only include what was explicitly discussed.
 - **What changed?** Only what the subject line omits
 
-**MUST ask user:** Fire **C7** to confirm the drafted body.
+**MUST ask user:** Fire **C8** to confirm the drafted body.
 
-#### C7 — Body confirmation
+#### C8 — Body confirmation
 
 **When:** a body was drafted. If the body was skipped by default, do not fire.
 
@@ -362,11 +424,19 @@ options:
     description: "Commit with the subject line only."
 ```
 
-Free-text "Other" is the fastest edit path — treat typed text as the replacement body and re-fire C7 with it.
+Free-text "Other" is the fastest edit path — treat typed text as the replacement body and re-fire C8 with it.
 
-**5f. Footers**
+**5g. Footers**
 
 Footers follow the body, one per line, ordered: `BREAKING CHANGE:`, issue references, `Co-authored-by:`, `Skill: commit`.
+
+**The breaking-change marker, when 5e confirmed one.** Conventional Commits accepts two forms — a `!` before the colon (`feat(api)!:`) and a `BREAKING CHANGE:` footer — and tooling support for each varies by generator. `breaking_changes.marker` selects which to write; `both` is the default because it is the only setting every conventional-commits version bumper recognizes:
+
+- `both` → `!` in the subject **and** the footer. The `!` makes it visible in `git log --oneline`; the footer carries the migration text.
+- `footer` → footer only. Correct when a tool in the pipeline mis-parses `!`.
+- `bang` → `!` only. Leaves the reader nowhere to learn what to do instead; choose it only when a project genuinely wants that.
+
+Write the footer token as literal `BREAKING CHANGE:` whatever `language` is set to. It is a specification keyword that generators match on, so a translated token silently disables the major bump this whole step exists to produce; the *description* after the colon follows `language` like any other prose. The `BREAKING-CHANGE:` hyphenated spelling is equally valid per the spec — prefer the spaced form for consistency with the samples.
 
 **The issue reference decides whether the issue closes.** GitHub acts only on closing keywords — `Closes`, `Fixes`, `Resolves`, and their `-d`/`-s` forms. `Refs` is inert: it cross-links the commit onto the issue's timeline and does nothing else. Choosing it for finished work leaves that issue open indefinitely, with no signal that anything is wrong.
 
@@ -382,9 +452,9 @@ Footer only issue numbers established in this session — the user named them, o
 
 Auto-close fires when the commit reaches the **default branch**. On a feature branch the keyword lies dormant until merge; that is the intended behavior, so keep it rather than weakening it to `Refs`.
 
-If the commit clearly relates to an issue but its coverage of that issue's scope is genuinely unclear, fire **C8**.
+If the commit clearly relates to an issue but its coverage of that issue's scope is genuinely unclear, fire **C9**.
 
-#### C8 — Issue reference
+#### C9 — Issue reference
 
 **When:** the commit references an issue and it is genuinely unclear whether it completes that issue's scope. When the answer is obvious either way, write the footer and move on — do not fire.
 
@@ -405,17 +475,17 @@ options:
     description: "The commit stands alone; #{n} is left untouched."
 ```
 
-**5g. Execute Commit**
+**5h. Execute Commit**
 
 Stage the group's specific files by name (never `git add -A` / `git add .`), so only planned files enter the commit — pre-staged state was already reconciled in Step 4.5. Commit using HEREDOC for multi-line messages (subject + body + footers). For trivial commits without body, single `-m` is fine.
 
 **If a pre-commit hook fails** (e.g., prettier, eslint): Do NOT fix files yourself. Report the error to the user and stop. You do not have permission to edit source files — only the user can decide how to resolve hook failures.
 
-**5h. Verify the Commit Matches What Was Staged**
+**5i. Verify the Commit Matches What Was Staged**
 
 A pre-commit hook that auto-fixes and re-stages whole files (`git add -- <file>`) can widen the commit beyond the planned set — sweeping in files, or unstaged hunks of a partially-staged file, that belong to a later group. The commit then succeeds while its message describes something other than its diff, and nothing surfaces the mismatch.
 
-Capture the staged file list immediately **before** committing, then compare it against what actually landed. Run the snapshot, the commit, and the comparison in a **single Bash invocation** — shell variables do not survive across separate calls, so this replaces the bare `git commit` in 5g:
+Capture the staged file list immediately **before** committing, then compare it against what actually landed. Run the snapshot, the commit, and the comparison in a **single Bash invocation** — shell variables do not survive across separate calls, so this replaces the bare `git commit` in 5h:
 
 ```bash
 PLANNED=$(git diff --cached --name-only | sort)
@@ -433,9 +503,9 @@ comm -13 <(echo "$PLANNED") <(echo "$LANDED")   # files the hook added, if any
 - **Extra files that belong to a LATER commit group** → this is the real failure. The later group's changes are now committed under this message, and its own commit will be empty or wrong.
 - **Extra files in no planned group** (generated or bumped by the hook) → expected side effect. Report them in the Step 6 summary and continue; do not prompt.
 
-Only when the first case occurs, stop and fire **C9**.
+Only when the first case occurs, stop and fire **C10**.
 
-#### C9 — Hook widened the commit
+#### C10 — Hook widened the commit
 
 **When:** a pre-commit hook re-staged files that belong to a LATER commit group. Not fired for generated or bumped files that belong to no group — those are reported in Step 6 and the flow continues.
 
@@ -488,5 +558,5 @@ guides/index.md ──→ Quick quality check
 
 - Match project's existing commit style (if history exists; otherwise use Conventional Commits defaults)
 - Add `Skill: commit` footer
-- For breaking changes: `BREAKING CHANGE: description`
-- Issue footers are specified in **5f** — `Closes #N` when the commit finishes the issue, `Refs #N` only when it does not. Do not default to `Refs`.
+- Breaking changes are detected in **5e** and marked in **5g** — detect semantically from the diff, fire C7 only on named evidence, and keep the `BREAKING CHANGE:` token in English so version bumpers still parse it.
+- Issue footers are specified in **5g** — `Closes #N` when the commit finishes the issue, `Refs #N` only when it does not. Do not default to `Refs`.
