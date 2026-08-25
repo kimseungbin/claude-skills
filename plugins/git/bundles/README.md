@@ -34,7 +34,9 @@ bundles/
 │       │   └── utils.sh
 │       ├── scripts/          # Helper scripts
 │       │   ├── check-file-sizes.sh
-│       │   └── file-size-limits.yaml
+│       │   ├── file-size-limits.yaml
+│       │   ├── check-contrast.ts       # WCAG contrast for design tokens
+│       │   └── contrast-limits.yaml
 │       └── README.md
 │
 ├── hooks/                    # OPTIONAL: Pick what you need
@@ -87,10 +89,18 @@ git config core.hooksPath .githooks
 **What you get:**
 - Auto-fix formatting and linting on commit
 - CSS linting with Stylelint (enforces design token usage)
+- WCAG contrast check on design-token pairs (blocks contrast regressions)
 - Type checking before commit
 - Config-based commit message validation
 
-**Requires:** `stylelint` and `stylelint-declaration-strict-value` npm packages
+**Requires:** `stylelint` and `stylelint-declaration-strict-value` npm packages. The contrast check needs Node >=22.18 or >=23.6 and no packages at all.
+
+**Then point the contrast check at your tokens** — it is inert until you do:
+
+```bash
+# Edit sources: in .githooks/scripts/contrast-limits.yaml
+node .githooks/scripts/check-contrast.ts    # confirm it finds your pairs
+```
 
 ### AWS CDK Infrastructure Project
 
@@ -182,6 +192,22 @@ exclude:
   - node_modules
   - dist
 ```
+
+### Design-Token Contrast
+
+Edit `.githooks/scripts/contrast-limits.yaml`:
+
+```yaml
+default_threshold: 7.0      # WCAG 2.1 AAA; use 4.5 for AA
+sources:
+  - src/tokens.css          # globs allowed: src/**/*.css
+format: css                 # css | scss | json | custom
+roles:
+  button-identity: 4.5      # per-role override
+  decorative: off           # exempt entirely
+```
+
+Used by the `with-stylelint.sh` pre-commit hook, which runs the check only when one of these sources is staged. See [hooks/pre-commit/README.md](hooks/pre-commit/README.md) for the formats and what the check reports as skipped.
 
 ### npm Scripts
 

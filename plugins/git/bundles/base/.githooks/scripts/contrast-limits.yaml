@@ -1,0 +1,53 @@
+# Design-Token Contrast Configuration
+#
+# Read by .githooks/scripts/check-contrast.ts, which computes WCAG 2.1 contrast
+# ratios for `<role>-bg` / `<role>-text` token pairs and fails the commit when a
+# pair falls below its threshold.
+#
+# Contrast drifts silently: a color gets tuned, the ratio slips under AA, and the
+# first report comes from a user who cannot read the text. Checking at commit
+# time turns that into a build failure on the change that caused it.
+
+# Minimum ratio every pair must clear unless `roles:` overrides it.
+#   7.0 - WCAG 2.1 AAA. The right tier for small inline body copy.
+#   4.5 - WCAG 2.1 AA for normal text.
+#   3.0 - WCAG 2.1 AA for large text (>=18.66px bold, or >=24px).
+default_threshold: 7.0
+
+# Token files to check. Globs are expanded against tracked files: `*` matches
+# within one path segment, `**/` spans directories. A literal path that is not
+# yet tracked is still checked, so a token file added in this commit is covered.
+sources:
+  - src/tokens.css
+
+# How pairs are written in those files.
+#   css    - `--color-<role>-bg` / `--color-<role>-text` custom properties
+#   scss   - `$color-<role>-bg` / `$color-<role>-text` variables
+#   json   - nested objects with `bg` / `text` keys, including W3C design tokens
+#            (`{ "bg": { "$value": "#fff" } }`); the role is the key path
+#   custom - your own `pattern` below
+format: css
+
+# Required when `format: custom`. Needs three named capture groups: `role`,
+# `kind` (matching bg or text), and `value`. Values may be a literal hex or a
+# `var(--other-token)` / `$other-token` reference — references are followed to
+# the literal they name, so aliased pairs stay covered.
+# pattern: '--fg-(?<role>[a-z0-9-]+?)-(?<kind>bg|text)\s*:\s*(?<value>[^;\n}]+)'
+
+# Per-role thresholds. A role listed here overrides default_threshold; `off`
+# skips it entirely. Reach for this when a pair is decorative or carries brand
+# identity rather than text a user has to read.
+roles:
+  # button-identity: 4.5
+  # decorative: off
+
+# Notes on what the check deliberately does not do:
+#
+# - A pair with only one half defined is reported as skipped, not passed. A
+#   renamed half (`-text` becoming `-fg`) would otherwise drop the role from
+#   coverage with no signal.
+# - A translucent background is reported as skipped, because the backdrop behind
+#   it is unknown and any ratio computed against it would be fiction. Translucent
+#   *text* is composited over its background, which is well defined.
+# - A reference that resolves to nothing, or cycles, is reported as skipped with
+#   the trail it followed.

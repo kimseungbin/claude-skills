@@ -38,6 +38,7 @@ Pre-commit hooks run before each commit to validate code quality.
 - Auto-fix formatting (Prettier) — staged files only
 - Auto-fix linting (ESLint) — staged files only
 - CSS linting (Stylelint) — staged files only
+- Design-token contrast against WCAG — only when a token file is staged
 - Type checking (TypeScript)
 
 **Runs on staged files only** via `npx prettier`, `npx eslint`, and `npx stylelint`.
@@ -52,6 +53,36 @@ Pre-commit hooks run before each commit to validate code quality.
 ```
 
 **Use with:** `stylelint-declaration-strict-value` plugin to enforce design token usage.
+
+#### Design-token contrast check
+
+Stylelint can enforce that a color *comes from* a token. It cannot tell you whether that token is still readable. This step closes that gap: it computes WCAG 2.1 contrast ratios for `<role>-bg` / `<role>-text` pairs and fails the commit when a pair drops below its threshold — on the change that caused it, rather than when a user reports unreadable text.
+
+The step is driven entirely by `.githooks/scripts/contrast-limits.yaml`, so the token path lives in one place:
+
+```yaml
+default_threshold: 7.0      # WCAG 2.1 AAA; 4.5 for AA
+sources:
+  - src/tokens.css
+format: css                 # css | scss | json | custom
+roles:
+  button-identity: 4.5      # per-role override
+  decorative: off           # exempt entirely
+```
+
+Passing `--staged` lets the validator decide for itself whether any configured source is in the commit, so unrelated commits pay nothing and the hook needs no hardcoded path.
+
+**Requires:** Node >=22.18 or >=23.6 — the validator is TypeScript run through Node's native type-stripping, with no runtime dependency and no transpile step. On an older runtime the hook fails with that message rather than a parse dump.
+
+Run it by hand to see every pair, not just the failures:
+
+```bash
+node .githooks/scripts/check-contrast.ts            # every configured source
+node .githooks/scripts/check-contrast.ts --staged    # only what is staged
+node .githooks/scripts/check-contrast.ts src/a.css   # specific files
+```
+
+Pairs it reports as *skipped* rather than passed: a role with only one half defined (a renamed `-text` would otherwise silently leave coverage), a translucent background (the backdrop is unknown, so any ratio would be invented), and a reference that dangles or cycles.
 
 ---
 

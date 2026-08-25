@@ -68,7 +68,9 @@ bundles/base/.githooks/
 │   └── utils.sh            # Utilities
 ├── scripts/
 │   ├── check-file-sizes.sh # File size warnings
-│   └── file-size-limits.yaml
+│   ├── file-size-limits.yaml
+│   ├── check-contrast.ts   # WCAG contrast for design tokens
+│   └── contrast-limits.yaml
 └── README.md
 ```
 
@@ -77,6 +79,7 @@ bundles/base/.githooks/
 | Hook | Project Type | Checks |
 |------|--------------|--------|
 | `basic.sh` | Simple TS/JS | Format, lint, type-check |
+| `with-stylelint.sh` | CSS / design system | Format, lint, Stylelint, WCAG token contrast, type-check |
 | `monorepo.sh` | Workspaces | Workspace-aware + build |
 
 ### Pre-push Hooks
@@ -124,6 +127,30 @@ chmod +x .githooks/pre-commit .githooks/commit-msg
 git config core.hooksPath .githooks
 ```
 
+### Design System / CSS Project
+
+```bash
+cp -r bundles/base/.githooks/ .githooks/
+cp bundles/hooks/pre-commit/with-stylelint.sh .githooks/pre-commit
+cp bundles/hooks/commit-msg/conventional.sh .githooks/commit-msg
+chmod +x .githooks/pre-commit .githooks/commit-msg
+git config core.hooksPath .githooks
+```
+
+Then point the WCAG contrast check at the project's token file — it stays inert until `sources:` names one. Detect the path rather than asking cold:
+
+```bash
+git ls-files | grep -iE '(tokens|theme|palette|colors|design-tokens)\.(css|scss|json)$'
+```
+
+Set `sources:` and `format:` in `.githooks/scripts/contrast-limits.yaml` from what that finds (`css`, `scss`, or `json`), then confirm the pairs are being seen:
+
+```bash
+node .githooks/scripts/check-contrast.ts
+```
+
+If it reports pairs, the check is live. If it reports nothing, the project writes its pairs under different names — set `format: custom` and a `pattern` with `role`, `kind` and `value` capture groups. **Requires Node >=22.18 or >=23.6.**
+
 ## Alternative: Custom Generation
 
 If bundles don't fit your needs, generate custom hooks:
@@ -144,7 +171,10 @@ Based on project type:
 
 - **Monorepo** → `bundles/hooks/pre-commit/monorepo.sh`
 - **AWS CDK** → `bundles/hooks/pre-push/cdk-safety.sh`
+- **CSS / design tokens** → `bundles/hooks/pre-commit/with-stylelint.sh`
 - **Simple TS/JS** → `bundles/hooks/pre-commit/basic.sh`
+
+A tracked `tokens.css` / `theme.scss` / `design-tokens.json` is the signal for the design-system bundle: it means the project has color pairs whose contrast can regress.
 
 **See**: [decision-tree.md](../../guides/decision-tree.md) for visual selection guide
 

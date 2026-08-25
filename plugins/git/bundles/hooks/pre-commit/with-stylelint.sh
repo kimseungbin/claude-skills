@@ -1,5 +1,5 @@
 #!/bin/bash
-# plugin_version: 1.0.22
+# plugin_version: 1.0.23
 #
 # Pre-commit hook with Stylelint for CSS validation
 #
@@ -7,6 +7,8 @@
 # - Auto-fix code formatting (Prettier) — staged files only
 # - Auto-fix linting issues (ESLint) — staged files only
 # - CSS linting (Stylelint) — staged files only
+# - Design-token contrast against WCAG (scripts/check-contrast.ts) — runs only
+#   when a configured token file is staged
 # - Type checking (TypeScript)
 #
 # Installation:
@@ -14,10 +16,12 @@
 #   2. Copy this file to .githooks/pre-commit
 #   3. chmod +x .githooks/pre-commit
 #   4. git config core.hooksPath .githooks
+#   5. Point .githooks/scripts/contrast-limits.yaml at your token file
 #
 # Customize:
 #   - Adjust PRETTIER_EXTS / LINT_EXTS / CSS_EXTS for your file types
 #   - type-check: tsc --noEmit
+#   - contrast thresholds and token paths: scripts/contrast-limits.yaml
 
 set -e
 
@@ -31,7 +35,7 @@ source "$LIB_DIR/output.sh"
 
 # Buffer output so the result appears on the first line
 buffer_start
-steps_init 4
+steps_init 5
 
 # Save list of staged files to re-add after auto-fix
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
@@ -148,7 +152,52 @@ fi
 echo ""
 
 #############################################
-# 4. Type checking
+# 4. Design-token contrast (WCAG)
+#############################################
+print_step "Checking design-token contrast..."
+
+CONTRAST_SCRIPT="$SCRIPT_DIR/scripts/check-contrast.ts"
+
+# The validator strips its own TypeScript types, which Node does natively from
+# 22.18 and 23.6. On an older runtime it fails as a syntax error, so check the
+# version first and say why rather than letting that surface as a parse dump.
+node_strips_types() {
+    local version major minor
+    version=$(node -v 2>/dev/null) || return 1
+    version="${version#v}"
+    major="${version%%.*}"
+    minor="${version#*.}"
+    minor="${minor%%.*}"
+    [ "$major" -ge 24 ] && return 0
+    [ "$major" -eq 23 ] && [ "$minor" -ge 6 ] && return 0
+    [ "$major" -eq 22 ] && [ "$minor" -ge 18 ] && return 0
+    return 1
+}
+
+if [ ! -f "$CONTRAST_SCRIPT" ]; then
+    print_success_indent "Contrast validator not installed, skipping"
+elif ! node_strips_types; then
+    print_error_indent "Node $(node -v 2>/dev/null || echo '(not found)') cannot run the contrast validator"
+    echo -e "${YELLOW}check-contrast.ts needs Node >=22.18 or >=23.6 for native TypeScript${NC}"
+    buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: contrast (Node too old)${NC}"
+    exit 1
+else
+    # --staged makes the validator itself decide whether any configured token
+    # file is in this commit, so the token path lives in one place: its config.
+    if node "$CONTRAST_SCRIPT" --staged; then
+        print_success_indent "Contrast check passed"
+    else
+        print_error_indent "Contrast check failed"
+        echo -e "${YELLOW}Run 'node .githooks/scripts/check-contrast.ts' to see failing pairs${NC}"
+        buffer_end "${RED}${SYM_CROSS} Pre-commit FAILED: token contrast${NC}"
+        exit 1
+    fi
+fi
+
+echo ""
+
+#############################################
+# 5. Type checking
 #############################################
 print_step "Type checking..."
 
