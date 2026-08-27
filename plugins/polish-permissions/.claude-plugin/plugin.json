@@ -1,6 +1,6 @@
 {
   "name": "polish-permissions",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Audit permission rules across the user/project/local settings scopes, then dedupe them and promote read-only rules up the scope ladder",
   "author": {
     "name": "kimseungbin"

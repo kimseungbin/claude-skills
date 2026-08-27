@@ -1,5 +1,3 @@
-// plugin_version: 0.1.0
-//
 // Read-only classification data.
 //
 // Promotion to a broader scope is only ever *recommended* for rules this file

@@ -1,5 +1,3 @@
-// plugin_version: 0.1.0
-//
 // Pure analysis over permission rules. No filesystem, no process — everything
 // here takes already-parsed settings objects and returns findings, so the
 // reasoning that decides what to delete is testable without touching a real

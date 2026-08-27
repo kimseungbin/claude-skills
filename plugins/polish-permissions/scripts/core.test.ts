@@ -1,5 +1,3 @@
-// plugin_version: 0.1.0
-//
 // These tests double as the specification. Each `describe` names a question the
 // audit has to answer, and each `it` states the answer as a sentence — reading
 // the names top to bottom should tell you what the tool does and, for the
@@ -315,7 +313,7 @@ describe('reads that are safe to run but not safe to stop being asked about', ()
 
 	it('never suggests a wildcard broad enough to cover a credential read', () => {
 		// `aws * get-*` reads as read-only and covers `get-secret-value`.
-		// This is the hole that shipped in 0.1.0 and this test pins shut.
+		// This hole was caught before release; the test keeps it shut.
 		const s = suggestWildcards(
 			scenario({ local: ['Bash(aws glue get-databases *)', 'Bash(aws dlm get-lifecycle-policies *)'] }),
 			CFG,

@@ -1,5 +1,3 @@
-// plugin_version: 0.1.0
-//
 // Reads the three permission scopes for one project and reports what is
 // redundant, what conflicts, and which rule families are safe to promote.
 //
@@ -22,7 +20,20 @@ import {
 } from './core.ts'
 import type { Config, Family, Findings, Rule, Scope } from './core.ts'
 
-const PLUGIN_VERSION = '0.1.0'
+/**
+ * Read from the manifest rather than restated here. A literal in this file
+ * drifts the moment the version is bumped — the pre-commit hook propagates
+ * only into `config/**\/*.yaml` and `bundles/**\/*.sh`, neither of which this
+ * plugin has, so nothing would ever correct it.
+ */
+const PLUGIN_VERSION: string = (() => {
+	try {
+		const manifest = new URL('../.claude-plugin/plugin.json', import.meta.url)
+		return JSON.parse(readFileSync(manifest, 'utf8')).version ?? 'unknown'
+	} catch {
+		return 'unknown'
+	}
+})()
 
 export interface SourceFile {
 	scope: Scope

@@ -1,12 +1,10 @@
-// plugin_version: 0.1.0
-//
 // End-to-end tests for the command-line side: finding the three settings
 // files, surviving a broken one, and emitting the JSON the skill consumes.
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -92,6 +90,18 @@ describe('the JSON the skill consumes', () => {
 	it('carries the plugin version so a stale script can be detected', () => {
 		const json = runJson(fixture({ local: allow('Read') }))
 		assert.match(json.pluginVersion, /^\d+\.\d+\.\d+$/)
+	})
+
+	it('reports the version the manifest declares, not a copy of it', () => {
+		// The pre-commit hook bumps plugin.json and propagates only into
+		// config/**/*.yaml and bundles/**/*.sh. This plugin has neither, so a
+		// version literal restated in these files would never be corrected.
+		// Deriving it cannot drift; this test fails if anyone restates it.
+		const manifest = JSON.parse(
+			readFileSync(new URL('../.claude-plugin/plugin.json', import.meta.url), 'utf8'),
+		)
+		const json = runJson(fixture({ local: allow('Read') }))
+		assert.equal(json.pluginVersion, manifest.version)
 	})
 
 	it('exposes findings, families and the tidied lists', () => {
