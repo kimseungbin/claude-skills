@@ -56,7 +56,33 @@ Rules for this file:
 - **Omit what does not exist.** An absent key means that check never runs. Never invent a command hoping it works — a command that fails to spawn produces a failure the agent is then told to fix.
 - **`format` acts on one file.** `{file}` is replaced by the edited path, shell-quoted for you; without the placeholder the path is appended. If the project's formatter cannot take a single path, omit `format` rather than pointing it at the whole tree on every edit.
 - **`lint` and `typecheck` run when an agent believes it is finished**, not per edit.
+- **`test` is watched, not run.** See Step 3c.
 - **Never point a command at a laxer variant to make the gate quieter** — no `--max-warnings=999`, no `|| true`, no hand-narrowed path chosen to dodge known failures. The whole value of the gate is that its failure means something. Scoping `lint` with `{files}` (below) is not this: it changes *which files are examined*, not how hard they are examined.
+
+### Step 3c: Wire a test watcher, if the project has tests
+
+Tests are the one check the gate does not run. A suite costs minutes, and running it at the end of every turn means the agent waits every time. A watcher is already re-running the affected tests on save, so the gate reads its verdict instead:
+
+```json
+"test": { "watch": "npx vitest --watch --reporter=json --outputFile={status}" }
+```
+
+The gate starts this in the background on the first edit of a session, and stops it when the session ends. At Stop it reads the report and blocks if the tests failed — or if it cannot tell.
+
+Rules for this key:
+
+- **`{status}` is required.** It is where the runner must write a JSON report; the gate owns the path. A watch command without it is dropped, because there would be nothing to read. Do not try to point the runner at a path of your own choosing.
+- **The report needs a boolean `success` field.** `numFailedTests` and `numTotalTests` are used for the message when present. Vitest's `json` reporter provides all three; another runner needs a reporter that produces the same shape.
+- **A missing, stale or unreadable report blocks the turn.** "I could not tell whether the tests pass" is not permission to finish — that is the whole reason this is a verdict to read rather than a command to run.
+**If the project uses Node's built-in test runner**, it needs the reporter this plugin ships — `node --test` has no built-in reporter that emits a verdict:
+
+```json
+"test": { "watch": "LINT_GATE_STATUS={status} node --test --watch --test-reporter=${CLAUDE_PLUGIN_ROOT}/reporters/node-test-json.mjs" }
+```
+
+The path goes through the environment, not `--test-reporter-destination`. Under `--watch` the reporter's event stream never ends, so a reporter that emits after its loop never emits — the report file would stay empty forever. Do not "simplify" this to the destination flag.
+
+- **Do not configure a one-shot run here.** `"watch": "npx vitest run ..."` would exit immediately, and the gate would then see a watcher that is not running. If the project genuinely wants a full suite per turn, put it in `lint` instead and accept the cost.
 
 ### Step 3b: Decide whether `lint` should be scoped with `{files}`
 

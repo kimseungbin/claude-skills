@@ -11,6 +11,10 @@ import {
 	formatCommand,
 	resolveConfig,
 	scopeCommands,
+	testVerdict,
+	tracksEditTime,
+	verdictAsResult,
+	watchCommand,
 	tracksEditedFiles,
 	usesEditedFiles,
 } from './core.ts'
@@ -1212,5 +1216,131 @@ describe('decide — the block reason', () => {
 		const reason = assertBlocked(decideFor([silent]))
 		assert.ok(reason.includes(TYPECHECK), `reason must still name the command:\n${reason}`)
 		assert.ok(reason.trim().length > TYPECHECK.length, 'a bare command string is not an explanation')
+	})
+})
+
+
+const WATCH = 'npx vitest --watch --reporter=json --outputFile={status}'
+
+/** A verdict input with everything fresh and passing; tests override one field. */
+function verdictInput(overrides: Partial<Parameters<typeof testVerdict>[0]> = {}) {
+	return testVerdict({
+		status: { success: true },
+		statusMtime: 2_000,
+		lastEditAt: 1_000,
+		watcherAlive: true,
+		...overrides,
+	})
+}
+
+describe('configuring a watched test suite', () => {
+	it('accepts a watch command that says where to write its report', () => {
+		assert.deepEqual(resolveConfig({ test: { watch: WATCH } }).test, { watch: WATCH })
+	})
+
+	it('drops a watch command with no {status} placeholder', () => {
+		// There would be nothing to read at Stop. Appending an output flag for the
+		// project would mean guessing the runner's CLI, and guessing wrong yields a
+		// watcher that runs forever and never reports.
+		assert.equal(resolveConfig({ test: { watch: 'npx vitest --watch' } }).test, undefined)
+	})
+
+	it('ignores a test key that is not an object', () => {
+		assert.equal(resolveConfig({ test: 'npx vitest' }).test, undefined)
+		assert.equal(resolveConfig({ test: ['npx vitest'] }).test, undefined)
+	})
+
+	it('fills the placeholder with a shell-quoted path', () => {
+		const filled = watchCommand(WATCH, "/tmp/a b/it's.json")
+		assert.ok(filled.includes(`'/tmp/a b/it'\\''s.json'`), filled)
+		assert.ok(!filled.includes('{status}'))
+	})
+
+	it('only tracks edit time when a watcher is configured', () => {
+		assert.equal(tracksEditTime({ test: { watch: WATCH } }), true)
+		assert.equal(tracksEditTime({ lint: 'npm run lint' }), false)
+	})
+})
+
+describe('reading a watcher verdict', () => {
+	// The failure modes all look like "passing" if only the verdict is checked,
+	// so freshness is settled first and anything unresolved is unknown.
+	it('passes when the report is fresh and successful', () => {
+		assert.deepEqual(verdictInput(), { state: 'pass' })
+	})
+
+	it('does not pass when there is no report at all', () => {
+		const v = verdictInput({ status: null, statusMtime: null })
+		assert.equal(v.state, 'unknown')
+	})
+
+	it('does not pass when the report predates the last edit', () => {
+		// The tests passed against code that has since changed.
+		const v = verdictInput({ statusMtime: 500, lastEditAt: 1_000 })
+		assert.equal(v.state, 'unknown')
+		assert.match((v as { reason: string }).reason, /predates the most recent edit/)
+	})
+
+	it('says the watcher died when a stale report has no live watcher behind it', () => {
+		const v = verdictInput({ statusMtime: 500, lastEditAt: 1_000, watcherAlive: false })
+		assert.match((v as { reason: string }).reason, /no longer running/)
+	})
+
+	it('still trusts a fresh report from a watcher that has since died', () => {
+		// Liveness governs whether the *next* edit can be checked. It does not
+		// retroactively invalidate a verdict that postdates the last edit.
+		assert.deepEqual(verdictInput({ watcherAlive: false }), { state: 'pass' })
+	})
+
+	it('does not pass when the report is present but unreadable', () => {
+		// Mid-write or truncated. Freshness is judged first, so this is reached
+		// only for a report that is otherwise current.
+		assert.equal(verdictInput({ status: null }).state, 'unknown')
+		assert.equal(verdictInput({ status: 'not json' }).state, 'unknown')
+	})
+
+	it('does not pass when the report carries no success field', () => {
+		assert.equal(verdictInput({ status: { numTotalTests: 9 } }).state, 'unknown')
+	})
+
+	it('treats a missing lastEditAt as no freshness constraint', () => {
+		// Nothing was edited this session, so no report can be out of date.
+		assert.deepEqual(verdictInput({ lastEditAt: null, statusMtime: 1 }), { state: 'pass' })
+	})
+
+	it('fails with a count when tests are failing', () => {
+		const v = verdictInput({ status: { success: false, numFailedTests: 2, numTotalTests: 9 } })
+		assert.equal(v.state, 'fail')
+		assert.equal((v as { detail: string }).detail, '2 of 9 tests failing.')
+	})
+
+	it('reports a failure it cannot count without inventing one', () => {
+		const v = verdictInput({ status: { success: false } })
+		assert.equal((v as { detail: string }).detail, 'Tests are failing.')
+	})
+})
+
+describe('folding a verdict into the block machinery', () => {
+	it('produces nothing to block on when the tests pass', () => {
+		assert.equal(verdictAsResult({ state: 'pass' }, WATCH), null)
+	})
+
+	it('blocks on a failure, naming the watcher as the command', () => {
+		const result = verdictAsResult({ state: 'fail', detail: '1 of 3 tests failing.' }, WATCH)
+		assert.equal(result?.ok, false)
+		assert.equal(result?.name, 'test')
+		assert.equal(result?.command, WATCH)
+	})
+
+	it('blocks on an unknown verdict too, since it is not permission to finish', () => {
+		const result = verdictAsResult({ state: 'unknown', reason: 'the watcher is not running' }, WATCH)
+		assert.equal(result?.ok, false)
+		assert.match(result!.output, /No usable verdict/)
+	})
+
+	it('gives a failure and an unknown different signatures, so one does not silence the other', () => {
+		const fail = verdictAsResult({ state: 'fail', detail: 'x' }, WATCH)!
+		const unknown = verdictAsResult({ state: 'unknown', reason: 'x' }, WATCH)!
+		assert.notEqual(failureSignature([fail]), failureSignature([unknown]))
 	})
 })

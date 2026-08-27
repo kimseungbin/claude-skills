@@ -34,6 +34,26 @@ To do it by hand, copy `config/samples/lint-gate.json` to `.claude/config/lint-g
 
 All three keys are optional and there are **no defaults** — an absent key means that check never runs. A command is only ever run because the project named it. In `format`, `{file}` is replaced by the edited path; without the placeholder the path is appended. Either way it is shell-quoted, since it arrives from a tool payload.
 
+## Tests are watched, not run
+
+`format`, `lint` and `typecheck` are commands the gate runs. `test` is not — it names a watcher:
+
+```json
+"test": { "watch": "npx vitest --watch --reporter=json --outputFile={status}" }
+```
+
+The watcher starts in the background on the first edit of a session and stops on `SessionEnd`. At Stop the gate reads the report it produced rather than running a suite of its own, so a test gate costs no turn time.
+
+The report is only believed when it is **newer than the last edit**. Freshness comes from the file's mtime, deliberately not from any timestamp inside the report — vitest's JSON reporter rewrites `success` on every re-run but leaves `startTime` frozen at the first one, so a gate trusting that field would call every verdict stale forever.
+
+A report that is missing, stale or unparseable blocks the turn and says which. A watcher that has *died* does not, on its own: if its last report still postdates the last edit, that verdict is true, and liveness only changes the wording and whether the next edit can be checked.
+
+Projects on Node's built-in test runner use the reporter shipped in `reporters/`, since `node --test` has none that emits a verdict:
+
+```json
+"test": { "watch": "LINT_GATE_STATUS={status} node --test --watch --test-reporter=${CLAUDE_PLUGIN_ROOT}/reporters/node-test-json.mjs" }
+```
+
 ## Scoping lint to what the agent edited
 
 `lint` runs project-wide by default. On a repo with any pre-existing backlog, that means the gate fails at the end of **every** task, reporting problems in files the agent never opened. The honest response is "none of these are mine" — which is exactly what the block reason tries to discourage, and once it happens the agent has learned to discount every later report.

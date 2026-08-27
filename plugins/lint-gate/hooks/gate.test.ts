@@ -20,7 +20,7 @@
 import { after, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -1111,5 +1111,213 @@ describe('fails open', () => {
 		for (let depth = 0; depth < 200; depth += 1) nested = { nested }
 
 		assertPassed(run(project, { hook_event_name: 'Stop', extra: nested }))
+	})
+})
+
+
+// ---------------------------------------------------------------------------
+// watched tests
+// ---------------------------------------------------------------------------
+
+/**
+ * A watcher that reports once and then stays alive, like a real one between
+ * runs. Cheap enough to spawn for real, which matters: the point of these cases
+ * is the process lifecycle, and a stubbed spawn would test nothing.
+ */
+const WATCHER_REPORTING = String.raw`printf '{"success":true}' > {status}; sleep 300`
+const WATCHER_SILENT = 'sleep 300'
+
+/** Where gate.ts tells the watcher to write, and reads from at Stop. */
+function statusFile(project: Project, scope = LEAD): string {
+	const safe = scope.replace(/[^A-Za-z0-9_-]/g, '_')
+	return path.join(project.home, '.claude', 'lint-gate', `${project.session}-${safe}-test.json`)
+}
+
+function scopeState(project: Project, scope = LEAD): { editedAt?: number; watcherPid?: number } {
+	try {
+		return JSON.parse(readFileSync(statePath(project), 'utf8'))[scope] ?? {}
+	} catch {
+		return {}
+	}
+}
+
+/** Write a report at a chosen age relative to the recorded last edit. */
+function writeReport(project: Project, report: unknown, offsetMs: number): void {
+	const file = statusFile(project)
+	mkdirSync(path.dirname(file), { recursive: true })
+	writeFileSync(file, JSON.stringify(report))
+	const when = ((scopeState(project).editedAt ?? Date.now()) + offsetMs) / 1000
+	utimesSync(file, when, when)
+}
+
+const strays: number[] = []
+after(() => {
+	for (const pid of strays) {
+		try {
+			process.kill(-pid, 'SIGKILL')
+		} catch {
+			try {
+				process.kill(pid, 'SIGKILL')
+			} catch {
+				// already gone
+			}
+		}
+	}
+})
+
+function alive(pid: number | undefined): boolean {
+	if (typeof pid !== 'number') return false
+	try {
+		process.kill(pid, 0)
+		return true
+	} catch {
+		return false
+	}
+}
+
+describe('starting the test watcher', () => {
+	it('starts nothing until something is edited', () => {
+		const project = makeProject({ test: { watch: WATCHER_SILENT + ' {status}' } })
+		assert.equal(scopeState(project).watcherPid, undefined)
+	})
+
+	it('starts one on the first edit, and leaves it running', () => {
+		const project = makeProject({ test: { watch: WATCHER_REPORTING } })
+		edit(project, 'src/a.ts')
+
+		const pid = scopeState(project).watcherPid
+		assert.equal(typeof pid, 'number', 'the pid must be recorded so the gate can check liveness later')
+		strays.push(pid as number)
+		assert.ok(alive(pid), 'the watcher must outlive the hook that spawned it')
+	})
+
+	it('does not start a second one on the next edit', () => {
+		const project = makeProject({ test: { watch: WATCHER_REPORTING } })
+		edit(project, 'src/a.ts')
+		const first = scopeState(project).watcherPid
+		strays.push(first as number)
+
+		edit(project, 'src/b.ts')
+		assert.equal(scopeState(project).watcherPid, first, 'a session pays for one watcher, not one per edit')
+	})
+
+	it('starts nothing when no watcher is configured', () => {
+		const project = makeProject({ lint: LINT_MARKING })
+		edit(project, 'src/a.ts')
+		assert.equal(scopeState(project).watcherPid, undefined)
+	})
+
+	it('stamps the edit time so staleness can be judged', () => {
+		const project = makeProject({ test: { watch: WATCHER_REPORTING } })
+		const before = Date.now()
+		edit(project, 'src/a.ts')
+		strays.push(scopeState(project).watcherPid as number)
+
+		const stamped = scopeState(project).editedAt
+		assert.equal(typeof stamped, 'number')
+		assert.ok((stamped as number) >= before, 'the stamp must not predate the edit that set it')
+	})
+})
+
+describe('stopping the test watcher', () => {
+	it('kills it on SessionEnd', () => {
+		const project = makeProject({ test: { watch: WATCHER_REPORTING } })
+		edit(project, 'src/a.ts')
+		const pid = scopeState(project).watcherPid as number
+		strays.push(pid)
+		assert.ok(alive(pid))
+
+		run(project, { hook_event_name: 'SessionEnd' })
+
+		// SIGTERM is not instant; give the process a moment to actually go.
+		const deadline = Date.now() + 5_000
+		while (alive(pid) && Date.now() < deadline) {
+			spawnSync(process.execPath, ['-e', 'setTimeout(()=>{},50)'])
+		}
+		assert.ok(!alive(pid), 'a detached watcher must not outlive its session')
+	})
+
+	it('forgets the pid so a later session does not check a dead one', () => {
+		const project = makeProject({ test: { watch: WATCHER_REPORTING } })
+		edit(project, 'src/a.ts')
+		strays.push(scopeState(project).watcherPid as number)
+
+		run(project, { hook_event_name: 'SessionEnd' })
+		assert.equal(scopeState(project).watcherPid, undefined)
+	})
+
+	it('is harmless when there is nothing to stop', () => {
+		const project = makeProject({ test: { watch: WATCHER_REPORTING } })
+		assertPassed(run(project, { hook_event_name: 'SessionEnd' }))
+	})
+})
+
+describe('gating on the watcher verdict', () => {
+	it('blocks when the watcher has reported nothing', () => {
+		// The failure this whole design exists to prevent: no verdict read as pass.
+		const project = makeProject({ test: { watch: WATCHER_SILENT + ' {status}' } })
+		edit(project, 'src/a.ts')
+		strays.push(scopeState(project).watcherPid as number)
+
+		const reason = assertBlocked(settle(project))
+		assert.match(reason, /No usable verdict/)
+	})
+
+	it('passes on a fresh successful report, without running anything', () => {
+		const project = makeProject({ test: { watch: WATCHER_SILENT + ' {status}' } })
+		edit(project, 'src/a.ts')
+		strays.push(scopeState(project).watcherPid as number)
+		writeReport(project, { success: true }, 1_000)
+
+		assertPassed(settle(project))
+	})
+
+	it('blocks on a report older than the last edit', () => {
+		const project = makeProject({ test: { watch: WATCHER_SILENT + ' {status}' } })
+		edit(project, 'src/a.ts')
+		strays.push(scopeState(project).watcherPid as number)
+		writeReport(project, { success: true }, -60_000)
+
+		assert.match(assertBlocked(settle(project)), /predates the most recent edit/)
+	})
+
+	it('blocks with a count when tests are failing', () => {
+		const project = makeProject({ test: { watch: WATCHER_SILENT + ' {status}' } })
+		edit(project, 'src/a.ts')
+		strays.push(scopeState(project).watcherPid as number)
+		writeReport(project, { success: false, numFailedTests: 2, numTotalTests: 9 }, 1_000)
+
+		assert.match(assertBlocked(settle(project)), /2 of 9 tests failing/)
+	})
+
+	it('blocks on a report it cannot parse rather than assuming the best', () => {
+		const project = makeProject({ test: { watch: WATCHER_SILENT + ' {status}' } })
+		edit(project, 'src/a.ts')
+		strays.push(scopeState(project).watcherPid as number)
+
+		const file = statusFile(project)
+		mkdirSync(path.dirname(file), { recursive: true })
+		writeFileSync(file, '{ "success": tr')
+		const when = ((scopeState(project).editedAt ?? Date.now()) + 1_000) / 1000
+		utimesSync(file, when, when)
+
+		assert.match(assertBlocked(settle(project)), /No usable verdict/)
+	})
+
+	it('says nothing about tests when no watcher is configured', () => {
+		const project = makeProject({ lint: LINT_MARKING })
+		edit(project, 'src/a.ts')
+		assertPassed(settle(project))
+	})
+
+	it('reports a lint failure and a test failure together', () => {
+		const project = makeProject({ lint: LINT_MARKING_THEN_FAILING, test: { watch: WATCHER_SILENT + ' {status}' } })
+		edit(project, 'src/a.ts')
+		strays.push(scopeState(project).watcherPid as number)
+		writeReport(project, { success: false, numFailedTests: 1, numTotalTests: 4 }, 1_000)
+
+		const reason = assertBlocked(settle(project))
+		assert.match(reason, /1 of 4 tests failing/)
+		assert.match(reason, /lint/)
 	})
 })

@@ -1,5 +1,5 @@
 {
-  "description": "Formats on edit; gates lint and typecheck on stop and on teammate idle",
+  "description": "Formats on edit, watches tests in the background, and gates lint, typecheck and the test verdict on stop and on teammate idle",
   "hooks": {
     "PostToolUse": [
       {
@@ -31,6 +31,17 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/gate.ts\"",
             "timeout": 200
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/gate.ts\"",
+            "timeout": 10
           }
         ]
       }
