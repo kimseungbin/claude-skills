@@ -1,0 +1,10 @@
+{
+  "$comment": "Marks this directory as ESM so Node does not attempt a CommonJS parse of the .ts files first, which emits MODULE_TYPELESS_PACKAGE_JSON and forces a reparse. No dependencies and no install step — the scripts and their tests run on Node's built-in type stripping and node:test.",
+  "name": "polish-permissions-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "test:watch": "node --test --watch"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "$comment": "Copy to .claude/config/polish-permissions.json. Extends the built-in lists; it cannot shrink them.",
+  "plugin_version": "0.1.0",
+  "readonlyBash": [
+    "mycli show *",
+    "mycli status*"
+  ],
+  "readonlyTools": [
+    "mcp__internal__search_docs"
+  ],
+  "mutatingMarkers": [
+    "provision",
+    "rotate"
+  ],
+  "sensitiveReads": [
+    "mycli print-token*",
+    "cat *company-secrets*"
+  ]
+}
