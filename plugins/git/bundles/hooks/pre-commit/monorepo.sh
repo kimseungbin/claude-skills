@@ -1,5 +1,5 @@
 #!/bin/bash
-# plugin_version: 1.0.27
+# plugin_version: 1.0.28
 #
 # Pre-commit hook for monorepo projects
 #
