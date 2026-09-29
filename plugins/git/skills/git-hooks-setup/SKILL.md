@@ -92,7 +92,9 @@ bundles/base/.githooks/
 
 | Hook | Use Case | Validates |
 |------|----------|-----------|
-| `conventional.sh` | Conventional Commits | type(scope): subject |
+| `conventional.sh` | Conventional Commits | `type(scope)!: subject` — types and scopes from `.claude/config/git/commit/main.yaml`, standard types when absent |
+
+`conventional.sh` validates against the same config the commit skill uses. For a project with its own types or scopes, generate that config with `Skill(git:commit-config)` so the hook enforces them.
 
 ## Project Type Recipes
 

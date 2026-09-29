@@ -10,17 +10,16 @@ cp -r bundles/base/.githooks/ .githooks/
 
 # 2. Choose hooks for your project type
 cp bundles/hooks/pre-commit/basic.sh .githooks/pre-commit
-cp bundles/hooks/commit-msg/conventional-config.sh .githooks/commit-msg  # Recommended
+cp bundles/hooks/commit-msg/conventional.sh .githooks/commit-msg
 
 # 3. Make executable
 chmod +x .githooks/*
 
 # 4. Configure git
 git config core.hooksPath .githooks
-
-# 5. Create config (for conventional-config.sh)
-# See .claude/config/conventional-commits/main.yaml
 ```
+
+The commit-msg hook reads the project's types and scopes from `.claude/config/git/commit/main.yaml` (generate it with `Skill(git:commit-config)`), and validates against the standard Conventional Commits types when that file is absent.
 
 ## Bundle Structure
 
@@ -49,8 +48,8 @@ bundles/
 │   │   ├── cdk-safety.sh     # AWS CDK safety checks
 │   │   └── README.md
 │   └── commit-msg/
-│       ├── conventional-config.sh  # Config-based validation (Recommended)
-│       ├── conventional.sh         # Hardcoded English types
+│       ├── conventional.sh       # Conventional Commits, types/scopes from commit config
+│       ├── conventional.test.mts # Tests for conventional.sh
 │       └── README.md
 │
 └── README.md                 # This file
@@ -63,7 +62,7 @@ bundles/
 ```bash
 cp -r bundles/base/.githooks/ .githooks/
 cp bundles/hooks/pre-commit/basic.sh .githooks/pre-commit
-cp bundles/hooks/commit-msg/conventional-config.sh .githooks/commit-msg
+cp bundles/hooks/commit-msg/conventional.sh .githooks/commit-msg
 chmod +x .githooks/pre-commit .githooks/commit-msg
 git config core.hooksPath .githooks
 ```
@@ -73,14 +72,12 @@ git config core.hooksPath .githooks
 - Type checking before commit
 - Config-based commit message validation (supports any language)
 
-**Requires:** `.claude/config/conventional-commits/main.yaml` with `types_quick` and `scopes_quick`
-
 ### Design System / CSS Project
 
 ```bash
 cp -r bundles/base/.githooks/ .githooks/
 cp bundles/hooks/pre-commit/with-stylelint.sh .githooks/pre-commit
-cp bundles/hooks/commit-msg/conventional-config.sh .githooks/commit-msg
+cp bundles/hooks/commit-msg/conventional.sh .githooks/commit-msg
 chmod +x .githooks/pre-commit .githooks/commit-msg
 git config core.hooksPath .githooks
 ```
@@ -106,7 +103,7 @@ node .githooks/scripts/check-contrast.ts    # confirm it finds your pairs
 ```bash
 cp -r bundles/base/.githooks/ .githooks/
 cp bundles/hooks/pre-push/cdk-safety.sh .githooks/pre-push
-cp bundles/hooks/commit-msg/conventional-config.sh .githooks/commit-msg
+cp bundles/hooks/commit-msg/conventional.sh .githooks/commit-msg
 chmod +x .githooks/pre-push .githooks/commit-msg
 git config core.hooksPath .githooks
 ```
@@ -122,7 +119,7 @@ git config core.hooksPath .githooks
 ```bash
 cp -r bundles/base/.githooks/ .githooks/
 cp bundles/hooks/pre-commit/monorepo.sh .githooks/pre-commit
-cp bundles/hooks/commit-msg/conventional-config.sh .githooks/commit-msg
+cp bundles/hooks/commit-msg/conventional.sh .githooks/commit-msg
 chmod +x .githooks/pre-commit .githooks/commit-msg
 git config core.hooksPath .githooks
 ```
@@ -132,22 +129,6 @@ git config core.hooksPath .githooks
 - Build validation across all packages
 - Artifact cleanup
 - Config-based commit validation
-
-### Simple Project (No Config)
-
-For quick setup without config files, use hardcoded English types:
-
-```bash
-cp -r bundles/base/.githooks/ .githooks/
-cp bundles/hooks/pre-commit/basic.sh .githooks/pre-commit
-cp bundles/hooks/commit-msg/conventional.sh .githooks/commit-msg
-chmod +x .githooks/pre-commit .githooks/commit-msg
-git config core.hooksPath .githooks
-```
-
-**What you get:**
-- Standard English commit types (feat, fix, docs, etc.)
-- No config file needed
 
 ## Customization
 

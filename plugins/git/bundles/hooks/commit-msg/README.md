@@ -2,68 +2,44 @@
 
 Commit-msg hooks validate commit messages before finalizing the commit.
 
-## Available Hooks
+## `conventional.sh`
 
-### `conventional.sh`
+Validates the subject line against Conventional Commits, using the same config the commit skill reads.
 
-**For:** Projects following Conventional Commits specification
-
-**Validates:**
-
-- Commit message format: `type(scope): subject`
-- Valid commit types (auto-detected from config or default English types)
-
-**Features:**
-
-- Auto-detects types from `conventional-commits` skill config
-- Supports custom types (Korean, etc.)
-- Falls back to standard Conventional Commits if no config found
-
-**Config detection order:**
-
-1. `.claude/config/conventional-commits/main.yaml` (split config)
-2. `.claude/config/conventional-commits.yaml` (single file)
-3. Default English types (feat, fix, docs, etc.)
-
-**Use when:** Team uses Conventional Commits for changelog generation or semantic versioning.
-
-## Installation
-
-```bash
-# 1. Ensure base bundle is copied first
-cp -r bundles/base/.githooks/ .githooks/
-
-# 2. Copy desired commit-msg hook
-cp bundles/hooks/commit-msg/conventional.sh .githooks/commit-msg
-
-# 3. Make executable
-chmod +x .githooks/commit-msg
-
-# 4. Configure git
-git config core.hooksPath .githooks
+```
+type(scope)!: subject
 ```
 
-## Customization
+| Part | Rule |
+|------|------|
+| `type` | A key of `types_quick` in the config. With no config, or no `types_quick`, the [standard types](#standard-types). |
+| `(scope)` | Optional. When `scopes_quick` lists scopes, it must be one of them; otherwise any scope passes. |
+| `!` | Optional breaking-change marker, as the commit skill writes it. |
+| `subject` | Follows `: ` and is not blank. |
 
-### Adding Custom Types
+Only the subject line is checked — the body and footers are free-form. Git-generated subjects pass untouched: `Merge …`, `Revert "…"`, `fixup! …`, `squash! …`, `amend! …`.
 
-Edit the `pattern` variable in `conventional.sh`:
+### Config
 
-```bash
-# Add 'wip' and 'hotfix' types
-pattern="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|wip|hotfix)(\(.+\))?: .+"
+The hook reads `.claude/config/git/commit/main.yaml` at the repository root — the file `Skill(git:commit-config)` generates. Keys are read at the first indentation level under each section, so both scope shapes in the samples work:
+
+```yaml
+types_quick:
+  feat: "New feature or capability"
+  fix: "Bug fix"
+
+scopes_quick:
+  app: "Application code"          # flat
+  deployment:                      # nested — description, patterns and
+    description: "CI/CD pipelines" # default_type are not read as scopes
+    default_type: "chore"
 ```
 
-### Requiring Scope
+Types and scopes can be in any language (`기능(인증): 로그인 추가`). To add a type or scope, add its key to the config; the hook and the commit skill pick it up together.
 
-Modify the pattern to make scope required:
+### Standard Types
 
-```bash
-# Scope is now required
-pattern="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)\(.+\): .+"
-```
-
-## Valid Commit Types
+Used when the config lists no types.
 
 | Type       | Description                     |
 | ---------- | ------------------------------- |
@@ -78,6 +54,30 @@ pattern="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)\(.+\): 
 | `ci`       | CI/CD changes                   |
 | `chore`    | Other changes                   |
 | `revert`   | Revert previous commit          |
+
+## Installation
+
+```bash
+# 1. Ensure base bundle is copied first
+cp -r bundles/base/.githooks/ .githooks/
+
+# 2. Copy the hook
+cp bundles/hooks/commit-msg/conventional.sh .githooks/commit-msg
+
+# 3. Make executable
+chmod +x .githooks/commit-msg
+
+# 4. Configure git
+git config core.hooksPath .githooks
+```
+
+## Testing
+
+`conventional.test.mts` runs the hook under `/bin/bash` against the shipped config samples:
+
+```bash
+node --test plugins/git/bundles/hooks/commit-msg/conventional.test.mts
+```
 
 ## Bypassing (Emergency)
 

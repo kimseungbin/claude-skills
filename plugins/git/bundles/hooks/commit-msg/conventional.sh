@@ -1,16 +1,20 @@
 #!/bin/bash
-# plugin_version: 1.0.24
+# plugin_version: 1.0.25
 #
 # Commit-msg hook for Conventional Commits validation
 #
-# Validates commit message format:
-# - type(scope): subject
-# - feat(auth): Add OAuth2 support
+# Validates the subject line: type(scope)!: subject
+#   - type:  a key of types_quick, or the standard types when none are configured
+#   - scope: optional; when scopes_quick lists scopes, it must be one of them
+#   - !:     optional breaking-change marker
 #
-# Features:
-# - Auto-detects types from conventional-commits skill config
-# - Falls back to standard Conventional Commits types
-# - Supports custom types (Korean, etc.)
+# Reads the commit skill's config, .claude/config/git/commit/main.yaml
+# (written by Skill(git:commit-config)). Keys are read at the first indentation
+# level under types_quick / scopes_quick, so any indent width and nested scope
+# entries (description:, default_type:) both work.
+#
+# Git-generated subjects pass untouched: Merge ..., Revert "...",
+# fixup! / squash! / amend!.
 #
 # Installation:
 #   1. Copy bundles/base/.githooks/ to your project
@@ -18,6 +22,8 @@
 #   3. chmod +x .githooks/commit-msg
 #   4. git config core.hooksPath .githooks
 #
+# Bypass (emergency only):
+#   git commit --no-verify -m "emergency: Critical fix"
 
 # Script directory and shared lib
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,110 +41,115 @@ else
     NC='\033[0m'
 fi
 
+DEFAULT_TYPES="feat fix docs style refactor perf test build ci chore revert"
+
 # Git passes the commit message file as first argument
 COMMIT_MSG_FILE="$1"
-COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 
-# Extract first line (subject)
-SUBJECT=$(echo "$COMMIT_MSG" | head -1)
+# Subject is the first line that is neither blank nor a git comment
+SUBJECT=$(grep -v -e '^#' -e '^[[:space:]]*$' "$COMMIT_MSG_FILE" | head -n1)
+
+# Nothing to validate — git rejects empty messages itself
+[[ -z "$SUBJECT" ]] && exit 0
+
+# Git-generated subjects
+GENERATED_RE='^(Merge |Revert "|fixup! |squash! |amend! )'
+if [[ "$SUBJECT" =~ $GENERATED_RE ]]; then
+    exit 0
+fi
 
 #############################################
-# Load types from conventional-commits config
+# Load types and scopes from the commit config
 #############################################
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+CONFIG_FILE="$GIT_ROOT/.claude/config/git/commit/main.yaml"
+
+# Print the keys at the first indentation level under a top-level YAML section
+section_keys() {
+    local section="$1"
+    awk -v section="$section" -v q="'" '
+        !in_section { if ($0 ~ "^" section ":") in_section = 1; next }
+        /^[^[:space:]#]/ { exit }
+        /^[[:space:]]*(#|$)/ { next }
+        {
+            match($0, /^[[:space:]]+/)
+            if (indent == "") indent = RLENGTH
+            if (RLENGTH != indent) next
+            key = substr($0, RLENGTH + 1)
+            sub(/:.*/, "", key)
+            gsub(/"/, "", key)
+            gsub(q, "", key)
+            print key
+        }
+    ' "$CONFIG_FILE"
+}
+
 TYPES=""
-TYPES_WITH_DESC=""
-CONFIG_FOUND=false
-
-# Check for split config pattern first
-if [[ -f ".claude/config/conventional-commits/main.yaml" ]]; then
-    CONFIG_FILE=".claude/config/conventional-commits/main.yaml"
-    CONFIG_FOUND=true
-# Check for single file pattern
-elif [[ -f ".claude/config/conventional-commits.yaml" ]]; then
-    CONFIG_FILE=".claude/config/conventional-commits.yaml"
-    CONFIG_FOUND=true
+SCOPES=""
+if [[ -f "$CONFIG_FILE" ]]; then
+    TYPES=$(section_keys types_quick)
+    SCOPES=$(section_keys scopes_quick)
 fi
 
-if [[ "$CONFIG_FOUND" == true ]]; then
-    # Extract types from types_quick section
-    # Format in YAML:
-    #   types_quick:
-    #       기능: '새로운 기능 추가'
-    #       수정: '버그 수정'
-    IN_TYPES_QUICK=false
-    while IFS= read -r line; do
-        # Check if we're entering types_quick section
-        if [[ "$line" =~ ^types_quick: ]]; then
-            IN_TYPES_QUICK=true
-            continue
-        fi
-
-        # Check if we've left the types_quick section (new section starts)
-        if [[ "$IN_TYPES_QUICK" == true && "$line" =~ ^[a-z_]+: && ! "$line" =~ ^[[:space:]] ]]; then
-            break
-        fi
-
-        # Parse type entries (indented lines with colon)
-        if [[ "$IN_TYPES_QUICK" == true && "$line" =~ ^[[:space:]]+([^:]+):[[:space:]]*[\'\"]?([^\'\"]+) ]]; then
-            type_name="${BASH_REMATCH[1]}"
-            type_desc="${BASH_REMATCH[2]}"
-            # Trim whitespace
-            type_name=$(echo "$type_name" | xargs)
-            type_desc=$(echo "$type_desc" | sed "s/['\"]//g" | xargs)
-
-            if [[ -n "$TYPES" ]]; then
-                TYPES="$TYPES|$type_name"
-            else
-                TYPES="$type_name"
-            fi
-            TYPES_WITH_DESC="$TYPES_WITH_DESC  ${GREEN}${type_name}${NC}: $type_desc\n"
-        fi
-    done < "$CONFIG_FILE"
-fi
-
-# Fallback to default Conventional Commits types
+TYPES_SOURCE="$CONFIG_FILE"
 if [[ -z "$TYPES" ]]; then
-    TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
-    TYPES_WITH_DESC="  ${GREEN}feat${NC}:     New feature
-  ${GREEN}fix${NC}:      Bug fix
-  ${GREEN}docs${NC}:     Documentation changes
-  ${GREEN}style${NC}:    Code style changes (formatting)
-  ${GREEN}refactor${NC}: Code refactoring
-  ${GREEN}perf${NC}:     Performance improvement
-  ${GREEN}test${NC}:     Adding or updating tests
-  ${GREEN}build${NC}:    Build system changes
-  ${GREEN}ci${NC}:       CI/CD changes
-  ${GREEN}chore${NC}:    Other changes
-  ${GREEN}revert${NC}:   Revert previous commit"
+    TYPES=$(tr ' ' '\n' <<< "$DEFAULT_TYPES")
+    TYPES_SOURCE="standard Conventional Commits types"
 fi
 
-# Build the pattern
-# Format: type(scope): subject
-pattern="^($TYPES)(\(.+\))?: .+"
+# Exact-match membership in a newline-separated list
+in_list() {
+    local needle="$1" item
+    while IFS= read -r item; do
+        [[ "$item" == "$needle" ]] && return 0
+    done <<< "$2"
+    return 1
+}
 
-if ! echo "$SUBJECT" | grep -qE "$pattern"; then
-    # Buffer available — use it for result-first display
-    if type buffer_start &>/dev/null; then
-        buffer_start
-    fi
+#############################################
+# Validate the subject
+#############################################
+# type, optional (scope), optional !, then ": " and a non-blank subject
+SUBJECT_RE='^([^():! ]+)(\(([^()]+)\))?!?: [^ ]'
 
-    echo ""
-    echo "Your commit message:"
-    echo -e "  ${YELLOW}$SUBJECT${NC}"
-    echo ""
-    echo "Expected format: type(scope): subject"
-    echo ""
-    echo "Valid types:"
-    echo -e "$TYPES_WITH_DESC"
-    echo ""
-    if [[ "$CONFIG_FOUND" == true ]]; then
-        echo -e "${GREEN}(Types loaded from: $CONFIG_FILE)${NC}"
-        echo ""
+PROBLEM=""
+if [[ ! "$SUBJECT" =~ $SUBJECT_RE ]]; then
+    PROBLEM="Subject does not match type(scope): subject"
+else
+    MATCHED_TYPE="${BASH_REMATCH[1]}"
+    MATCHED_SCOPE="${BASH_REMATCH[3]}"
+    if ! in_list "$MATCHED_TYPE" "$TYPES"; then
+        PROBLEM="Unknown type: $MATCHED_TYPE"
+    elif [[ -n "$MATCHED_SCOPE" && -n "$SCOPES" ]] && ! in_list "$MATCHED_SCOPE" "$SCOPES"; then
+        PROBLEM="Unknown scope: $MATCHED_SCOPE"
     fi
-    if type buffer_end &>/dev/null; then
-        buffer_end "${RED}✗ Commit REJECTED: invalid message format${NC}"
-    fi
-    exit 1
 fi
 
-exit 0
+[[ -z "$PROBLEM" ]] && exit 0
+
+# Buffer output so the result appears on the first line
+if type buffer_start &>/dev/null; then
+    buffer_start
+fi
+
+echo ""
+echo -e "  ${RED}${PROBLEM}${NC}"
+echo ""
+echo "Your commit message:"
+echo -e "  ${YELLOW}${SUBJECT}${NC}"
+echo ""
+echo "Expected format: type(scope): subject   (scope and ! are optional)"
+echo ""
+echo "Allowed types (from $TYPES_SOURCE):"
+while IFS= read -r t; do echo -e "  ${GREEN}${t}${NC}"; done <<< "$TYPES"
+if [[ -n "$SCOPES" ]]; then
+    echo ""
+    echo "Allowed scopes (from $CONFIG_FILE):"
+    while IFS= read -r s; do echo -e "  ${GREEN}${s}${NC}"; done <<< "$SCOPES"
+fi
+echo ""
+
+if type buffer_end &>/dev/null; then
+    buffer_end "${RED}✗ Commit REJECTED: invalid message format${NC}"
+fi
+exit 1
