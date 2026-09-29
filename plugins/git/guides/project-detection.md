@@ -32,7 +32,7 @@ Before generating hooks, analyze the project to understand:
 }
 ```
 
-**Hook template**: `pre-commit-monorepo.sh`
+**Bundle**: `pre-commit/monorepo.sh`
 
 ### AWS CDK Project Detection
 
@@ -54,7 +54,7 @@ Before generating hooks, analyze the project to understand:
 }
 ```
 
-**Hook template**: `pre-commit-aws-cdk.sh`
+**Bundle**: `pre-push/cdk-safety.sh`, plus `pre-commit/basic.sh` if the project wants pre-commit checks
 
 ### Frontend Project Detection
 
@@ -66,7 +66,7 @@ Before generating hooks, analyze the project to understand:
 - Angular: `@angular/core` in dependencies
 - Vite/Webpack config files
 
-**Hook template**: `pre-commit-basic.sh` (may add visual regression checks)
+**Bundle**: `pre-commit/basic.sh`, or `pre-commit/with-stylelint.sh` when the project lints CSS with Stylelint or keeps design tokens
 
 ### Backend Project Detection
 
@@ -77,7 +77,7 @@ Before generating hooks, analyze the project to understand:
 - Fastify: `fastify` in dependencies
 - Koa: `koa` in dependencies
 
-**Hook template**: `pre-commit-basic.sh`
+**Bundle**: `pre-commit/basic.sh`
 
 ### TypeScript Project Detection
 
@@ -87,7 +87,7 @@ Before generating hooks, analyze the project to understand:
 - `typescript` in devDependencies
 - `.ts` or `.tsx` files
 
-**Hook additions**: Add `type-check` to pre-commit
+**Hook additions**: Every pre-commit bundle runs `npm run type-check` and blocks on failure, so make sure the script exists (`tsc --noEmit`). A project without TypeScript needs a `type-check` script too, or a custom hook with that step removed.
 
 ## Step 2: Check Available Tooling
 
@@ -298,7 +298,7 @@ project/
 └── package.json
 ```
 
-**Hook strategy**: Include `cdk synth` validation, check for IAM changes
+**Hook strategy**: `pre-push/cdk-safety.sh` runs build, `cdk synth` and `cdk diff` on deployment branches, and blocks replacement of fixed-name resources
 
 ## Detection Workflow Example
 
@@ -339,15 +339,14 @@ function analyzeProject(): ProjectAnalysis {
 
 ## Decision Matrix
 
-| Project Type | TypeScript? | Template               | Pre-commit Checks              | Pre-push Checks       |
-| ------------ | ----------- | ---------------------- | ------------------------------ | --------------------- |
-| Monorepo     | Yes         | pre-commit-monorepo.sh | format, lint, type-check       | build, test:all       |
-| Monorepo     | No          | pre-commit-monorepo.sh | format, lint                   | test:all              |
-| AWS CDK      | Yes         | pre-commit-aws-cdk.sh  | format, lint, type-check, diff | test, synth           |
-| Frontend     | Yes         | pre-commit-basic.sh    | format, lint, type-check       | test, test:e2e, build |
-| Backend      | Yes         | pre-commit-basic.sh    | format, lint, type-check       | test, build           |
-| Simple       | Yes         | pre-commit-basic.sh    | format, lint, type-check       | test                  |
-| Simple       | No          | pre-commit-basic.sh    | format, lint                   | test                  |
+| Project Type        | Pre-commit Bundle              | Pre-commit Checks                             | Pre-push Bundle          |
+| ------------------- | ------------------------------ | --------------------------------------------- | ------------------------ |
+| Monorepo            | `pre-commit/monorepo.sh`       | format, lint, type-check, build               | —                        |
+| AWS CDK             | `pre-commit/basic.sh` (optional) | format, lint, type-check                    | `pre-push/cdk-safety.sh` |
+| CSS / design system | `pre-commit/with-stylelint.sh` | format, lint, Stylelint, token contrast, type-check | —                  |
+| Frontend / Backend  | `pre-commit/basic.sh`          | format, lint, type-check                      | —                        |
+
+Tests (`test`, `test:e2e`) have no bundled hook; put them in a custom pre-push. Add `commit-msg/conventional.sh` to any row for commit message validation.
 
 ## Quick Detection Script
 
@@ -389,7 +388,7 @@ echo -e "\nRecommended template:"
 
 After analyzing the project:
 
-1. Choose appropriate template from `../examples/templates/`
-2. Customize template based on available scripts
+1. Choose a bundle from [../bundles/README.md](../bundles/README.md)
+2. Customize it based on available scripts
 3. Test hook performance (see [testing-hooks.md](testing-hooks.md))
-4. Document choices (see [../decision-tree.md](../decision-tree.md))
+4. Document choices (see [decision-tree.md](decision-tree.md))

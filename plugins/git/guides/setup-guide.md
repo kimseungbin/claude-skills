@@ -62,7 +62,7 @@ git commit -m "test: Verify hooks are working"
 
 **What to expect**:
 
-- You should see hook output (e.g., "Running pre-commit checks...")
+- You should see hook output, led by its result (the bundled hooks print `✓ All pre-commit checks passed` or `✗ Pre-commit FAILED: <step>` first)
 - Hook may auto-fix formatting (Prettier, ESLint)
 - Hook may block commit if validation fails
 - If successful, you'll see the commit hash
@@ -82,11 +82,15 @@ git restore README.md
 If your project has a `commit-msg` hook:
 
 ```bash
-# Try an invalid commit message
+# Rejected by conventional.sh: no type(scope): prefix
 git commit --allow-empty -m "bad message"
 
-# Should be rejected if validation is enabled
+# Accepted when chore is an allowed type, then undo it
+git commit --allow-empty -m "chore: Verify commit-msg hook"
+git reset HEAD~1
 ```
+
+`conventional.sh` checks types and scopes against `.claude/config/git/commit/main.yaml`, so a subject using a scope that config does not list is rejected too.
 
 ### Test Pre-push Hook
 
@@ -179,10 +183,16 @@ See [troubleshooting.md](troubleshooting.md) for common issues and solutions.
 
 ### Hook-Specific Configuration
 
-Some projects may support hook configuration via files:
+The bundled hooks read these files:
 
-- `.githooks/config` - Shell script sourced by hooks
-- `.claude/config/git-hooks.yaml` - YAML configuration for Claude Code-generated hooks
+| File | Read by | Controls |
+|------|---------|----------|
+| `.claude/config/git/commit/main.yaml` | `commit-msg/conventional.sh` | Allowed commit types and scopes (shared with the commit skill) |
+| `.githooks/config/deployment-branches.txt` | `pre-push/cdk-safety.sh` | Branches that get CDK safety checks, one per line |
+| `.githooks/scripts/contrast-limits.yaml` | `pre-commit/with-stylelint.sh` | Token files and WCAG thresholds for the contrast check |
+| `.githooks/scripts/file-size-limits.yaml` | `pre-push/cdk-safety.sh` | File size warning thresholds |
+
+`.claude/config/git-hooks.yaml` is read by the `git-hooks-setup` skill, not by any hook: it shapes the custom hooks the skill generates.
 
 ### Skipping Hooks Temporarily
 
@@ -226,7 +236,6 @@ chmod +x .githooks/*
 
 ## Next Steps
 
-- Read [decision-tree.md](../decision-tree.md) to understand how hooks were chosen
+- Read [decision-tree.md](decision-tree.md) to understand how hooks were chosen
 - See [testing-hooks.md](testing-hooks.md) for testing strategies
-- Check [../examples/templates/](../examples/templates/) for hook templates
-- View [../examples/implementations/](../examples/implementations/) for real-world examples
+- See [../bundles/README.md](../bundles/README.md) for the bundled hooks and recipes by project type

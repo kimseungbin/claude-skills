@@ -92,10 +92,12 @@ The `x` in `-rwxr-xr-x` means executable.
 Commit is blocked with error messages like:
 
 ```
-❌ Linting failed. Fix the issues above.
-❌ Type checking failed. Fix type errors above.
-❌ Build failed. Fix compilation errors above.
+✗ Pre-commit FAILED: linting
+✗ Pre-commit FAILED: type checking
+✗ Pre-commit FAILED: build
 ```
+
+The first line names the failed step; the output below it shows the tool's errors.
 
 ### Expected Behavior
 
@@ -315,7 +317,7 @@ You updated `.claude/config/git-hooks.yaml` but hook behavior didn't change.
 
 ### Cause
 
-Hook script doesn't read configuration file, or was generated before config existed.
+No hook reads `.claude/config/git-hooks.yaml`. The `git-hooks-setup` skill reads it when it generates custom hooks, so an edit takes effect only once the hooks are regenerated.
 
 ### Solution
 
@@ -410,4 +412,4 @@ git config core.fileMode false
 
 - Review [setup-guide.md](setup-guide.md) for initial setup
 - See [testing-hooks.md](testing-hooks.md) for testing strategies
-- Check [../decision-tree.md](../decision-tree.md) for hook selection logic
+- Check [decision-tree.md](decision-tree.md) for hook selection logic
