@@ -51,7 +51,6 @@ bundles/
 │   └── commit-msg/
 │       ├── conventional-config.sh  # Config-based validation (Recommended)
 │       ├── conventional.sh         # Hardcoded English types
-│       ├── skill-enforcement.sh    # Enforce Claude skill usage
 │       └── README.md
 │
 └── README.md                 # This file
@@ -149,21 +148,6 @@ git config core.hooksPath .githooks
 **What you get:**
 - Standard English commit types (feat, fix, docs, etc.)
 - No config file needed
-
-### Claude Code Team Project
-
-```bash
-cp -r bundles/base/.githooks/ .githooks/
-cp bundles/hooks/pre-commit/basic.sh .githooks/pre-commit
-cp bundles/hooks/commit-msg/skill-enforcement.sh .githooks/commit-msg
-chmod +x .githooks/pre-commit .githooks/commit-msg
-git config core.hooksPath .githooks
-```
-
-**What you get:**
-- Standard pre-commit checks
-- Enforces use of conventional-commits skill
-- Ensures consistent commit quality
 
 ## Customization
 

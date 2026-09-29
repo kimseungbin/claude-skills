@@ -1,5 +1,5 @@
 #!/bin/bash
-# plugin_version: 1.0.23
+# plugin_version: 1.0.24
 #
 # Commit-msg hook for Conventional Commits validation
 #

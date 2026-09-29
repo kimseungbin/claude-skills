@@ -428,7 +428,7 @@ Free-text "Other" is the fastest edit path — treat typed text as the replaceme
 
 **5g. Footers**
 
-Footers follow the body, one per line, ordered: `BREAKING CHANGE:`, issue references, `Co-authored-by:`, `Skill: commit`.
+Footers follow the body, one per line, ordered: `BREAKING CHANGE:`, issue references, `Co-authored-by:`.
 
 **The breaking-change marker, when 5e confirmed one.** Conventional Commits accepts two forms — a `!` before the colon (`feat(api)!:`) and a `BREAKING CHANGE:` footer — and tooling support for each varies by generator. `breaking_changes.marker` selects which to write; `both` is the default because it is the only setting every conventional-commits version bumper recognizes:
 
@@ -557,6 +557,5 @@ guides/index.md ──→ Quick quality check
 ## Notes
 
 - Match project's existing commit style (if history exists; otherwise use Conventional Commits defaults)
-- Add `Skill: commit` footer
 - Breaking changes are detected in **5e** and marked in **5g** — detect semantically from the diff, fire C7 only on named evidence, and keep the `BREAKING CHANGE:` token in English so version bumpers still parse it.
 - Issue footers are specified in **5g** — `Closes #N` when the commit finishes the issue, `Refs #N` only when it does not. Do not default to `Refs`.

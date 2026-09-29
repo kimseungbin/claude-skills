@@ -93,7 +93,6 @@ bundles/base/.githooks/
 | Hook | Use Case | Validates |
 |------|----------|-----------|
 | `conventional.sh` | Conventional Commits | type(scope): subject |
-| `skill-enforcement.sh` | Claude Code teams | Skill footer tag |
 
 ## Project Type Recipes
 

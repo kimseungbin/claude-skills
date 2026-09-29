@@ -27,19 +27,6 @@ Commit-msg hooks validate commit messages before finalizing the commit.
 
 **Use when:** Team uses Conventional Commits for changelog generation or semantic versioning.
 
----
-
-### `skill-enforcement.sh`
-
-**For:** Teams using Claude Code's commit skill
-
-**Validates:**
-
-- Presence of `Skill: commit` footer in commit message
-- Ensures all commits are created via the skill, not manually
-
-**Use when:** You want to ensure consistent commit quality by requiring the skill.
-
 ## Installation
 
 ```bash
@@ -54,27 +41,6 @@ chmod +x .githooks/commit-msg
 
 # 4. Configure git
 git config core.hooksPath .githooks
-```
-
-## Combining Hooks
-
-You can combine multiple commit-msg validations:
-
-```bash
-#!/bin/bash
-# .githooks/commit-msg
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Run conventional commits validation
-source "$SCRIPT_DIR/validators/conventional.sh" "$1"
-if [ $? -ne 0 ]; then exit 1; fi
-
-# Run skill enforcement
-source "$SCRIPT_DIR/validators/skill-enforcement.sh" "$1"
-if [ $? -ne 0 ]; then exit 1; fi
-
-exit 0
 ```
 
 ## Customization
@@ -95,18 +61,6 @@ Modify the pattern to make scope required:
 ```bash
 # Scope is now required
 pattern="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)\(.+\): .+"
-```
-
-### Custom Footer Tags
-
-For skill-enforcement, you can check for different tags:
-
-```bash
-# Check for your custom tag
-if ! echo "$COMMIT_MSG" | grep -q "My-Footer-Tag:"; then
-    # Block commit
-    exit 1
-fi
 ```
 
 ## Valid Commit Types
