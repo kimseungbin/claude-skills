@@ -143,23 +143,20 @@ If splitting, fire **C2**.
 
 **When:** Step 3 produced 2+ commit groups.
 
-The plan table goes in the `question` field. Do NOT output it as plain text — it must go through AskUserQuestion so the user can respond inline.
+Write the plan as a markdown table in your response text, immediately before the call. The chat renders markdown tables with aligned columns; the `question` field renders in a proportional font and wraps, so a table drawn inside it breaks apart.
+
+```markdown
+| # | Type  | Scope   | Files                           | Description              |
+|---|-------|---------|---------------------------------|--------------------------|
+| 1 | chore | deps    | package.json, package-lock.json | Add new dependencies     |
+| 2 | feat  | crawler | packages/crawler/**             | New crawler package      |
+| 3 | docs  | project | docs/backlogs/*.md              | Backlog docs for crawler |
+```
+
+The decision itself still goes through AskUserQuestion, with the table referenced rather than repeated:
 
 ````yaml
-question: |
-  Planned {N} commits:
-
-  ┌─────┬──────────┬──────────┬────────────────────────────────────────┬──────────────────────────┐
-  │  #  │   Type   │  Scope   │                 Files                  │       Description        │
-  ├─────┼──────────┼──────────┼────────────────────────────────────────┼──────────────────────────┤
-  │ 1   │ chore    │ deps     │ package.json, package-lock.json        │ Add new dependencies     │
-  ├─────┼──────────┼──────────┼────────────────────────────────────────┼──────────────────────────┤
-  │ 2   │ feat     │ crawler  │ packages/crawler/**                    │ New crawler package      │
-  ├─────┼──────────┼──────────┼────────────────────────────────────────┼──────────────────────────┤
-  │ 3   │ docs     │ project  │ docs/backlogs/*.md                     │ Backlog docs for crawler │
-  └─────┴──────────┴──────────┴────────────────────────────────────────┴──────────────────────────┘
-
-  Commit as planned?
+question: "Commit the {N} groups in the plan above?"
 header: "Split plan"
 multiSelect: false
 options:
