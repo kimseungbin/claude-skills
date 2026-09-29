@@ -10,100 +10,77 @@ Skills in this repository are designed to be generic and reusable. When you need
 
 **Pattern: External Config Files**
 
-Skills can optionally read from `.claude/config/<skill-name>.yaml` for project-specific settings. This keeps shared skills unchanged while allowing project customization.
+Skills read optional project config from `.claude/config/`. A single-skill plugin uses `.claude/config/<skill-name>.yaml`; a plugin with several skills nests by plugin and skill, as the git plugin does with `.claude/config/git/commit/main.yaml`. Each skill's `SKILL.md` names its exact path.
 
 **Example Structure:**
 
 ```
 .claude/
-├── skills/
-│   └── conventional-commits/     # Installed via marketplace (generic)
 └── config/
-    └── conventional-commits.yaml # Project-specific config (real file)
+    ├── git/
+    │   └── commit/
+    │       └── main.yaml                    # commit skill
+    ├── codebase-index.yaml                  # codebase-index plugin
+    └── korean-technical-translator.yaml     # korean-technical-translator plugin
 ```
+
+The skills themselves are installed via the marketplace and live outside the project; only the config files are committed to it.
 
 ### How It Works
 
 1. **Installed skills remain unchanged** - Managed by the marketplace
 2. **Config files are project-specific** - Real files committed to your project repo
-3. **Skills check for config files** - If `.claude/config/<skill-name>.yaml` exists, skill uses it
+3. **Skills check for config files** - When a skill's config file exists, the skill follows it; otherwise it uses its built-in defaults
 
-## Example: Conventional Commits Skill
+## Example: The Commit Skill
 
-**Generic skill (installed via marketplace):**
-
-```yaml
-# skills/conventional-commits/SKILL.md
----
-name: Conventional Commits
-description: Create commits following Conventional Commits specification
----
-
-# Conventional Commits
-
-Follow the Conventional Commits specification:
-- Use format: type(scope): message
-- Keep subject line under 72 characters
-- Use imperative mood
-- Support multi-commit splitting
-
-## Project-Specific Rules
-
-If `.claude/config/conventional-commits.yaml` exists, also follow those rules.
-If the config file doesn't exist, create it when the user specifies project rules.
-```
-
-**Project-specific config:**
+The git plugin's `commit` skill writes Conventional Commits. Without config it uses the standard types; with `.claude/config/git/commit/main.yaml` it follows the project's own types, scopes and language:
 
 ```yaml
-# .claude/config/conventional-commits.yaml
+# .claude/config/git/commit/main.yaml
 project: my-awesome-project
-ticket_format: 'JIRA-{number}'
-required_prefix: true
-custom_types:
-    - feat: New feature
-    - fix: Bug fix
-    - docs: Documentation only
-    - perf: Performance improvement
-approvers:
-    - '@tech-lead'
-branch_rules:
-    main:
-        - Require ticket number
-        - Require approval
-    develop:
-        - Optional ticket number
+language: en              # en | mixed | ko
+
+types_quick:
+  feat: "New feature or capability"
+  fix: "Bug fix"
+  docs: "Documentation only"
+  chore: "Maintenance, tooling, dependencies"
+
+scopes_quick:
+  app: "Application code"
+  deployment:
+    description: "CI/CD pipelines"
+    default_type: "chore"   # skip type deliberation for this scope
 ```
+
+`Skill(git:commit-config)` generates this file from the samples in `plugins/git/config/samples/`, and the `commit-msg/conventional.sh` git hook validates commit messages against the same `types_quick` and `scopes_quick`.
 
 ## Creating Config Files
 
 **When Claude encounters project-specific requirements:**
 
-1. **User specifies project rules**: "For this project, all commits must include a ticket number in format PROJ-XXX"
+1. **User specifies project rules**: "For this project, write commit subjects in Korean and add an `infra` scope"
 
 2. **Claude should**:
-    - Check if `.claude/config/<skill-name>.yaml` exists
-    - If not, create the config file with project-specific settings
-    - If exists, update with new rules
+    - Check whether the skill's config file exists
+    - If not, create it with the project-specific settings (for the commit skill, run `Skill(git:commit-config)`)
+    - If it exists, update it with the new rules
 
-3. **Example workflow**:
+3. **Example result**:
 
-    ```bash
-    # Claude creates the config directory if needed
-    mkdir -p .claude/config
+    ```yaml
+    # .claude/config/git/commit/main.yaml (excerpt)
+    language: mixed           # type/scope in English, subject in Korean
 
-    # Claude creates/updates the config file
-    cat > .claude/config/conventional-commits.yaml <<EOF
-    project: my-project
-    ticket_format: "PROJ-{number}"
-    required_ticket: true
-    EOF
+    scopes_quick:
+      infra: "Infrastructure code"
     ```
 
 4. **Commit the config file**:
     ```bash
     git add .claude/config/
-    git commit -m "Add project-specific commit rules"
+    git commit -m "chore(config): Add project-specific commit rules"
     ```
 
 ## Benefits of This Approach
@@ -143,48 +120,59 @@ This skill can be customized per-project using `.claude/config/<skill-name>.yaml
 
 ## Common Configuration Patterns
 
-### Ticket/Issue Tracking
+### Skipping Diffs of Generated Files
+
+The commit skill never loads diffs matching `never_read`, and flags a derived file that changed without its source:
 
 ```yaml
-# .claude/config/conventional-commits.yaml
-ticket_format: 'JIRA-{number}'
-required_ticket: true
-ticket_regex: '^[A-Z]+-\d+$'
+# .claude/config/git/commit/main.yaml
+diff_policy:
+  never_read:
+    - "package-lock.json"
+    - "**/__snapshots__/**"
+  commit_with:
+    "package-lock.json": "package.json"
 ```
 
-### Branch-Specific Rules
+### Breaking-Change Detection
+
+Tell the commit skill what counts as breaking in this project, and which paths have no consumer-facing surface:
 
 ```yaml
-# .claude/config/git-strategy.yaml
-branch_rules:
-  main:
-    - require_approval
-    - require_tests
-  develop:
-    - require_tests
-  feature/*:
-    - optional_tests
+# .claude/config/git/commit/main.yaml
+breaking_changes:
+  detect: true
+  marker: both            # both | footer | bang
+  hints:
+    - "A config key was removed, renamed, or became required"
+  exempt_paths:
+    - "**/*.test.*"
+    - "docs/**"
 ```
 
-### Project-Type Configuration
+### Tool Preferences
 
 ```yaml
-# .claude/config/maintaining-documentation.yaml
-project_type: cdk-infrastructure
-documentation_scope:
-  - CLAUDE.md
-  - README.md
-  - docs/architecture.md
-update_triggers:
-  - construct_changes
-  - resource_additions
+# .claude/config/doc-generator.yaml
+document_pdf_tool: md-to-pdf
+slides_tool: marp-cli
 ```
 
 ## Config File Location
 
-**Config file location:** `.claude/config/<skill-name>.yaml`
+**Config file location:** `.claude/config/`, at the path each skill documents.
 
-All project-specific configuration files should be placed in the `.claude/config/` directory with the naming convention `<skill-name>.yaml`.
+| Skill | Config file |
+|-------|-------------|
+| git: `commit`, `commit-config` | `.claude/config/git/commit/main.yaml` |
+| git: `git-hooks-setup` | `.claude/config/git-hooks.yaml` |
+| codebase-index | `.claude/config/codebase-index.yaml` |
+| korean-technical-translator | `.claude/config/korean-technical-translator.yaml` |
+| cdk-expert | `.claude/config/cdk-expert.yaml` |
+| lint-gate | `.claude/config/lint-gate.json` |
+| github-pr-management | `.claude/config/pull-request-management.yaml` |
+| doc-generator | `.claude/config/doc-generator.yaml` |
+| git-strategy | `.claude/config/git-strategy.md` |
 
 ## Version Control
 

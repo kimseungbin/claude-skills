@@ -46,17 +46,23 @@ This makes all skills and plugins available in your project automatically.
 
 Skills in this repository are designed to be generic and reusable. When you need project-specific customizations, use external config files instead of modifying the installed skills.
 
-Skills can optionally read from `.claude/config/<skill-name>.yaml` for project-specific settings. This keeps shared skills unchanged while allowing project customization.
+Skills can optionally read project-specific settings from `.claude/config/` — `<skill-name>.yaml` for most skills, or a nested path such as `git/commit/main.yaml` for the git plugin's commit skill. This keeps shared skills unchanged while allowing project customization.
 
 **📖 See [Configuration Guide](docs/configuration.md) for detailed examples and patterns.**
 
-Quick example:
+Quick example — the commit skill's types and scopes (`Skill(git:commit-config)` generates the full file):
 
 ```yaml
-# .claude/config/conventional-commits.yaml
+# .claude/config/git/commit/main.yaml
 project: my-awesome-project
-ticket_format: 'JIRA-{number}'
-required_prefix: true
+language: en
+
+types_quick:
+  feat: "New feature or capability"
+  fix: "Bug fix"
+
+scopes_quick:
+  app: "Application code"
 ```
 
 
