@@ -20,7 +20,6 @@ Skills read optional project config from `.claude/config/`. A single-skill plugi
     ├── git/
     │   └── commit/
     │       └── main.yaml                    # commit skill
-    ├── codebase-index.yaml                  # codebase-index plugin
     └── korean-technical-translator.yaml     # korean-technical-translator plugin
 ```
 
@@ -166,7 +165,6 @@ slides_tool: marp-cli
 |-------|-------------|
 | git: `commit`, `commit-config` | `.claude/config/git/commit/main.yaml` |
 | git: `git-hooks-setup` | `.claude/config/git-hooks.yaml` |
-| codebase-index | `.claude/config/codebase-index.yaml` |
 | korean-technical-translator | `.claude/config/korean-technical-translator.yaml` |
 | cdk-expert | `.claude/config/cdk-expert.yaml` |
 | lint-gate | `.claude/config/lint-gate.json` |

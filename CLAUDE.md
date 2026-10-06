@@ -28,7 +28,6 @@ claude-skills/
 │   └── skill-creator/
 ├── plugins/                        # Standalone plugins
 │   ├── cdk-expert/
-│   ├── codebase-index/
 │   ├── git/
 │   ├── github-issue-writer/
 │   ├── github-pr-management/
