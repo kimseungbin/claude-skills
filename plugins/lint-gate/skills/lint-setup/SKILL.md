@@ -135,5 +135,5 @@ If you scoped `lint` with `{files}`, report the pre-existing failure count you m
 ## What this skill does not do
 
 - **It does not set or change lint rules.** Which rules a project enforces is a project decision.
-- **It does not fix existing lint failures.** Wiring the gate up may reveal a backlog of them; report the count and let the user decide whether to fix, ratchet, or defer.
+- **It does not fix existing lint failures.** Wiring the gate up may reveal a backlog of them; report the count and let the user decide whether to fix them, scope `lint` with `{files}` (Step 3b), or defer. There is no baseline mode that ignores known findings project-wide, so do not offer one.
 - **It does not touch CI.** If CI runs a different command than the one recorded here, say so — that drift is worth knowing about — but changing CI is a separate decision.
