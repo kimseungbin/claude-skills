@@ -17,9 +17,10 @@ lint-gate runs commands; it does not choose them. This wires it up.
 Do not skip this. Adding a second linter to a project that has one, or a dependency tree to a project that deliberately has none, is damage rather than setup.
 
 ```bash
-ls package.json deno.json* biome.json* .prettierrc* prettier.config.* \
-   eslint.config.* .eslintrc* .editorconfig ruff.toml pyproject.toml Cargo.toml go.mod 2>/dev/null
+ls -A | grep -iE '^(package\.json|deno\.jsonc?|biome\.jsonc?|\.prettierrc.*|prettier\.config\..*|eslint\.config\..*|\.eslintrc.*|\.oxlintrc.*|\.editorconfig|ruff\.toml|pyproject\.toml|Cargo\.toml|go\.mod)$'
 ```
+
+Run it as written. Shell globs like `deno.json*` look equivalent, but under zsh, the macOS default, one pattern that matches nothing aborts the whole command with no output — which reads as "no tooling here" and leads straight to installing a second linter.
 
 Then read `package.json`'s `scripts` and `devDependencies` if it exists. What you are answering:
 
