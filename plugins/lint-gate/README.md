@@ -77,6 +77,32 @@ Projects on Node's built-in test runner use the reporter shipped in `reporters/`
 
 `{file}` and `{files}` are distinct: `{file}` is the single edited path and belongs in `format`, which runs per edit; `{files}` is the accumulated list and belongs in `lint`, which runs at the end.
 
+## Monorepos: several checks per key
+
+One command per key does not describe a workspaces monorepo. Packages typecheck with different tools — `tsc` in one, `svelte-check` in another — and a linter configured for one package, like `stylelint` for the UI, errors on files anywhere else. Chaining them with `&&` hides every failure after the first, and pays for every package's checker on every task.
+
+`lint` and `typecheck` therefore also accept a list. Every entry runs and every failure is reported:
+
+```json
+{
+  "lint": [
+    "npm run lint",
+    { "command": "npx stylelint {files}", "when": "workspaces/admin/**" }
+  ],
+  "typecheck": [
+    { "command": "npm run typecheck -w api", "when": "workspaces/api/**" },
+    { "command": "npm run check -w admin", "when": "workspaces/admin/**" }
+  ]
+}
+```
+
+- **`when`** is a glob, relative to the project root, that a path edited this session must match. A check whose package nothing touched does not run — the difference between a gate that costs seconds and one slow enough to be switched off. Brace alternatives span packages: `workspaces/{api,shared}/**`.
+- **`{files}` in a `when` check gets only the matching paths**, which is what lets a package-scoped linter be handed only files it is configured for.
+- An entry without `when` — a bare string or `{ "command": … }` — runs whenever the gate does, exactly like the single-string form, which keeps working unchanged.
+- A malformed entry is dropped, including one whose `when` is not a non-empty string. Running it everywhere instead would run the check the project said applies only somewhere.
+
+`format` stays a single command. It runs per edit on one file, and a formatter that needs per-package config already resolves it from the file's location.
+
 ## The two loop guards
 
 A blocking hook that fires repeatedly will bounce an agent forever if it reports something the agent cannot fix. Two guards prevent that:

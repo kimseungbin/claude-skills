@@ -670,6 +670,63 @@ for (const trigger of ['Stop', 'TeammateIdle'] as const) {
 	})
 }
 
+describe('a monorepo with per-package checks', () => {
+	const config = {
+		typecheck: [
+			{ command: 'printf api >> ran.txt; exit 1', when: 'packages/api/**' },
+			{ command: 'printf admin >> ran.txt; exit 1', when: 'packages/admin/**' },
+		],
+		lint: [{ command: String.raw`printf '%s\n' {files} > received.txt`, when: 'packages/admin/**' }],
+	}
+
+	it('runs only the checks for packages the session touched', () => {
+		const project = makeProject(config)
+		touch(project, 'packages/admin/App.svelte')
+		touch(project, 'packages/api/a.ts')
+		edit(project, 'packages/admin/App.svelte')
+
+		assertBlocked(settle(project))
+
+		assert.equal(evidence(project, RAN), 'admin', 'the untouched package must not pay for its checker')
+	})
+
+	it('reports every failing check rather than stopping at the first', () => {
+		const project = makeProject(config)
+		touch(project, 'packages/admin/App.svelte')
+		touch(project, 'packages/api/a.ts')
+		edit(project, 'packages/admin/App.svelte')
+		edit(project, 'packages/api/a.ts')
+
+		const reason = assertBlocked(settle(project))
+
+		assert.equal(evidence(project, RAN), 'apiadmin')
+		assert.match(reason, /2 checks failed/)
+		assert.match(reason, /printf api/)
+		assert.match(reason, /printf admin/)
+	})
+
+	it('hands a package-scoped {files} check only that package’s paths', () => {
+		const project = makeProject(config)
+		touch(project, 'packages/admin/a.css')
+		touch(project, 'packages/api/a.ts')
+		edit(project, 'packages/api/a.ts')
+		edit(project, 'packages/admin/a.css')
+
+		settle(project)
+
+		assert.deepEqual(pathsSeenBy(project), ['packages/admin/a.css'])
+	})
+
+	it('runs nothing when the session edited outside every package', () => {
+		const project = makeProject(config)
+		touch(project, 'README.md')
+		edit(project, 'README.md')
+
+		assertPassed(settle(project))
+		assertDidNotRun(project)
+	})
+})
+
 describe('stale recorded paths', () => {
 	it('filters out a path that has since been deleted', () => {
 		const project = makeProject({ lint: LINT_ECHOING_FILES })
@@ -1028,7 +1085,7 @@ describe('fails open', () => {
 			['a JSON string', '"eslint ."'],
 			['JSON null', 'null'],
 			['a number', '7'],
-			['an object of non-strings', { lint: 42, typecheck: ['tsc'], format: null }],
+			['an object of non-strings', { lint: 42, typecheck: [42, null, { cmd: 'tsc' }, { command: 'tsc', when: 7 }], format: null }],
 			['blank commands', { lint: '   ', typecheck: '', format: '\t' }],
 			['only unknown keys', { test: 'exit 1', check: 'exit 1' }],
 			['an empty object', {}],

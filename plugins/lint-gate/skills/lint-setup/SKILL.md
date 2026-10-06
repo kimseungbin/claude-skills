@@ -17,7 +17,7 @@ lint-gate runs commands; it does not choose them. This wires it up.
 Do not skip this. Adding a second linter to a project that has one, or a dependency tree to a project that deliberately has none, is damage rather than setup.
 
 ```bash
-ls -A | grep -iE '^(package\.json|deno\.jsonc?|biome\.jsonc?|\.prettierrc.*|prettier\.config\..*|eslint\.config\..*|\.eslintrc.*|\.oxlintrc.*|\.editorconfig|ruff\.toml|pyproject\.toml|Cargo\.toml|go\.mod)$'
+ls -A | grep -iE '^(package\.json|deno\.jsonc?|biome\.jsonc?|\.prettierrc.*|prettier\.config\..*|eslint\.config\..*|\.eslintrc.*|\.oxlintrc.*|\.editorconfig|ruff\.toml|pyproject\.toml|Cargo\.toml|go\.mod|pnpm-workspace\.yaml)$'
 ```
 
 Run it as written. Shell globs like `deno.json*` look equivalent, but under zsh, the macOS default, one pattern that matches nothing aborts the whole command with no output — which reads as "no tooling here" and leads straight to installing a second linter.
@@ -27,6 +27,7 @@ Then read `package.json`'s `scripts` and `devDependencies` if it exists. What yo
 - **Which ecosystem is this?** Node, Deno, Python, Rust, Go — the answer decides everything downstream.
 - **Is there already a linter or formatter?** If yes, your job is Step 3 only.
 - **Does the project have dependencies at all?** A repo with no `package.json`, or one with an empty `devDependencies`, may be zero-dependency **on purpose**. Adding `eslint` there is a decision for the user, not for you.
+- **Is it a workspaces monorepo?** If so, the packages may check themselves with different tools — Step 3d.
 - **Is there an existing script name?** `npm run lint` is worth more than a raw `npx eslint .` — it survives the project changing tools.
 
 ## Step 2: Only if nothing exists — propose, do not install
@@ -106,6 +107,28 @@ Two things to check before writing `{files}`:
 - **The command must accept paths as trailing arguments.** `npm run lint {files}` does not — npm needs `npm run lint -- {files}`, and the underlying script must not already pin its own path (`eslint .` ignores anything you append). Verify in Step 4, not by assumption.
 - **Never put `{files}` in `typecheck`.** `tsc --noEmit` needs the whole program; individual paths break `tsconfig` resolution and silently change what is checked — it will appear to pass. The hook honors whatever you write, so this rule is yours to keep. If the user asks for a scoped typecheck anyway, say plainly that it would report less than it appears to, and leave `typecheck` project-wide.
 
+### Step 3d: In a monorepo, list the checks per package
+
+If `package.json` has `workspaces` (or there is a `pnpm-workspace.yaml`), check each package's own scripts before writing a single command. When packages genuinely differ — one typechecks with `tsc`, another with `svelte-check`; `stylelint` is configured for one package and errors outside it — do not pick one and drop the rest. Write a list, with `when` naming the package:
+
+```json
+{
+  "lint": [
+    "npm run lint",
+    { "command": "npx stylelint {files}", "when": "workspaces/admin/**" }
+  ],
+  "typecheck": [
+    { "command": "npm run typecheck -w api", "when": "workspaces/api/**" },
+    { "command": "npm run check -w admin", "when": "workspaces/admin/**" }
+  ]
+}
+```
+
+- **Every entry runs and every failure is reported.** Never chain with `&&` instead — the first failure hides the rest.
+- **`when` is a glob relative to the project root.** The check runs only if a path edited this session matches it, and `{files}` in that check gets only the matching paths. Use brace alternatives for a check that spans packages: `workspaces/{api,shared}/**`.
+- **A package with no checker gets no entry.** Say which packages are ungated in Step 5, as with any omitted check.
+- **Leave out `when` when a check is genuinely repo-wide**, like a root `npm run lint` that already covers every package.
+
 ## Step 4: Verify the commands actually run
 
 A config you have not executed is not done. Run each one exactly as written:
@@ -125,6 +148,8 @@ npx eslint --no-warn-ignored path/to/a/real/file.ts; echo "exit=$?"
 ```
 
 If it exits 0 on a file you know has problems, the placeholder is being ignored — the command is pinned to its own path somewhere, and the gate would silently never fire.
+
+For a list, verify every entry the same way, and run each `when` check from the project root — that is where the gate runs it, not the package directory.
 
 ## Step 5: Report
 

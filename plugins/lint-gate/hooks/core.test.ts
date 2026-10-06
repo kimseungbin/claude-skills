@@ -185,7 +185,7 @@ describe('resolveConfig', () => {
 	it('drops a known key whose value is not a string', () => {
 		assert.deepEqual(resolveConfig({ format: FORMAT, lint: 42 }), { format: FORMAT })
 		assert.deepEqual(resolveConfig({ lint: null, typecheck: TYPECHECK }), { typecheck: TYPECHECK })
-		assert.deepEqual(resolveConfig({ lint: ['eslint', '.'] }), {})
+		assert.deepEqual(resolveConfig({ lint: [42, null, ['eslint', '.']] }), {})
 		assert.deepEqual(resolveConfig({ typecheck: { cmd: TYPECHECK } }), {})
 		assert.deepEqual(resolveConfig({ format: true }), {})
 	})
@@ -443,7 +443,7 @@ describe('tracksEditedFiles', () => {
 	 * rather than the config is what makes that fall out for free.
 	 */
 	it('is false for a scoped command commandsFor would drop', () => {
-		assert.equal(tracksEditedFiles({ lint: ['eslint', '{files}'] as unknown as string }), false)
+		assert.equal(tracksEditedFiles({ lint: [{ command: 'eslint {files}', when: '' }] }), false)
 		assert.equal(tracksEditedFiles({ lint: 42 as unknown as string, typecheck: '  ' }), false)
 		assert.equal(tracksEditedFiles(resolveConfig({ lint: { cmd: 'eslint {files}' } })), false)
 	})
@@ -966,6 +966,169 @@ describe('scopeCommands', () => {
 
 	it('is pure — the same inputs give the same result', () => {
 		assert.deepEqual(scopeIn([scoped], ['src/a.ts']), scopeIn([scoped], ['src/a.ts']))
+	})
+})
+
+/**
+ * A monorepo cannot describe its checks with one command per key: packages
+ * typecheck with different tools, and a linter configured for one package errors
+ * on files anywhere else.
+ */
+describe('lists of checks', () => {
+	const API = 'npm run typecheck -w api'
+	const ADMIN = 'npm run check -w admin'
+	const STYLES = 'stylelint {files}'
+
+	describe('resolveConfig', () => {
+		it('keeps a list, reading a bare string entry as a check', () => {
+			assert.deepEqual(resolveConfig({ typecheck: [API, { command: ADMIN }] }), {
+				typecheck: [{ command: API }, { command: ADMIN }],
+			})
+		})
+
+		it('keeps a when glob', () => {
+			assert.deepEqual(resolveConfig({ lint: [{ command: STYLES, when: 'workspaces/admin/**' }] }), {
+				lint: [{ command: STYLES, when: 'workspaces/admin/**' }],
+			})
+		})
+
+		it('keeps a plain string as a plain string', () => {
+			assert.deepEqual(resolveConfig({ lint: LINT, typecheck: [API] }), { lint: LINT, typecheck: [{ command: API }] })
+		})
+
+		it('drops malformed entries and keeps their valid siblings', () => {
+			const raw = [42, null, '', '  ', [API], { cmd: API }, { command: '' }, { command: 42 }, API]
+			assert.deepEqual(resolveConfig({ typecheck: raw }), { typecheck: [{ command: API }] })
+		})
+
+		/**
+		 * Running it unconditionally would run a check the project said applies only
+		 * somewhere — the kind that fails on files outside its package.
+		 */
+		it('drops an entry whose when is not a usable glob rather than running it everywhere', () => {
+			for (const when of ['', '   ', 42, null, ['a/**'], {}]) {
+				assert.deepEqual(resolveConfig({ lint: [{ command: STYLES, when }] }), {}, `must drop when=${JSON.stringify(when)}`)
+			}
+		})
+
+		it('drops the key when no entry survives', () => {
+			assert.deepEqual(resolveConfig({ lint: [], typecheck: [null, { command: ' ' }] }), {})
+		})
+
+		it('does not accept a list for format, which runs per edit on one file', () => {
+			assert.deepEqual(resolveConfig({ format: [FORMAT] }), {})
+		})
+	})
+
+	describe('commandsFor', () => {
+		it('schedules every entry, lint before typecheck, in the order listed', () => {
+			const config: GateConfig = { typecheck: [{ command: API }, { command: ADMIN }], lint: [{ command: LINT }, { command: STYLES }] }
+			assert.deepEqual(commandsFor('Stop', config), [
+				{ name: 'lint', command: LINT },
+				{ name: 'lint', command: STYLES },
+				{ name: 'typecheck', command: API },
+				{ name: 'typecheck', command: ADMIN },
+			])
+		})
+
+		it('carries when only on the entries that set it', () => {
+			const config: GateConfig = { typecheck: [{ command: API, when: 'workspaces/api/**' }, { command: ADMIN }] }
+			assert.deepEqual(commandsFor('Stop', config), [
+				{ name: 'typecheck', command: API, when: 'workspaces/api/**' },
+				{ name: 'typecheck', command: ADMIN },
+			])
+		})
+
+		it('mixes a plain lint with a list typecheck', () => {
+			assert.deepEqual(commandsFor('TeammateIdle', { lint: LINT, typecheck: [{ command: API }] }), [
+				{ name: 'lint', command: LINT },
+				{ name: 'typecheck', command: API },
+			])
+		})
+
+		it('drops malformed entries even from a config that was never resolved', () => {
+			const config = { lint: [{ command: ' ' }, { command: LINT, when: '' }, null, { command: STYLES }] } as unknown as GateConfig
+			assert.deepEqual(commandsFor('Stop', config), [{ name: 'lint', command: STYLES }])
+		})
+
+		it('never puts a list entry into PostToolUse', () => {
+			assert.deepEqual(commandsFor('PostToolUse', { lint: [{ command: LINT }] }), [])
+		})
+	})
+
+	describe('tracksEditedFiles', () => {
+		it('is true for a when check, which needs the edited paths to decide whether to run', () => {
+			assert.equal(tracksEditedFiles({ typecheck: [{ command: API, when: 'workspaces/api/**' }] }), true)
+		})
+
+		it('is true for a {files} entry in a list', () => {
+			assert.equal(tracksEditedFiles({ lint: [{ command: LINT }, { command: STYLES }] }), true)
+		})
+
+		it('is false for a list of project-wide checks', () => {
+			assert.equal(tracksEditedFiles({ typecheck: [{ command: API }, { command: ADMIN }] }), false)
+		})
+	})
+
+	describe('scopeCommands with when', () => {
+		const api = { name: 'typecheck', command: API, when: 'workspaces/api/**' }
+		const admin = { name: 'typecheck', command: ADMIN, when: 'workspaces/admin/**' }
+
+		it('runs only the checks whose glob an edited path matches', () => {
+			assert.deepEqual(scopeIn([api, admin], ['workspaces/admin/src/App.svelte']), [{ name: 'typecheck', command: ADMIN }])
+		})
+
+		it('runs each check whose package was touched', () => {
+			assert.deepEqual(
+				scopeIn([api, admin], ['workspaces/api/src/a.ts', 'workspaces/admin/src/App.svelte']).map((c) => c.command),
+				[API, ADMIN],
+			)
+		})
+
+		it('runs none of them when nothing was edited', () => {
+			assert.deepEqual(scopeIn([api, admin], []), [])
+		})
+
+		it('leaves a check without when running as before', () => {
+			assert.deepEqual(scopeIn([api, { name: 'lint', command: LINT }], ['README.md']), [{ name: 'lint', command: LINT }])
+		})
+
+		/** The case that motivated `when`: stylelint errors on files outside the one package it is configured for. */
+		it('hands a {files} check only the paths its glob matches', () => {
+			const styles = { name: 'lint', command: 'printf [%s] {files}', when: 'workspaces/admin/**' }
+			const [entry] = scopeIn([styles], ['workspaces/api/a.ts', 'workspaces/admin/a.css', 'workspaces/admin/b.svelte'])
+			assert.equal(runInShell(entry.command), '[workspaces/admin/a.css][workspaces/admin/b.svelte]')
+		})
+
+		it('matches an absolute in-project path against the root-relative glob', () => {
+			assert.deepEqual(scopeIn([admin], [`${ROOT}/workspaces/admin/a.ts`]).map((c) => c.command), [ADMIN])
+		})
+
+		it('supports brace alternatives for a check that spans packages', () => {
+			const shared = { name: 'typecheck', command: API, when: 'workspaces/{api,shared}/**' }
+			assert.deepEqual(scopeIn([shared], ['workspaces/shared/x.ts']).map((c) => c.command), [API])
+			assert.deepEqual(scopeIn([shared], ['workspaces/admin/x.ts']), [])
+		})
+
+		it('never matches an out-of-project path, even one a broad glob would accept', () => {
+			assert.deepEqual(scopeIn([{ name: 'lint', command: LINT, when: '**' }], [OUTSIDE]), [])
+		})
+
+		it('drops when checks against a junk root, as it does {files} checks', () => {
+			assert.deepEqual(scopeCommands([admin], ['workspaces/admin/a.ts'], '' as never), [])
+		})
+
+		it('emits exactly a name and a command once when is applied', () => {
+			for (const entry of scopeIn([api, admin], ['workspaces/api/a.ts', 'workspaces/admin/a.ts'])) {
+				assert.deepEqual(Object.keys(entry).sort(), ['command', 'name'])
+			}
+		})
+	})
+
+	it('signs same-named failures independently of their order', () => {
+		const a = fail('typecheck', API, 'error in api')
+		const b = fail('typecheck', ADMIN, 'error in admin')
+		assert.equal(failureSignature([a, b]), failureSignature([b, a]))
 	})
 })
 

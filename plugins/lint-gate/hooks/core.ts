@@ -28,12 +28,40 @@ export interface TestWatchConfig {
 	watch: string
 }
 
-/** Project commands. Absent means "not configured", never "use a default". */
+/**
+ * One Stop-time check, for a project where a single command cannot describe it —
+ * a monorepo whose packages typecheck with different tools, or a linter
+ * configured for one package that errors on files anywhere else.
+ *
+ * `when` is a glob, relative to the project root, that an edited path must
+ * match for the check to run at all; `{files}` in such a check then expands to
+ * the matching paths only. Without it the check runs whenever the gate does.
+ */
+export interface Check {
+	command: string
+	when?: string
+}
+
+/**
+ * Project commands. Absent means "not configured", never "use a default".
+ *
+ * `lint` and `typecheck` are a single command or a list of checks, every one of
+ * which runs and reports — `&&`-chaining would hide every failure after the
+ * first. `format` stays single: it runs per edit, on one file, and a project
+ * that needs per-package formatting has a formatter that already resolves it.
+ */
 export interface GateConfig {
 	format?: string
-	lint?: string
-	typecheck?: string
+	lint?: string | Check[]
+	typecheck?: string | Check[]
 	test?: TestWatchConfig
+}
+
+/** A command scheduled for a trigger, still carrying its `when` until it is scoped. */
+export interface ScheduledCommand {
+	name: string
+	command: string
+	when?: string
 }
 
 export interface CommandResult {
@@ -45,7 +73,7 @@ export interface CommandResult {
 
 export type Decision = { block: false } | { block: true; reason: string }
 
-const CONFIG_KEYS = ['format', 'lint', 'typecheck'] as const
+const CHECK_KEYS = ['lint', 'typecheck'] as const
 
 const TRIGGERS: readonly Trigger[] = ['PostToolUse', 'Stop', 'TeammateIdle', 'SessionEnd']
 
@@ -63,9 +91,16 @@ export function resolveConfig(raw: unknown): GateConfig {
 	const source = raw as Record<string, unknown>
 	const config: GateConfig = {}
 
-	for (const key of CONFIG_KEYS) {
+	if (isCommand(source.format)) config.format = source.format
+
+	for (const key of CHECK_KEYS) {
 		const value = source[key]
-		if (typeof value === 'string' && value.trim() !== '') config[key] = value
+		if (isCommand(value)) {
+			config[key] = value
+		} else if (Array.isArray(value)) {
+			const checks = checksIn(value)
+			if (checks.length > 0) config[key] = checks
+		}
 	}
 
 	const test = source.test
@@ -91,16 +126,40 @@ export function resolveConfig(raw: unknown): GateConfig {
  * only run once an agent believes it has finished. Formatting is a pure
  * syntactic transform and is safe on anything that parses.
  */
-export function commandsFor(trigger: Trigger, config: GateConfig): Array<{ name: string; command: string }> {
-	const wanted: Array<keyof GateConfig> = trigger === 'PostToolUse' ? ['format'] : ['lint', 'typecheck']
-
+export function commandsFor(trigger: Trigger, config: GateConfig): ScheduledCommand[] {
 	// Blank is dropped here as well as in resolveConfig. GateConfig cannot
 	// express "non-blank", so trusting a caller to have resolved it is an
 	// invariant held only by convention — and an empty command reaching the
 	// runner fails, which would produce a block from a config typo.
-	return wanted
-		.filter((name) => typeof config[name] === 'string' && (config[name] as string).trim() !== '')
-		.map((name) => ({ name, command: config[name] as string }))
+	if (trigger === 'PostToolUse') return isCommand(config.format) ? [{ name: 'format', command: config.format }] : []
+
+	return CHECK_KEYS.flatMap((name) => {
+		const value = config[name]
+		const checks = isCommand(value) ? [{ command: value }] : Array.isArray(value) ? checksIn(value) : []
+		return checks.map(({ command, when }) => (when === undefined ? { name, command } : { name, command, when }))
+	})
+}
+
+function isCommand(value: unknown): value is string {
+	return typeof value === 'string' && value.trim() !== ''
+}
+
+/**
+ * A malformed entry is dropped whole, including one whose `when` is not a
+ * usable glob. Running it unconditionally instead would run a check the project
+ * said only applies somewhere — exactly the kind that fails on files outside its
+ * package — and block the agent over a config typo.
+ */
+function checksIn(entries: unknown[]): Check[] {
+	return entries.flatMap((entry): Check[] => {
+		if (isCommand(entry)) return [{ command: entry }]
+		if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return []
+
+		const { command, when } = entry as Record<string, unknown>
+		if (!isCommand(command)) return []
+		if (when === undefined) return [{ command }]
+		return isCommand(when) ? [{ command, when }] : []
+	})
 }
 
 /**
@@ -144,7 +203,7 @@ export function usesEditedFiles(command: string): boolean {
  * command that would never run.
  */
 export function tracksEditedFiles(config: GateConfig): boolean {
-	return commandsFor('Stop', config).some(({ command }) => usesEditedFiles(command))
+	return commandsFor('Stop', config).some(({ command, when }) => when !== undefined || usesEditedFiles(command))
 }
 
 /**
@@ -214,9 +273,14 @@ function withinRoot(root: string, filePath: string): boolean {
  * runs nothing rather than something wrong. Commands without the placeholder pass
  * through untouched, so a project that never asked for scoping keeps today's
  * project-wide behavior.
+ *
+ * A check with `when` runs only if an edited path matches its glob, and its
+ * `{files}` gets only those paths. That is what lets a monorepo gate stay fast —
+ * a package's checker is not paid for when nothing in the package changed — and
+ * what keeps a package-scoped linter from being handed files it errors on.
  */
 export function scopeCommands(
-	commands: Array<{ name: string; command: string }>,
+	commands: ScheduledCommand[],
 	editedFiles: string[],
 	root: string,
 ): Array<{ name: string; command: string }> {
@@ -236,11 +300,24 @@ export function scopeCommands(
 				.filter((file) => bounded && withinRoot(root, file)),
 		),
 	]
-	const joined = paths.map(shellQuote).join(' ')
 
-	return (Array.isArray(commands) ? commands : [])
-		.filter(({ command }) => !usesEditedFiles(command) || paths.length > 0)
-		.map(({ name, command }) => (usesEditedFiles(command) ? { name, command: fill(command, FILES_TOKEN, joined) } : { name, command }))
+	return (Array.isArray(commands) ? commands : []).flatMap(({ name, command, when }) => {
+		const matched = when === undefined ? paths : paths.filter((file) => matchesWhen(root, file, when))
+		if (when !== undefined && matched.length === 0) return []
+		if (!usesEditedFiles(command)) return [{ name, command }]
+		if (matched.length === 0) return []
+		return [{ name, command: fill(command, FILES_TOKEN, matched.map(shellQuote).join(' ')) }]
+	})
+}
+
+/**
+ * Matched against the path relative to the root, with `/` separators, so a glob
+ * is written the same way whatever the platform and however the path was
+ * recorded. Only ever called on paths already shown to be inside the root.
+ */
+function matchesWhen(root: string, filePath: string, when: string): boolean {
+	const relative = path.relative(root, path.resolve(root, filePath)).split(path.sep).join('/')
+	return path.posix.matchesGlob(relative, when)
 }
 
 /**
@@ -381,9 +458,14 @@ export function failureSignature(results: CommandResult[]): string {
 			command: String(result.command ?? ''),
 			output: String(result.output ?? '').trim(),
 		}))
-		.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+		// By command too: a list config gives several failures the same name.
+		.sort((a, b) => compare(a.name, b.name) || compare(a.command, b.command))
 
 	return createHash('sha256').update(JSON.stringify(failures)).digest('hex')
+}
+
+function compare(a: string, b: string): number {
+	return a < b ? -1 : a > b ? 1 : 0
 }
 
 function buildReason(failures: CommandResult[]): string {
