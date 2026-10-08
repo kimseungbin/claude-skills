@@ -49,8 +49,8 @@
     {
       "name": "lint-gate",
       "source": "./plugins/lint-gate",
-      "description": "Formats each edit and gates lint and typecheck until an agent believes it is finished, so intermediate states are never reported as defects",
-      "version": "0.1.11"
+      "description": "Formats each edit and, when an agent believes it is finished, runs the checks its edits made owed — scoped by file, build unit or verdict — so intermediate states are never reported as defects and nobody else's backlog blocks the turn",
+      "version": "0.2.0"
     },
     {
       "name": "agent-team",

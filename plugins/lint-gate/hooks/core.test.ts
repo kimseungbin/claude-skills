@@ -1,75 +1,78 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 
 import {
-	commandsFor,
-	decide,
+	conclude,
 	failureSignature,
 	formatCommand,
+	judgeByExit,
+	judgeEdited,
+	matchesWhen,
+	planChecks,
 	resolveConfig,
-	scopeCommands,
 	testVerdict,
-	tracksEditTime,
 	verdictAsResult,
 	watchCommand,
-	tracksEditedFiles,
-	usesEditedFiles,
+	withinRoot,
+	type Check,
+	type CheckResult,
+	type Location,
+	type RunOutcome,
+	type Trigger,
 } from './core.ts'
-import type { CommandResult, Decision, GateConfig, Trigger } from './core.ts'
+import { parseOutput, type Diagnostic } from './parsers.ts'
 
 const FORMAT = 'prettier --write'
-const LINT = 'eslint .'
-const TYPECHECK = 'tsc --noEmit'
-
-const FULL: GateConfig = { format: FORMAT, lint: LINT, typecheck: TYPECHECK }
 
 const SANDBOX = mkdtempSync(`${tmpdir()}/lint-gate-quoting-`)
 
 /**
- * The project root the scoping cases resolve against.
+ * The checkout root the planning cases resolve against.
  *
  * `/tmp` because every hostile-path fixture below is already rooted there, so
- * those cases stay about quoting rather than about bounding; relative entries
- * like `src/a.ts` resolve under it too.
+ * those cases stay about quoting rather than about bounding.
  */
 const ROOT = '/tmp'
 
 /** Somewhere Claude Code legitimately writes that no project command can check. */
 const OUTSIDE = '/Users/someone/.claude/plans/refactor-the-gate.md'
 
-function fail(name: string, command: string, output: string): CommandResult {
-	return { name, command, ok: false, output }
+/** A resolved check with every default filled, for tests that build checks directly. */
+function check(overrides: Partial<Check> & Pick<Check, 'name' | 'scope'>): Check {
+	return { when: null, cwd: '', report: 'all', timeoutSec: 180, ...overrides }
 }
 
-function pass(name: string, command: string, output = ''): CommandResult {
-	return { name, command, ok: true, output }
+const BASE = { name: 'lint', command: 'eslint {files}', root: ROOT }
+
+function fail(name: string, output: string, extra: Partial<CheckResult> = {}): CheckResult {
+	return { name, command: `${name}-command`, root: ROOT, ok: false, output, ...extra }
 }
 
-function decideFor(
-	results: CommandResult[],
-	options: { trigger?: Trigger; alreadyBlocked?: string[]; stopHookActive?: boolean } = {},
-): Decision {
-	return decide({
+function pass(name: string, output = '', extra: Partial<CheckResult> = {}): CheckResult {
+	return { name, command: `${name}-command`, root: ROOT, ok: true, output, ...extra }
+}
+
+function concludeFor(
+	results: CheckResult[],
+	options: { trigger?: Trigger; alreadyBlocked?: string[]; alreadyNotified?: string[]; stopHookActive?: boolean; notes?: string[] } = {},
+) {
+	return conclude({
 		trigger: options.trigger ?? 'Stop',
 		results,
 		alreadyBlocked: options.alreadyBlocked ?? [],
+		alreadyNotified: options.alreadyNotified ?? [],
 		stopHookActive: options.stopHookActive,
+		notes: options.notes,
 	})
 }
 
-function assertPassed(d: Decision, message?: string): void {
-	assert.equal(d.block, false, message ?? `expected no block, got: ${JSON.stringify(d)}`)
-}
-
-function assertBlocked(d: Decision, message?: string): string {
-	assert.equal(d.block, true, message ?? 'expected a block, got none')
-	const reason = (d as { block: true; reason: string }).reason
-	assert.equal(typeof reason, 'string', 'a block must carry a string reason')
-	assert.ok(reason.length > 0, 'a block reason must not be empty')
-	return reason
+function assertBlocked(conclusion: { block: string | null }, message?: string): string {
+	assert.equal(typeof conclusion.block, 'string', message ?? 'expected a block, got none')
+	assert.ok((conclusion.block as string).length > 0, 'a block reason must not be empty')
+	return conclusion.block as string
 }
 
 /**
@@ -97,19 +100,13 @@ function shellSees(base: string, filePath: string): string {
 	return runInShell(formatCommand(base, filePath))
 }
 
-/**
- * `scopeCommands` with a project root supplied, for the cases that are not about
- * bounding. Cases that *are* pass one explicitly.
- */
-function scopeIn(commands: unknown, editedFiles: unknown, root: unknown = ROOT): Array<{ name: string; command: string }> {
-	return scopeCommands(commands as never, editedFiles as never, root as never)
-}
-
-/** What a shell sees for the path list a `{files}` command is narrowed to. */
-function shellSeesScoped(base: string, editedFiles: unknown[]): string {
-	const [entry] = scopeIn([{ name: 'lint', command: base }], editedFiles as string[])
-	assert.ok(entry, `scopeCommands dropped a command it was supposed to fill: ${base}`)
-	return runInShell(entry.command)
+/** What a shell sees for the file list a `files` check is planned with. Paths are given root-relative. */
+function shellSeesPlanned(base: string, relativeFiles: string[]): string {
+	const [planned] = planChecks([check({ name: 'lint', scope: 'files', command: base })], [
+		{ root: ROOT, files: relativeFiles.map((file) => `${ROOT}/${file}`) },
+	])
+	assert.ok(planned, `planChecks dropped a check it was supposed to fill: ${base}`)
+	return runInShell(planned.command)
 }
 
 function assertPathSurvivesShell(filePath: string, message?: string): void {
@@ -119,12 +116,6 @@ function assertPathSurvivesShell(filePath: string, message?: string): void {
 /**
  * Three distinct ways a path can escape its quoting: word splitting, breaking the
  * quoting scheme itself, and outright execution.
- *
- * Every path in this file funnels into the same `shellQuote`, so only the sweep
- * below re-proves that function against the full table. The suites that reach it
- * through a second route — a placeholder, a joined list — use these three, because
- * what those suites are actually asserting is that the route reaches `shellQuote`
- * at all, and a route that mangles a space mangles a backtick too.
  */
 const REPRESENTATIVE_PATHS: Array<[string, string]> = [
 	['a space', '/tmp/my file.ts'],
@@ -169,306 +160,309 @@ const HOSTILE_PATHS: Array<[string, string]> = [
 /** The representatives plus the paths that only a substituted token can mangle. */
 const SUBSTITUTED_PATHS: Array<[string, string]> = [...REPRESENTATIVE_PATHS, ...REPLACEMENT_PATTERN_PATHS]
 
+/** Root-relative form of a `/tmp/…` fixture path, as a `files` check receives it. */
+function underRoot(filePath: string): string {
+	return filePath.replace(/^\/tmp\//, '')
+}
+
+// ---------------------------------------------------------------------------
+// config
+// ---------------------------------------------------------------------------
+
 describe('resolveConfig', () => {
-	it('keeps all three valid string fields', () => {
-		assert.deepEqual(resolveConfig({ format: FORMAT, lint: LINT, typecheck: TYPECHECK }), FULL)
+	const files = { name: 'lint', scope: 'files', command: 'eslint {files}' }
+	const program = { name: 'typecheck', scope: 'program', command: 'tsc --noEmit' }
+	const unit = { name: 'test', scope: 'unit', command: 'npm test' }
+
+	it('keeps format and a list of checks, filling the defaults', () => {
+		const { config, problems } = resolveConfig({ format: FORMAT, checks: [files, program, unit] })
+		assert.deepEqual(problems, [])
+		assert.equal(config.format, FORMAT)
+		assert.deepEqual(config.checks, [
+			{ name: 'lint', scope: 'files', command: 'eslint {files}', when: null, cwd: '', report: 'all', timeoutSec: 180 },
+			{ name: 'typecheck', scope: 'program', command: 'tsc --noEmit', when: null, cwd: '', report: 'all', timeoutSec: 180 },
+			{ name: 'test', scope: 'unit', command: 'npm test', when: null, cwd: '', report: 'all', timeoutSec: 180 },
+		])
 	})
 
-	it('keeps a partial config', () => {
-		assert.deepEqual(resolveConfig({ lint: LINT }), { lint: LINT })
+	it('keeps every optional field it was given', () => {
+		const { config, problems } = resolveConfig({
+			checks: [
+				{
+					name: 'typecheck:api',
+					scope: 'program',
+					command: 'npx tsc --noEmit --pretty false -p .',
+					when: ['workspaces/{api,shared}/**', 'package-lock.json'],
+					cwd: 'workspaces/api/',
+					report: 'edited',
+					parse: 'tsc',
+					timeoutSec: 300,
+				},
+			],
+		})
+		assert.deepEqual(problems, [])
+		assert.deepEqual(config.checks[0], {
+			name: 'typecheck:api',
+			scope: 'program',
+			command: 'npx tsc --noEmit --pretty false -p .',
+			when: ['workspaces/{api,shared}/**', 'package-lock.json'],
+			cwd: 'workspaces/api',
+			report: 'edited',
+			parse: 'tsc',
+			timeoutSec: 300,
+		})
 	})
 
-	it('drops unknown extra keys', () => {
-		assert.deepEqual(resolveConfig({ lint: LINT, test: 'vitest run', $comment: 'notes' }), { lint: LINT })
+	it('reads a single when glob as a one-element list', () => {
+		assert.deepEqual(resolveConfig({ checks: [{ ...files, when: 'src/**' }] }).config.checks[0].when, ['src/**'])
 	})
 
-	it('drops a known key whose value is not a string', () => {
-		assert.deepEqual(resolveConfig({ format: FORMAT, lint: 42 }), { format: FORMAT })
-		assert.deepEqual(resolveConfig({ lint: null, typecheck: TYPECHECK }), { typecheck: TYPECHECK })
-		assert.deepEqual(resolveConfig({ lint: [42, null, ['eslint', '.']] }), {})
-		assert.deepEqual(resolveConfig({ typecheck: { cmd: TYPECHECK } }), {})
-		assert.deepEqual(resolveConfig({ format: true }), {})
+	it('keeps a watch command on a unit check', () => {
+		const watch = 'npx vitest --watch --reporter=json --outputFile={status}'
+		const { config, problems } = resolveConfig({ checks: [{ name: 'test', scope: 'unit', watch }] })
+		assert.deepEqual(problems, [])
+		assert.equal(config.checks[0].watch, watch)
+		assert.equal(config.checks[0].command, undefined)
 	})
 
-	describe('fail open — junk degrades to "run nothing", never a throw', () => {
-		const junk: Array<[string, unknown]> = [
+	it('accepts an absent format and checks as "nothing configured"', () => {
+		assert.deepEqual(resolveConfig({}), { config: { checks: [] }, problems: [] })
+	})
+
+	it('accepts the shipped sample config without a single problem', () => {
+		const sample = JSON.parse(readFileSync(new URL('../config/samples/lint-gate.json', import.meta.url), 'utf8')) as unknown
+		const { config, problems } = resolveConfig(sample)
+		assert.deepEqual(problems, [])
+		assert.ok(config.checks.length > 0)
+	})
+
+	it('allows a $comment key, which the shipped sample uses', () => {
+		assert.deepEqual(resolveConfig({ $comment: ['notes'], checks: [] }).problems, [])
+	})
+
+	describe('reports what it ignores, and ignores it whole', () => {
+		const dropped: Array<[string, unknown, RegExp]> = [
+			['a files check without {files}', { ...files, command: 'eslint .' }, /no \{files\}/],
+			['a program check with {files}', { ...program, command: 'tsc {files}' }, /runs whole/],
+			['a unit check with {files}', { ...unit, command: 'vitest related {files}' }, /runs whole/],
+			['a check using {file}', { ...files, command: 'eslint {file} {files}' }, /belongs to `format`/],
+			['an unknown scope', { ...files, scope: 'lint' }, /scope/],
+			['a missing scope', { name: 'x', command: 'x {files}' }, /scope/],
+			['a missing name', { scope: 'unit', command: 'x' }, /no name/],
+			['a blank name', { ...unit, name: '  ' }, /no name/],
+			['both command and watch', { ...unit, watch: 'x {status}' }, /exactly one/],
+			['neither command nor watch', { name: 'x', scope: 'unit' }, /exactly one/],
+			['a blank command', { ...unit, command: '  ' }, /blank/],
+			['a watch on a program check', { name: 'x', scope: 'program', watch: 'x {status}' }, /only a "unit"/],
+			['a watch without {status}', { name: 'x', scope: 'unit', watch: 'vitest --watch' }, /\{status\}/],
+			['{status} in a command', { ...unit, command: 'x > {status}' }, /\{status\}/],
+			['an empty when list', { ...files, when: [] }, /when/],
+			['a non-string when', { ...files, when: 7 }, /when/],
+			['a blank when entry', { ...files, when: ['src/**', ' '] }, /when/],
+			['an absolute cwd', { ...unit, cwd: '/etc' }, /cwd/],
+			['a cwd escaping the checkout', { ...unit, cwd: 'a/../../b' }, /cwd/],
+			['an unknown report', { ...program, report: 'new' }, /report/],
+			['report edited on a files check', { ...files, report: 'edited', parse: 'tsc' }, /only a "program"/],
+			['report edited without parse', { ...program, report: 'edited' }, /parse/],
+			['report edited with an unknown parser', { ...program, report: 'edited', parse: 'eslint' }, /parse/],
+			['parse without report edited', { ...program, parse: 'tsc' }, /without `report: "edited"`/],
+			['a zero timeout', { ...unit, timeoutSec: 0 }, /timeoutSec/],
+			['a string timeout', { ...unit, timeoutSec: '60' }, /timeoutSec/],
+			['an unknown field', { ...unit, always: true }, /unknown field `always`/],
+			['a string entry', 'eslint .', /not an object/],
+			['a null entry', null, /not an object/],
+		]
+
+		for (const [label, entry, reason] of dropped) {
+			it(`drops ${label}`, () => {
+				const { config, problems } = resolveConfig({ checks: [entry, unit] })
+				assert.deepEqual(
+					config.checks.map((kept) => kept.name),
+					['test'],
+					'the malformed check must be dropped and its valid sibling kept',
+				)
+				assert.equal(problems.length, 1, `expected one problem, got ${JSON.stringify(problems)}`)
+				assert.match(problems[0], reason)
+			})
+		}
+	})
+
+	it('drops a second check with the same name, keeping the first', () => {
+		const { config, problems } = resolveConfig({ checks: [unit, { ...unit, command: 'npm run other' }] })
+		assert.deepEqual(config.checks.map((kept) => kept.command), ['npm test'])
+		assert.match(problems[0], /repeats the name "test"/)
+	})
+
+	it('names each retired key and how to migrate it', () => {
+		const { config, problems } = resolveConfig({ lint: 'npm run lint', typecheck: 'tsc', test: { watch: 'x {status}' } })
+		assert.deepEqual(config.checks, [])
+		assert.equal(problems.length, 3)
+		for (const [index, key] of ['lint', 'typecheck', 'test'].entries()) {
+			assert.match(problems[index], new RegExp(`\`${key}\` is no longer a lint-gate key`))
+			assert.match(problems[index], /\/lint-setup/)
+		}
+	})
+
+	it('names an unknown key without dropping the rest', () => {
+		const { config, problems } = resolveConfig({ checks: [unit], extra: true })
+		assert.equal(config.checks.length, 1)
+		assert.deepEqual(problems, ['`extra` is not a lint-gate key and is ignored'])
+	})
+
+	it('reports a non-list checks', () => {
+		assert.match(resolveConfig({ checks: { lint: 'x' } }).problems[0], /must be a list/)
+	})
+
+	it('reports a blank format and runs no formatter', () => {
+		const { config, problems } = resolveConfig({ format: '  ' })
+		assert.equal(config.format, undefined)
+		assert.match(problems[0], /format/)
+	})
+
+	describe('fails open — junk degrades to "run nothing", never a throw', () => {
+		for (const [label, raw] of [
 			['null', null],
 			['undefined', undefined],
-			['a string', 'lint: eslint .'],
+			['a string', 'eslint .'],
 			['a number', 42],
-			['a boolean', false],
-			['an array', []],
-			['an array of strings', ['eslint .']],
-			['NaN', Number.NaN],
-			['a function', () => LINT],
-		]
-
-		for (const [label, raw] of junk) {
-			it(`yields an empty config for ${label}`, () => {
-				assert.deepEqual(resolveConfig(raw), {})
+			['an array', [{ name: 'x' }]],
+		] as Array<[string, unknown]>) {
+			it(`yields no checks for ${label}`, () => {
+				const { config } = resolveConfig(raw)
+				assert.deepEqual(config, { checks: [] })
 			})
-		}
-	})
-
-	it('returns a config usable by commandsFor without further checks', () => {
-		assert.deepEqual(commandsFor('Stop', resolveConfig('nonsense')), [])
-		assert.deepEqual(commandsFor('PostToolUse', resolveConfig(null)), [])
-	})
-})
-
-describe('commandsFor', () => {
-	describe('PostToolUse — formatting only', () => {
-		it('runs format alone even when lint and typecheck are configured', () => {
-			assert.deepEqual(commandsFor('PostToolUse', FULL), [{ name: 'format', command: FORMAT }])
-		})
-
-		it('runs nothing when format is not configured', () => {
-			assert.deepEqual(commandsFor('PostToolUse', { lint: LINT, typecheck: TYPECHECK }), [])
-		})
-
-		it('runs nothing for an empty config', () => {
-			assert.deepEqual(commandsFor('PostToolUse', {}), [])
-		})
-	})
-
-	for (const trigger of ['Stop', 'TeammateIdle'] as const) {
-		describe(`${trigger} — lint then typecheck, never format`, () => {
-			it('orders lint before typecheck', () => {
-				assert.deepEqual(commandsFor(trigger, FULL), [
-					{ name: 'lint', command: LINT },
-					{ name: 'typecheck', command: TYPECHECK },
-				])
-			})
-
-			it('keeps that order when the config lists them the other way round', () => {
-				const reversed: GateConfig = { typecheck: TYPECHECK, lint: LINT }
-				assert.deepEqual(commandsFor(trigger, reversed).map((c) => c.name), ['lint', 'typecheck'])
-			})
-
-			it('never includes format', () => {
-				const names = commandsFor(trigger, FULL).map((c) => c.name)
-				assert.equal(names.includes('format'), false, 'a post-read rewrite makes the next edit miss')
-			})
-
-			it('omits lint when it is not configured', () => {
-				assert.deepEqual(commandsFor(trigger, { format: FORMAT, typecheck: TYPECHECK }), [
-					{ name: 'typecheck', command: TYPECHECK },
-				])
-			})
-
-			it('omits typecheck when it is not configured', () => {
-				assert.deepEqual(commandsFor(trigger, { format: FORMAT, lint: LINT }), [{ name: 'lint', command: LINT }])
-			})
-
-			it('runs nothing when only format is configured', () => {
-				assert.deepEqual(commandsFor(trigger, { format: FORMAT }), [])
-			})
-
-			it('runs nothing for an empty config', () => {
-				assert.deepEqual(commandsFor(trigger, {}), [])
-			})
-		})
-	}
-
-	/**
-	 * `GateConfig` cannot express "non-blank", so `commandsFor` must not rely on having
-	 * been handed a `resolveConfig` result. A blank command reaches the runner, fails,
-	 * and produces a block — the gate punishing the agent for a config typo.
-	 */
-	describe('blank commands are not commands', () => {
-		const blanks: Array<[string, string]> = [
-			['an empty string', ''],
-			['a single space', ' '],
-			['spaces', '    '],
-			['a tab', '\t'],
-			['a newline', '\n'],
-			['mixed whitespace', ' \t\n '],
-		]
-
-		for (const [label, blank] of blanks) {
-			it(`drops a format of ${label}`, () => {
-				assert.deepEqual(commandsFor('PostToolUse', { format: blank }), [])
-			})
-		}
-
-		for (const trigger of ['Stop', 'TeammateIdle'] as const) {
-			for (const [label, blank] of blanks) {
-				it(`drops a lint of ${label} on ${trigger}`, () => {
-					assert.deepEqual(commandsFor(trigger, { lint: blank, typecheck: TYPECHECK }), [
-						{ name: 'typecheck', command: TYPECHECK },
-					])
-				})
-
-				it(`drops a typecheck of ${label} on ${trigger}`, () => {
-					assert.deepEqual(commandsFor(trigger, { lint: LINT, typecheck: blank }), [
-						{ name: 'lint', command: LINT },
-					])
-				})
-			}
-
-			it(`yields nothing on ${trigger} when both are blank`, () => {
-				assert.deepEqual(commandsFor(trigger, { lint: '', typecheck: '   ' }), [])
-			})
-		}
-
-		it('never emits an entry whose command is blank', () => {
-			const junk: GateConfig = { format: ' ', lint: '', typecheck: '\t' }
-			for (const trigger of ['PostToolUse', 'Stop', 'TeammateIdle'] as const) {
-				for (const entry of commandsFor(trigger, junk)) {
-					assert.fail(`${trigger} emitted a blank command: ${JSON.stringify(entry)}`)
-				}
-			}
-		})
-
-		/**
-		 * Trim answers "is this blank?" and is then thrown away. What runs is what
-		 * the project configured — a module that silently rewrites configured values
-		 * stops being predictable from the config file.
-		 */
-		it('keeps a padded command verbatim rather than mistaking it for blank', () => {
-			assert.deepEqual(commandsFor('Stop', { lint: '  eslint .  ' }), [{ name: 'lint', command: '  eslint .  ' }])
-		})
-
-		it('does not rewrite a command that is already unpadded', () => {
-			assert.deepEqual(commandsFor('PostToolUse', { format: FORMAT }), [{ name: 'format', command: FORMAT }])
-		})
-	})
-
-	it('names each command after the config key it came from', () => {
-		for (const entry of commandsFor('Stop', FULL)) {
-			assert.equal(entry.command, FULL[entry.name as keyof GateConfig], `${entry.name} must carry its own command`)
-		}
-		assert.equal(commandsFor('PostToolUse', FULL)[0]?.name, 'format')
-	})
-
-	it('does not leak the config object into the result entries', () => {
-		const config: GateConfig = { lint: LINT }
-		const [entry] = commandsFor('Stop', config)
-		assert.deepEqual(Object.keys(entry as object).sort(), ['command', 'name'])
-	})
-})
-
-describe('usesEditedFiles', () => {
-	it('recognises the placeholder', () => {
-		assert.equal(usesEditedFiles('eslint {files}'), true)
-	})
-
-	it('is indifferent to where the placeholder sits', () => {
-		const commands = [
-			'{files}',
-			'{files} --cache',
-			'eslint {files}',
-			'eslint {files} --max-warnings 0',
-			'eslint {files} {files}',
-			'eslint --ext .ts {files}\n',
-		]
-		for (const command of commands) {
-			assert.equal(usesEditedFiles(command), true, `must be recognised in: ${JSON.stringify(command)}`)
-		}
-	})
-
-	it('is false for a project-wide command', () => {
-		assert.equal(usesEditedFiles(LINT), false)
-		assert.equal(usesEditedFiles(TYPECHECK), false)
-		assert.equal(usesEditedFiles(''), false)
-	})
-
-	/**
-	 * The two tokens mean different things — one path versus every path this session
-	 * — and this is what decides whether the session records edited paths at all. A
-	 * per-file format command must not read as a request for the session's list.
-	 */
-	it('is not fooled by the singular {file}', () => {
-		assert.equal(usesEditedFiles('prettier --write {file}'), false)
-		assert.equal(usesEditedFiles('{file}'), false)
-		assert.equal(usesEditedFiles('cmp -s {file} {file}'), false)
-	})
-
-	it('is false for a near miss', () => {
-		const nearMisses = ['eslint { files }', 'eslint {FILES}', 'eslint {filess}', 'eslint {file}s', 'eslint $files', 'eslint files']
-		for (const command of nearMisses) {
-			assert.equal(usesEditedFiles(command), false, `must not be treated as scoped: ${command}`)
 		}
 	})
 })
 
-/**
- * Answered on every edit, before anything is recorded, so that accumulating paths
- * costs a project nothing unless one of its own checks asked to be scoped by them.
- * Derived from the Stop-time set rather than the raw config, so it cannot answer
- * yes for a command that would never run.
- */
-describe('tracksEditedFiles', () => {
-	it('is true when lint is scoped', () => {
-		assert.equal(tracksEditedFiles({ lint: 'eslint {files}', typecheck: TYPECHECK }), true)
+// ---------------------------------------------------------------------------
+// paths and planning
+// ---------------------------------------------------------------------------
+
+describe('withinRoot', () => {
+	it('keeps a path inside the root', () => assert.equal(withinRoot('/repo', '/repo/src/a.ts'), true))
+	it('keeps a relative path resolved against the root', () => assert.equal(withinRoot('/repo', 'src/a.ts'), true))
+	it('drops the root itself', () => assert.equal(withinRoot('/repo', '/repo'), false))
+	it('drops a path escaping through ..', () => assert.equal(withinRoot('/repo', '/repo/../etc/passwd'), false))
+	it('keeps a file whose name merely begins with ..', () => assert.equal(withinRoot('/repo', '/repo/..rc.ts'), true))
+	it('drops a sibling sharing the root prefix', () => assert.equal(withinRoot('/repo', '/repo-other/a.ts'), false))
+	it('drops everything against a junk root', () => {
+		assert.equal(withinRoot('', '/repo/a.ts'), false)
+		assert.equal(withinRoot(null as never, '/repo/a.ts'), false)
+	})
+})
+
+describe('matchesWhen', () => {
+	it('matches every path when no when was configured', () => {
+		assert.equal(matchesWhen('.github/workflows/ci.yml', null), true)
+		assert.equal(matchesWhen('src/a.ts', null), true)
 	})
 
-	it('is true when typecheck is scoped', () => {
-		assert.equal(tracksEditedFiles({ lint: LINT, typecheck: 'tsc --noEmit {files}' }), true)
+	it('matches any glob in the list', () => {
+		const when = ['workspaces/{api,shared}/**', 'tsconfig.base.json']
+		assert.equal(matchesWhen('workspaces/shared/x.ts', when), true)
+		assert.equal(matchesWhen('tsconfig.base.json', when), true)
+		assert.equal(matchesWhen('workspaces/admin/x.ts', when), false)
 	})
 
-	it('is true when both are scoped', () => {
-		assert.equal(tracksEditedFiles({ lint: 'eslint {files}', typecheck: 'tsc --noEmit {files}' }), true)
+	it('uses standard glob semantics, so ** does not reach a dotfile unless the glob names the dot', () => {
+		assert.equal(matchesWhen('.eslintrc.js', ['**/*.js']), false)
+		assert.equal(matchesWhen('.eslintrc.js', ['.eslintrc.js']), true)
+	})
+})
+
+describe('planChecks', () => {
+	const lint = check({ name: 'lint', scope: 'files', command: String.raw`printf '[%s]' {files}` })
+	const typecheck = check({ name: 'typecheck', scope: 'program', command: 'tsc --noEmit' })
+	const tests = check({ name: 'test', scope: 'unit', command: 'npm test' })
+
+	it('owes nothing when nothing was edited, whatever the scope', () => {
+		assert.deepEqual(planChecks([lint, typecheck, tests], []), [])
+		assert.deepEqual(planChecks([lint, typecheck, tests], [{ root: '/repo', files: [] }]), [])
 	})
 
-	it('is true when a scoped lint is the only configured command', () => {
-		assert.equal(tracksEditedFiles({ lint: 'eslint {files}' }), true)
+	it('owes every check without a when once anything in the checkout was edited', () => {
+		const planned = planChecks([lint, typecheck, tests], [{ root: '/repo', files: ['/repo/README.md'] }])
+		assert.deepEqual(planned.map((plan) => plan.check.name), ['lint', 'typecheck', 'test'])
 	})
 
-	/**
-	 * `format` never runs at Stop, so nothing would ever consume the record — and
-	 * `formatCommand` already fills `{files}` from the single path it is handed.
-	 */
-	it('is false when only format is scoped', () => {
-		assert.equal(tracksEditedFiles({ format: 'prettier --write {files}' }), false)
-		assert.equal(tracksEditedFiles({ format: 'prettier --write {files}', lint: LINT, typecheck: TYPECHECK }), false)
+	it('owes a check only when an edited path matches its when', () => {
+		const scoped = check({ ...typecheck, when: ['packages/api/**'] })
+		assert.deepEqual(planChecks([scoped], [{ root: '/repo', files: ['/repo/packages/admin/a.ts'] }]), [])
+		assert.equal(planChecks([scoped], [{ root: '/repo', files: ['/repo/packages/api/a.ts'] }]).length, 1)
 	})
 
-	it('is false for project-wide Stop commands', () => {
-		assert.equal(tracksEditedFiles(FULL), false)
-		assert.equal(tracksEditedFiles({ lint: LINT }), false)
+	it('hands a files check only its matched paths, relative to its run directory', () => {
+		const admin = check({ ...lint, when: ['packages/admin/**'], cwd: 'packages/admin' })
+		const [plan] = planChecks([admin], [{ root: '/repo', files: ['/repo/packages/api/a.ts', '/repo/packages/admin/src/b.css'] }])
+		assert.equal(plan.runDir, '/repo/packages/admin')
+		assert.deepEqual(plan.matched, ['/repo/packages/admin/src/b.css'])
+		assert.equal(plan.command, String.raw`printf '[%s]' 'src/b.css'`)
 	})
 
-	it('is false for an empty config', () => {
-		assert.equal(tracksEditedFiles({}), false)
+	it('leaves program and unit commands exactly as written', () => {
+		const planned = planChecks([typecheck, tests], [{ root: '/repo', files: ['/repo/a.ts'] }])
+		assert.deepEqual(planned.map((plan) => plan.command), ['tsc --noEmit', 'npm test'])
 	})
 
-	it('is false when the singular {file} is used at Stop time', () => {
-		assert.equal(tracksEditedFiles({ lint: 'eslint {file}' }), false)
+	it('plans each checkout separately, against its own root', () => {
+		const planned = planChecks([lint], [
+			{ root: '/repo', files: ['/repo/a.ts'] },
+			{ root: '/repo/.claude/worktrees/x', files: ['/repo/.claude/worktrees/x/b.ts'] },
+		])
+		assert.deepEqual(
+			planned.map((plan) => [plan.root, plan.command]),
+			[
+				['/repo', String.raw`printf '[%s]' 'a.ts'`],
+				['/repo/.claude/worktrees/x', String.raw`printf '[%s]' 'b.ts'`],
+			],
+		)
 	})
 
-	/**
-	 * A string holding `{files}` can never itself be blank, so the reachable case is
-	 * a value `commandsFor` drops for another reason. Asking the Stop-time set
-	 * rather than the config is what makes that fall out for free.
-	 */
-	it('is false for a scoped command commandsFor would drop', () => {
-		assert.equal(tracksEditedFiles({ lint: [{ command: 'eslint {files}', when: '' }] }), false)
-		assert.equal(tracksEditedFiles({ lint: 42 as unknown as string, typecheck: '  ' }), false)
-		assert.equal(tracksEditedFiles(resolveConfig({ lint: { cmd: 'eslint {files}' } })), false)
+	it('never hands a check a path outside its root', () => {
+		const [plan] = planChecks([lint], [{ root: '/repo', files: ['/repo/a.ts', OUTSIDE, '/repo/../etc/passwd'] }])
+		assert.deepEqual(plan.matched, ['/repo/a.ts'])
 	})
 
-	it('agrees with the Stop-time command set for every config', () => {
-		const configs: GateConfig[] = [
-			{},
-			FULL,
-			{ lint: 'eslint {files}' },
-			{ typecheck: 'tsc --noEmit {files}' },
-			{ format: 'prettier --write {files}' },
-			{ format: 'prettier --write {files}', lint: LINT },
-			{ lint: '  ', typecheck: 'tsc {files}' },
-		]
-		for (const config of configs) {
-			const expected = commandsFor('Stop', config).some((c) => usesEditedFiles(c.command))
-			assert.equal(tracksEditedFiles(config), expected, `disagreed for ${JSON.stringify(config)}`)
+	it('dedupes a path edited many times, keeping first-seen order', () => {
+		const [plan] = planChecks([lint], [{ root: '/repo', files: ['/repo/b.ts', '/repo/a.ts', '/repo/b.ts'] }])
+		assert.deepEqual(plan.matched, ['/repo/b.ts', '/repo/a.ts'])
+	})
+
+	it('keeps list order', () => {
+		const planned = planChecks([tests, lint, typecheck], [{ root: '/repo', files: ['/repo/a.ts'] }])
+		assert.deepEqual(planned.map((plan) => plan.check.name), ['test', 'lint', 'typecheck'])
+	})
+
+	it('skips junk groups rather than throwing', () => {
+		assert.deepEqual(planChecks([lint], [null as never, { root: '', files: ['/a.ts'] }, { root: '/repo', files: null as never }]), [])
+		assert.deepEqual(planChecks(null as never, null as never), [])
+	})
+
+	describe('shell quoting the list — a mistake here is a shell injection', () => {
+		for (const [label, filePath] of SUBSTITUTED_PATHS) {
+			it(`survives ${label} as the only edited file`, () => {
+				const relative = underRoot(filePath)
+				assert.equal(shellSeesPlanned('printf [%s] {files}', [relative]), `[${relative}]`, `path mangled: ${filePath}`)
+			})
 		}
-	})
 
-	/** As with `commandsFor`, a resolved junk config answers rather than throwing. */
-	it('is false for a resolved junk config', () => {
-		for (const junk of [null, undefined, 'lint: eslint {files}', 42, [], ['eslint {files}']]) {
-			assert.equal(tracksEditedFiles(resolveConfig(junk)), false, `must degrade for ${JSON.stringify(junk)}`)
+		for (const [label, filePath] of REPRESENTATIVE_PATHS) {
+			it(`survives ${label} beside ordinary paths`, () => {
+				const relative = underRoot(filePath)
+				assert.equal(shellSeesPlanned('printf [%s] {files}', ['src/a.ts', relative, 'src/b.ts']), `[src/a.ts][${relative}][src/b.ts]`)
+			})
 		}
+
+		it('does not execute a command injected from anywhere in the list', () => {
+			const out = shellSeesPlanned('printf [%s] {files}', ['src/a.ts', 'x; echo pwned', 'src/b.ts'])
+			assert.doesNotMatch(out, /pwned$/m, 'the injected echo must never run')
+			assert.equal(out, '[src/a.ts][x; echo pwned][src/b.ts]')
+		})
+
+		it('does not treat a token inside a path as a placeholder', () => {
+			assert.equal(shellSeesPlanned('printf [%s] {files}', ['{file}/a.ts', '{files}/b.ts']), '[{file}/a.ts][{files}/b.ts]')
+		})
 	})
 })
 
@@ -650,738 +644,141 @@ describe('formatCommand', () => {
 	})
 })
 
-describe('scopeCommands', () => {
-	const SCOPED_LINT = 'eslint {files}'
-	const scoped = { name: 'lint', command: SCOPED_LINT }
-	const wide = { name: 'typecheck', command: TYPECHECK }
+// ---------------------------------------------------------------------------
+// judging a result
+// ---------------------------------------------------------------------------
 
-	describe('narrowing a scoped command', () => {
-		it('substitutes the one edited path', () => {
-			assert.equal(shellSeesScoped('printf [%s] {files}', ['src/a.ts']), '[src/a.ts]')
-		})
+function ran(exitCode: number, stdout = '', stderr = ''): RunOutcome {
+	return { ran: true, exitCode, stdout, stderr }
+}
 
-		it('substitutes several paths as separate arguments, in order', () => {
-			assert.equal(
-				shellSeesScoped('printf [%s] {files}', ['src/a.ts', 'src/b.ts', 'src/c.ts']),
-				'[src/a.ts][src/b.ts][src/c.ts]',
-			)
-		})
+describe('judgeByExit', () => {
+	it('passes on exit 0', () => assert.equal(judgeByExit(BASE, ran(0, 'fine')).ok, true))
 
-		it('substitutes every occurrence', () => {
-			assert.equal(shellSeesScoped('printf [%s] {files} {files}', ['src/a.ts', 'src/b.ts']), '[src/a.ts][src/b.ts][src/a.ts][src/b.ts]')
-		})
-
-		it('consumes the placeholder', () => {
-			const [entry] = scopeIn([scoped], ['src/a.ts'])
-			assert.doesNotMatch(entry.command, /\{files\}/, 'a placeholder reaching the shell is a literal argument')
-			assert.ok(entry.command.includes('src/a.ts'), `the path must be in the command: ${entry.command}`)
-		})
-
-		it('keeps the text on both sides of the placeholder', () => {
-			const [entry] = scopeIn([{ name: 'lint', command: 'eslint --max-warnings 0 {files} --cache' }], ['src/a.ts'])
-			assert.match(entry.command, /^eslint --max-warnings 0 /)
-			assert.match(entry.command, / --cache$/, 'the tail of the command must survive')
-		})
-
-		it('keeps the name of the command it narrowed', () => {
-			assert.deepEqual(scopeIn([scoped, wide], ['src/a.ts']).map((c) => c.name), ['lint', 'typecheck'])
-		})
-
-		it('preserves command order', () => {
-			const commands = commandsFor('Stop', { lint: SCOPED_LINT, typecheck: 'tsc --noEmit {files}' })
-			assert.deepEqual(scopeIn(commands, ['src/a.ts']).map((c) => c.name), ['lint', 'typecheck'])
-		})
-
-		it('carries exactly a name and a command', () => {
-			for (const entry of scopeIn([scoped, wide], ['src/a.ts'])) {
-				assert.deepEqual(Object.keys(entry).sort(), ['command', 'name'], `${entry.name} leaked an extra key`)
-			}
-		})
-
-		it('narrows what tracksEditedFiles promised would be narrowed', () => {
-			const config: GateConfig = { format: 'prettier --write {file}', lint: SCOPED_LINT, typecheck: TYPECHECK }
-			assert.equal(tracksEditedFiles(config), true)
-
-			const [lint, typecheck] = scopeIn(commandsFor('Stop', config), ['src/a.ts'])
-			assert.doesNotMatch(lint.command, /\{files\}/)
-			assert.equal(typecheck.command, TYPECHECK, 'the project-wide sibling is not the one being narrowed')
-		})
+	it('fails on a non-zero exit, showing the output', () => {
+		const result = judgeByExit(BASE, ran(1, 'src/a.ts:1:1 no-unused-vars', 'warning on stderr'))
+		assert.equal(result.ok, false)
+		assert.match(result.output, /no-unused-vars/)
+		assert.match(result.output, /warning on stderr/)
 	})
 
-	/**
-	 * Today's behavior for a project that never asked for scoping. A command without
-	 * the placeholder is project-wide by choice, so nothing about it changes — not
-	 * even when the session edited nothing.
-	 */
-	describe('a command without the placeholder passes through untouched', () => {
-		it('leaves the command string alone', () => {
-			assert.deepEqual(scopeIn([wide], ['src/a.ts']), [wide])
-		})
-
-		it('leaves it alone for an empty list too', () => {
-			assert.deepEqual(scopeIn([wide], []), [wide])
-		})
-
-		it('leaves a whole project-wide config alone', () => {
-			const commands = commandsFor('Stop', FULL)
-			assert.deepEqual(scopeIn(commands, ['src/a.ts']), commands)
-			assert.deepEqual(scopeIn(commands, []), commands)
-		})
-
-		/**
-		 * The singular `{file}` is documented as format-only — there is no single
-		 * path at Stop time — so the command string is passed through as the project
-		 * wrote it rather than guessed at.
-		 */
-		it('leaves a singular {file} verbatim rather than guessing', () => {
-			const perFile = { name: 'lint', command: 'eslint {file}' }
-			assert.deepEqual(scopeIn([perFile], ['src/a.ts', 'src/b.ts']), [perFile])
-			assert.deepEqual(scopeIn([perFile], []), [perFile], 'it is not scoped, so an empty list does not drop it')
-		})
+	it('still explains a silent failure', () => {
+		assert.match(judgeByExit(BASE, ran(3)).output, /exited 3 with no output/)
 	})
 
-	/**
-	 * A linter handed no path argument silently checks nothing under some configs and
-	 * errors under others; neither is a useful gate result, and nothing was edited,
-	 * so nothing is owed.
-	 */
-	describe('an empty list drops the command rather than running it bare', () => {
-		it('drops a scoped command when nothing was edited', () => {
-			assert.deepEqual(scopeIn([scoped], []), [])
-		})
-
-		it('drops every scoped command but keeps the project-wide sibling', () => {
-			const commands = [scoped, wide, { name: 'other', command: 'check {files} --strict' }]
-			assert.deepEqual(scopeIn(commands, []), [wide])
-		})
-
-		it('drops the command wherever the placeholder sits in it', () => {
-			for (const command of ['{files}', 'eslint {files}', 'eslint {files} --cache', 'eslint {files} {files}']) {
-				assert.deepEqual(scopeIn([{ name: 'lint', command }], []), [], `must drop: ${command}`)
-			}
-		})
-
-		it('never emits a command still holding the placeholder', () => {
-			const commands = [scoped, wide]
-			for (const files of [[], ['src/a.ts'], ['src/a.ts', 'src/b.ts']]) {
-				for (const entry of scopeIn(commands, files)) {
-					assert.doesNotMatch(entry.command, /\{files\}/, `unfilled placeholder for ${JSON.stringify(files)}`)
-				}
-			}
-		})
+	/** A check that cannot run is a check that did not pass. */
+	it('fails a command the shell could not find', () => {
+		const result = judgeByExit(BASE, ran(127, '', 'sh: eslint: command not found'))
+		assert.equal(result.ok, false)
+		assert.match(result.output, /could not be found/)
 	})
 
-	/**
-	 * Regression coverage for #34. Claude Code writes outside the project as a
-	 * matter of course, and a tool that discovers its config per file fails the
-	 * whole invocation on one such path — so an unbounded list did not merely add
-	 * a false positive, it silently skipped every in-project file batched into the
-	 * same call.
-	 */
-	describe('bounding to the project root', () => {
-		it('keeps the in-project files when an outside path sits among them', () => {
-			assert.equal(
-				shellSeesScoped('printf [%s] {files}', ['src/a.ts', OUTSIDE, 'src/b.ts']),
-				'[src/a.ts][src/b.ts]',
-				'the in-project files are exactly what the gate was asked to check',
-			)
-		})
-
-		it('never lets an outside path reach the built command', () => {
-			const [entry] = scopeIn([scoped], ['src/a.ts', OUTSIDE])
-			assert.ok(entry, 'an in-project path was edited, so the command must survive')
-			assert.doesNotMatch(entry.command, /\.claude/, `an out-of-project path reached the shell: ${entry.command}`)
-		})
-
-		it('drops the command when every edited path was outside', () => {
-			assert.deepEqual(scopeIn([scoped], [OUTSIDE]), [], 'running nothing beats running something that cannot succeed')
-		})
-
-		it('keeps the project-wide sibling when every path was outside', () => {
-			assert.deepEqual(scopeIn([scoped, wide], [OUTSIDE]), [wide])
-		})
-
-		it('drops a path that escapes the root through ..', () => {
-			assert.equal(shellSeesScoped('printf [%s] {files}', ['../elsewhere/a.ts', 'src/a.ts']), '[src/a.ts]')
-		})
-
-		it('drops the root itself, which is not a file the gate was asked about', () => {
-			assert.deepEqual(scopeIn([scoped], [ROOT]), [])
-			assert.deepEqual(scopeIn([scoped], ['.']), [])
-		})
-
-		/** `..` is a path segment, not a string prefix. */
-		it('keeps a file whose name merely begins with ..', () => {
-			assert.equal(shellSeesScoped('printf [%s] {files}', ['..eslintrc.ts']), '[..eslintrc.ts]')
-		})
-
-		it('keeps a path that only passes through .. on its way back in', () => {
-			assert.equal(shellSeesScoped('printf [%s] {files}', ['src/../src/a.ts']), '[src/../src/a.ts]')
-		})
-
-		it('keeps an absolute in-project path', () => {
-			assert.equal(shellSeesScoped('printf [%s] {files}', [`${ROOT}/src/a.ts`]), `[${ROOT}/src/a.ts]`)
-		})
-
-		it('does not treat a sibling directory sharing the root prefix as inside', () => {
-			assert.deepEqual(scopeIn([scoped], ['/tmpfoo/a.ts'], '/tmp'), [], 'string prefixes are not path containment')
-		})
-
-		/**
-		 * An unusable root cannot be resolved against, so nothing can be shown to be
-		 * in project. Dropping the command fails open; passing the list through
-		 * unbounded is the bug this argument exists to prevent.
-		 */
-		it('drops scoped commands when the root is junk', () => {
-			// Called directly rather than through scopeIn: a default parameter fires on
-			// an explicit undefined, which would quietly test ROOT instead.
-			for (const root of [undefined, null, '', 42, {}, []]) {
-				assert.deepEqual(
-					scopeCommands([scoped, wide], ['src/a.ts'], root as never),
-					[wide],
-					`must not scope against root: ${JSON.stringify(root)}`,
-				)
-			}
-		})
-	})
-
-	describe('deduping', () => {
-		it('lists a repeated path once', () => {
-			assert.equal(shellSeesScoped('printf [%s] {files}', ['src/a.ts', 'src/a.ts']), '[src/a.ts]')
-		})
-
-		it('keeps first-seen order while deduping', () => {
-			assert.equal(
-				shellSeesScoped('printf [%s] {files}', ['src/b.ts', 'src/a.ts', 'src/b.ts', 'src/c.ts', 'src/a.ts']),
-				'[src/b.ts][src/a.ts][src/c.ts]',
-			)
-		})
-
-		it('does not conflate distinct paths that share a basename', () => {
-			assert.equal(shellSeesScoped('printf [%s] {files}', ['src/a.ts', 'test/a.ts']), '[src/a.ts][test/a.ts]')
-		})
-	})
-
-	/**
-	 * This runs inside a hook, so a throw is the one unacceptable outcome: junk must
-	 * cost the session a check, never the session itself.
-	 */
-	describe('fail open — junk degrades, never throws', () => {
-		const notArrays: Array<[string, unknown]> = [
-			['null', null],
-			['undefined', undefined],
-			['a string', 'src/a.ts'],
-			['a number', 42],
-			['a boolean', true],
-			['an object', { 0: 'src/a.ts', length: 1 }],
-		]
-
-		for (const [label, value] of notArrays) {
-			it(`yields no commands when commands is ${label}`, () => {
-				assert.deepEqual(scopeIn(value as never, ['src/a.ts']), [])
-			})
-
-			it(`treats ${label} as no edited files`, () => {
-				assert.deepEqual(scopeIn([scoped, wide], value as never), [wide])
-			})
-		}
-
-		it('discards non-string and empty entries from the list', () => {
-			assert.equal(
-				shellSeesScoped('printf [%s] {files}', ['src/a.ts', '', null, 42, undefined, {}, [], 'src/b.ts']),
-				'[src/a.ts][src/b.ts]',
-			)
-		})
-
-		it('drops the command when every entry is junk', () => {
-			assert.deepEqual(scopeIn([scoped], ['', null, undefined, 0, {}] as never), [])
-		})
-
-		it('survives junk on both arguments at once', () => {
-			assert.deepEqual(scopeIn(null as never, null as never), [])
-		})
-
-		it('returns an array even for nothing at all', () => {
-			assert.deepEqual(scopeIn([], []), [])
-		})
-	})
-
-	describe('shell quoting the list — a mistake here is a shell injection', () => {
-		for (const [label, filePath] of SUBSTITUTED_PATHS) {
-			it(`survives ${label} as the only edited file`, () => {
-				assert.equal(shellSeesScoped('printf [%s] {files}', [filePath]), `[${filePath}]`, `path mangled: ${filePath}`)
-			})
-		}
-
-		for (const [label, filePath] of REPRESENTATIVE_PATHS) {
-			it(`survives ${label} beside ordinary paths`, () => {
-				assert.equal(
-					shellSeesScoped('printf [%s] {files}', ['src/a.ts', filePath, 'src/b.ts']),
-					`[src/a.ts][${filePath}][src/b.ts]`,
-					`path mangled among siblings: ${filePath}`,
-				)
-			})
-		}
-
-		it('keeps each path a single argument when several contain spaces', () => {
-			assert.equal(
-				shellSeesScoped('printf [%s] {files}', ['/tmp/my file.ts', '/tmp/other file.ts']),
-				'[/tmp/my file.ts][/tmp/other file.ts]',
-			)
-		})
-
-		it('does not execute a command injected from anywhere in the list', () => {
-			const out = shellSeesScoped('printf [%s] {files}', ['src/a.ts', '/tmp/x; echo pwned', 'src/b.ts'])
-			assert.doesNotMatch(out, /pwned$/m, 'the injected echo must never run')
-			assert.equal(out, '[src/a.ts][/tmp/x; echo pwned][src/b.ts]')
-		})
-
-		it('leaves no raw path in the built command', () => {
-			const [entry] = scopeIn([scoped], ['/tmp/my file.ts'])
-			assert.doesNotMatch(entry.command, /(^|\s)\/tmp\/my file\.ts(\s|$)/, 'a bare path with a space is two arguments')
-		})
-
-		/** Either token, because a filled-in path must never be rescanned for either. */
-		it('does not treat a token inside a path as a placeholder', () => {
-			assert.equal(shellSeesScoped('printf [%s] {files}', ['/tmp/{files}/a.ts']), '[/tmp/{files}/a.ts]')
-			assert.equal(shellSeesScoped('printf [%s] {files}', ['/tmp/{file}/a.ts']), '[/tmp/{file}/a.ts]')
-			assert.equal(
-				shellSeesScoped('printf [%s] {files}', ['/tmp/{file}/a.ts', '/tmp/{files}/b.ts']),
-				'[/tmp/{file}/a.ts][/tmp/{files}/b.ts]',
-			)
-		})
-	})
-
-	it('does not mutate its inputs', () => {
-		const commands = [{ name: 'lint', command: SCOPED_LINT }, { name: 'typecheck', command: TYPECHECK }]
-		const editedFiles = ['src/b.ts', 'src/a.ts', 'src/b.ts']
-		const commandsSnapshot = structuredClone(commands)
-		const filesSnapshot = structuredClone(editedFiles)
-
-		scopeIn(commands, editedFiles)
-
-		assert.deepEqual(commands, commandsSnapshot, 'narrowing must build new entries, not rewrite the caller ones')
-		assert.deepEqual(editedFiles, filesSnapshot, 'deduping must not reorder or shrink the caller list')
-	})
-
-	it('is pure — the same inputs give the same result', () => {
-		assert.deepEqual(scopeIn([scoped], ['src/a.ts']), scopeIn([scoped], ['src/a.ts']))
+	it('fails a check that did not run, saying why', () => {
+		const result = judgeByExit(BASE, { ran: false, why: 'timed out after 180 s', stdout: 'partial', stderr: '' })
+		assert.equal(result.ok, false)
+		assert.match(result.output, /timed out after 180 s/)
+		assert.match(result.output, /partial/)
 	})
 })
 
-/**
- * A monorepo cannot describe its checks with one command per key: packages
- * typecheck with different tools, and a linter configured for one package errors
- * on files anywhere else.
- */
-describe('lists of checks', () => {
-	const API = 'npm run typecheck -w api'
-	const ADMIN = 'npm run check -w admin'
-	const STYLES = 'stylelint {files}'
+describe('judgeEdited — never fake a pass', () => {
+	const TSC_RUN = [
+		'src/a.ts(1,40): error TS2322: Type \'number\' is not assignable to type \'string\'.',
+		'src/c.ts(5,3): error TS2345: Argument of type \'{ x: { y: string; }; }\' is not assignable to parameter of type \'{ x: { y: number; }; }\'.',
+		"  The types of 'x.y' are incompatible between these types.",
+		"    Type 'string' is not assignable to type 'number'.",
+	].join('\n')
 
-	describe('resolveConfig', () => {
-		it('keeps a list, reading a bare string entry as a check', () => {
-			assert.deepEqual(resolveConfig({ typecheck: [API, { command: ADMIN }] }), {
-				typecheck: [{ command: API }, { command: ADMIN }],
-			})
-		})
-
-		it('keeps a when glob', () => {
-			assert.deepEqual(resolveConfig({ lint: [{ command: STYLES, when: 'workspaces/admin/**' }] }), {
-				lint: [{ command: STYLES, when: 'workspaces/admin/**' }],
-			})
-		})
-
-		it('keeps a plain string as a plain string', () => {
-			assert.deepEqual(resolveConfig({ lint: LINT, typecheck: [API] }), { lint: LINT, typecheck: [{ command: API }] })
-		})
-
-		it('drops malformed entries and keeps their valid siblings', () => {
-			const raw = [42, null, '', '  ', [API], { cmd: API }, { command: '' }, { command: 42 }, API]
-			assert.deepEqual(resolveConfig({ typecheck: raw }), { typecheck: [{ command: API }] })
-		})
-
-		/**
-		 * Running it unconditionally would run a check the project said applies only
-		 * somewhere — the kind that fails on files outside its package.
-		 */
-		it('drops an entry whose when is not a usable glob rather than running it everywhere', () => {
-			for (const when of ['', '   ', 42, null, ['a/**'], {}]) {
-				assert.deepEqual(resolveConfig({ lint: [{ command: STYLES, when }] }), {}, `must drop when=${JSON.stringify(when)}`)
-			}
-		})
-
-		it('drops the key when no entry survives', () => {
-			assert.deepEqual(resolveConfig({ lint: [], typecheck: [null, { command: ' ' }] }), {})
-		})
-
-		it('does not accept a list for format, which runs per edit on one file', () => {
-			assert.deepEqual(resolveConfig({ format: [FORMAT] }), {})
-		})
-	})
-
-	describe('commandsFor', () => {
-		it('schedules every entry, lint before typecheck, in the order listed', () => {
-			const config: GateConfig = { typecheck: [{ command: API }, { command: ADMIN }], lint: [{ command: LINT }, { command: STYLES }] }
-			assert.deepEqual(commandsFor('Stop', config), [
-				{ name: 'lint', command: LINT },
-				{ name: 'lint', command: STYLES },
-				{ name: 'typecheck', command: API },
-				{ name: 'typecheck', command: ADMIN },
-			])
-		})
-
-		it('carries when only on the entries that set it', () => {
-			const config: GateConfig = { typecheck: [{ command: API, when: 'workspaces/api/**' }, { command: ADMIN }] }
-			assert.deepEqual(commandsFor('Stop', config), [
-				{ name: 'typecheck', command: API, when: 'workspaces/api/**' },
-				{ name: 'typecheck', command: ADMIN },
-			])
-		})
-
-		it('mixes a plain lint with a list typecheck', () => {
-			assert.deepEqual(commandsFor('TeammateIdle', { lint: LINT, typecheck: [{ command: API }] }), [
-				{ name: 'lint', command: LINT },
-				{ name: 'typecheck', command: API },
-			])
-		})
-
-		it('drops malformed entries even from a config that was never resolved', () => {
-			const config = { lint: [{ command: ' ' }, { command: LINT, when: '' }, null, { command: STYLES }] } as unknown as GateConfig
-			assert.deepEqual(commandsFor('Stop', config), [{ name: 'lint', command: STYLES }])
-		})
-
-		it('never puts a list entry into PostToolUse', () => {
-			assert.deepEqual(commandsFor('PostToolUse', { lint: [{ command: LINT }] }), [])
-		})
-	})
-
-	describe('tracksEditedFiles', () => {
-		it('is true for a when check, which needs the edited paths to decide whether to run', () => {
-			assert.equal(tracksEditedFiles({ typecheck: [{ command: API, when: 'workspaces/api/**' }] }), true)
-		})
-
-		it('is true for a {files} entry in a list', () => {
-			assert.equal(tracksEditedFiles({ lint: [{ command: LINT }, { command: STYLES }] }), true)
-		})
-
-		it('is false for a list of project-wide checks', () => {
-			assert.equal(tracksEditedFiles({ typecheck: [{ command: API }, { command: ADMIN }] }), false)
-		})
-	})
-
-	describe('scopeCommands with when', () => {
-		const api = { name: 'typecheck', command: API, when: 'workspaces/api/**' }
-		const admin = { name: 'typecheck', command: ADMIN, when: 'workspaces/admin/**' }
-
-		it('runs only the checks whose glob an edited path matches', () => {
-			assert.deepEqual(scopeIn([api, admin], ['workspaces/admin/src/App.svelte']), [{ name: 'typecheck', command: ADMIN }])
-		})
-
-		it('runs each check whose package was touched', () => {
-			assert.deepEqual(
-				scopeIn([api, admin], ['workspaces/api/src/a.ts', 'workspaces/admin/src/App.svelte']).map((c) => c.command),
-				[API, ADMIN],
-			)
-		})
-
-		it('runs none of them when nothing was edited', () => {
-			assert.deepEqual(scopeIn([api, admin], []), [])
-		})
-
-		it('leaves a check without when running as before', () => {
-			assert.deepEqual(scopeIn([api, { name: 'lint', command: LINT }], ['README.md']), [{ name: 'lint', command: LINT }])
-		})
-
-		/** The case that motivated `when`: stylelint errors on files outside the one package it is configured for. */
-		it('hands a {files} check only the paths its glob matches', () => {
-			const styles = { name: 'lint', command: 'printf [%s] {files}', when: 'workspaces/admin/**' }
-			const [entry] = scopeIn([styles], ['workspaces/api/a.ts', 'workspaces/admin/a.css', 'workspaces/admin/b.svelte'])
-			assert.equal(runInShell(entry.command), '[workspaces/admin/a.css][workspaces/admin/b.svelte]')
-		})
-
-		it('matches an absolute in-project path against the root-relative glob', () => {
-			assert.deepEqual(scopeIn([admin], [`${ROOT}/workspaces/admin/a.ts`]).map((c) => c.command), [ADMIN])
-		})
-
-		it('supports brace alternatives for a check that spans packages', () => {
-			const shared = { name: 'typecheck', command: API, when: 'workspaces/{api,shared}/**' }
-			assert.deepEqual(scopeIn([shared], ['workspaces/shared/x.ts']).map((c) => c.command), [API])
-			assert.deepEqual(scopeIn([shared], ['workspaces/admin/x.ts']), [])
-		})
-
-		it('never matches an out-of-project path, even one a broad glob would accept', () => {
-			assert.deepEqual(scopeIn([{ name: 'lint', command: LINT, when: '**' }], [OUTSIDE]), [])
-		})
-
-		it('drops when checks against a junk root, as it does {files} checks', () => {
-			assert.deepEqual(scopeCommands([admin], ['workspaces/admin/a.ts'], '' as never), [])
-		})
-
-		it('emits exactly a name and a command once when is applied', () => {
-			for (const entry of scopeIn([api, admin], ['workspaces/api/a.ts', 'workspaces/admin/a.ts'])) {
-				assert.deepEqual(Object.keys(entry).sort(), ['command', 'name'])
-			}
-		})
-	})
-
-	it('signs same-named failures independently of their order', () => {
-		const a = fail('typecheck', API, 'error in api')
-		const b = fail('typecheck', ADMIN, 'error in admin')
-		assert.equal(failureSignature([a, b]), failureSignature([b, a]))
-	})
-})
-
-describe('failureSignature', () => {
-	const lintFail = fail('lint', LINT, 'src/a.ts:1:1 no-unused-vars')
-	const typeFail = fail('typecheck', TYPECHECK, "src/b.ts(3,5): error TS2345: Argument of type 'string'")
-
-	it('returns a string', () => {
-		assert.equal(typeof failureSignature([lintFail]), 'string')
-	})
-
-	it('is stable across repeated calls', () => {
-		assert.equal(failureSignature([lintFail, typeFail]), failureSignature([lintFail, typeFail]))
-	})
-
-	it('is stable for an empty set', () => {
-		assert.equal(typeof failureSignature([]), 'string')
-		assert.equal(failureSignature([]), failureSignature([]))
-	})
-
-	it('is stable for an all-passing set', () => {
-		const sig = failureSignature([pass('lint', LINT), pass('typecheck', TYPECHECK)])
-		assert.equal(typeof sig, 'string')
-		assert.equal(sig, failureSignature([pass('lint', LINT), pass('typecheck', TYPECHECK)]))
-	})
-
-	it('ignores passing results entirely', () => {
-		assert.equal(
-			failureSignature([lintFail, pass('typecheck', TYPECHECK, 'no errors')]),
-			failureSignature([lintFail]),
-			'a passing sibling must not change which failures these are',
-		)
-		assert.equal(
-			failureSignature([pass('format', FORMAT, 'wrote 3 files'), lintFail]),
-			failureSignature([pass('typecheck', TYPECHECK, 'ok'), lintFail]),
-			'which commands passed is irrelevant to the failure identity',
-		)
-		assert.equal(failureSignature([pass('lint', LINT)]), failureSignature([]), 'no failures is no failures')
-	})
-
-	it('is independent of array order', () => {
-		assert.equal(failureSignature([lintFail, typeFail]), failureSignature([typeFail, lintFail]))
-	})
-
-	it('is independent of where passing results sit in the array', () => {
-		const p = pass('format', FORMAT)
-		assert.equal(failureSignature([p, lintFail, typeFail]), failureSignature([typeFail, p, lintFail]))
-	})
-
-	it('changes when a failure output changes', () => {
-		const worse = fail('lint', LINT, 'src/a.ts:1:1 no-unused-vars\nsrc/c.ts:9:2 eqeqeq')
-		assert.notEqual(failureSignature([lintFail]), failureSignature([worse]), 'a new error must be reported')
-	})
-
-	it('changes when the failing command changes', () => {
-		const other = fail('lint', 'eslint src', lintFail.output)
-		assert.notEqual(failureSignature([lintFail]), failureSignature([other]))
-	})
-
-	it('changes when the failing name changes', () => {
-		const other = fail('typecheck', LINT, lintFail.output)
-		assert.notEqual(failureSignature([lintFail]), failureSignature([other]))
-	})
-
-	it('distinguishes a subset from a superset', () => {
-		assert.notEqual(failureSignature([lintFail]), failureSignature([lintFail, typeFail]))
-		assert.notEqual(failureSignature([]), failureSignature([lintFail]))
-	})
-
-	it('distinguishes one failure from a different single failure', () => {
-		assert.notEqual(failureSignature([lintFail]), failureSignature([typeFail]))
-	})
-
-	it('does not mutate its input', () => {
-		const results = [typeFail, lintFail]
-		const snapshot = structuredClone(results)
-		failureSignature(results)
-		assert.deepEqual(results, snapshot, 'sorting for order-independence must not reorder the caller array')
-	})
-})
-
-describe('decide — when not to block', () => {
-	it('does not block with no results', () => {
-		assertPassed(decideFor([]))
-	})
-
-	it('does not block when every result passes', () => {
-		assert.deepEqual(decideFor([pass('lint', LINT), pass('typecheck', TYPECHECK)]), { block: false })
-	})
-
-	it('does not block when the loop guard is set', () => {
-		const results = [fail('lint', LINT, 'boom')]
-		assertPassed(decideFor(results, { stopHookActive: true }), 'a Stop hook must not block twice on a turn')
-	})
-
-	it('does not block when this exact failure was already reported', () => {
-		const results = [fail('lint', LINT, 'boom')]
-		assertPassed(decideFor(results, { alreadyBlocked: [failureSignature(results)] }))
-	})
-
-	it('does not block on a reported failure listed among other signatures', () => {
-		const results = [fail('lint', LINT, 'boom')]
-		const blocked = ['sig-of-something-else', failureSignature(results), 'another']
-		assertPassed(decideFor(results, { alreadyBlocked: blocked }))
-	})
-
-	it('does not block when the reported failure arrives in a different order', () => {
-		const a = fail('lint', LINT, 'boom')
-		const b = fail('typecheck', TYPECHECK, 'bang')
-		assertPassed(decideFor([b, a], { alreadyBlocked: [failureSignature([a, b])] }))
-	})
-
-	it('does not block when only a newly passing sibling differs from the reported set', () => {
-		const reported = [fail('lint', LINT, 'boom')]
-		const now = [fail('lint', LINT, 'boom'), pass('typecheck', TYPECHECK)]
-		assertPassed(
-			decideFor(now, { alreadyBlocked: [failureSignature(reported)] }),
-			'a newly passing sibling does not make the same failure new',
-		)
-	})
-
-	it('treats an absent stopHookActive as false', () => {
-		assertBlocked(decideFor([fail('lint', LINT, 'boom')]), 'an unset guard must not suppress the first block')
-	})
-})
-
-describe('decide — when to block', () => {
-	it('blocks on a single failure', () => {
-		assertBlocked(decideFor([fail('lint', LINT, 'boom')]))
-	})
-
-	it('blocks when one of several results fails', () => {
-		assertBlocked(decideFor([pass('lint', LINT), fail('typecheck', TYPECHECK, 'TS2345')]))
-	})
-
-	it('blocks when the loop guard is explicitly false', () => {
-		assertBlocked(decideFor([fail('lint', LINT, 'boom')], { stopHookActive: false }))
-	})
-
-	it('blocks when alreadyBlocked holds only unrelated signatures', () => {
-		assertBlocked(decideFor([fail('lint', LINT, 'boom')], { alreadyBlocked: ['unrelated'] }))
-	})
-
-	it('blocks again when the failure set grew', () => {
-		const first = [fail('lint', LINT, 'boom')]
-		const second = [...first, fail('typecheck', TYPECHECK, 'TS2345')]
-		assertBlocked(
-			decideFor(second, { alreadyBlocked: [failureSignature(first)] }),
-			'a new failure is news, even if an old one was already reported',
-		)
-	})
-
-	it('blocks again when the failure output changed', () => {
-		const before = [fail('lint', LINT, 'one error')]
-		const after = [fail('lint', LINT, 'two errors')]
-		assertBlocked(decideFor(after, { alreadyBlocked: [failureSignature(before)] }))
-	})
-
-	it('decides the same way for every trigger', () => {
-		const results = [fail('lint', LINT, 'boom')]
-		for (const trigger of ['PostToolUse', 'Stop', 'TeammateIdle'] as const) {
-			assertBlocked(decideFor(results, { trigger }), `${trigger} must block on a real failure`)
-		}
-	})
-
-	it('tolerates an empty alreadyBlocked list', () => {
-		assertBlocked(decideFor([fail('lint', LINT, 'boom')], { alreadyBlocked: [] }))
-	})
-})
-
-/**
- * `decide` is the only function here that can block, so an input it does not
- * recognize must not produce one. This is also the only place the trigger
- * parameter matters — for recognized triggers the decision is trigger-independent.
- */
-describe('decide — fails open on an unrecognized trigger', () => {
-	const results = [fail('lint', LINT, 'boom')]
-
-	function decideWithTrigger(trigger: unknown): Decision {
-		return decide({ trigger: trigger as Trigger, results, alreadyBlocked: [] })
+	/** Locates by file name: anything in `edited` is edited, a null file is global, the rest is elsewhere. */
+	function judge(outcome: RunOutcome, edited: string[], locateOverride?: (d: Diagnostic) => Location) {
+		const parsed = outcome.ran ? parseOutput('tsc', outcome.stdout, outcome.stderr, outcome.exitCode) : null
+		const locate = locateOverride ?? ((d: Diagnostic): Location => (d.file === null ? 'global' : edited.includes(d.file) ? 'edited' : 'other'))
+		return judgeEdited({ name: 'typecheck', command: 'tsc --noEmit --pretty false', root: ROOT }, outcome, parsed, locate)
 	}
 
-	const unrecognized: Array<[string, unknown]> = [
-		['an unknown name', 'Nope'],
-		['a lowercase Stop', 'stop'],
-		['a differently cased TeammateIdle', 'teammateidle'],
-		['a trailing space', 'Stop '],
-		['an empty string', ''],
-		['undefined', undefined],
-		['null', null],
-		['a number', 42],
-		['an object', {}],
-		['an array of triggers', ['Stop']],
-		['a boolean', true],
-	]
-
-	for (const [label, trigger] of unrecognized) {
-		it(`does not block for ${label}`, () => {
-			assert.deepEqual(decideWithTrigger(trigger), { block: false }, `${JSON.stringify(trigger)} must fail open`)
-		})
-	}
-
-	it('still blocks for each recognized trigger', () => {
-		for (const trigger of ['PostToolUse', 'Stop', 'TeammateIdle'] as const) {
-			assertBlocked(decideWithTrigger(trigger), `${trigger} is recognized and must still block`)
-		}
+	it('fails a check that did not run, before parsing anything', () => {
+		const result = judge({ ran: false, why: 'was killed by SIGKILL', stdout: '', stderr: '' }, [])
+		assert.equal(result.ok, false)
+		assert.match(result.output, /SIGKILL/)
 	})
 
-	it('matches the trigger exactly, not by prefix or substring', () => {
-		assertPassed(decideWithTrigger('Stopped'), 'a longer name that starts with Stop is not Stop')
-		assertPassed(decideWithTrigger('PreStop'), 'a longer name that ends with Stop is not Stop')
+	it('passes on exit 0 without parsing, whatever was printed', () => {
+		assert.equal(judge(ran(0, 'not a diagnostic at all'), []).ok, true)
+	})
+
+	it('fails a missing command rather than parsing the shell error', () => {
+		assert.match(judge(ran(127, '', 'sh: tsc: not found'), []).output, /could not be found/)
+	})
+
+	it('fails unfiltered on a line the parser cannot account for', () => {
+		const result = judge(ran(1, `${TSC_RUN}\nnpm ERR! lifecycle script failed`), [])
+		assert.equal(result.ok, false)
+		assert.match(result.output, /could not parse/)
+		assert.match(result.output, /npm ERR!/)
+		assert.match(result.output, /src\/a\.ts/, 'unfiltered means every diagnostic is shown, including ones elsewhere')
+	})
+
+	it('fails unfiltered when the output says the run did not complete', () => {
+		const result = judge(ran(1, "tsconfig.json(1,24): error TS5023: Unknown compiler option 'bogus'."), [])
+		assert.equal(result.ok, false)
+		assert.match(result.output, /did not complete/)
+	})
+
+	it('fails unfiltered when a non-zero exit has no error to explain it', () => {
+		const result = judge(ran(2, ''), [])
+		assert.equal(result.ok, false)
+		assert.match(result.output, /reported no error/)
+	})
+
+	it('fails unfiltered when the error count disagrees with the summary', () => {
+		const result = judge(ran(1, `${TSC_RUN}\nFound 5 errors in 2 files.`), [])
+		assert.equal(result.ok, false)
+		assert.match(result.output, /reported 5 errors but 2 were parsed/)
+	})
+
+	it('fails on an error located in an edited file, showing only the attributed ones', () => {
+		const result = judge(ran(1, TSC_RUN), ['src/c.ts'])
+		assert.equal(result.ok, false)
+		assert.match(result.output, /src\/c\.ts\(5,3\)/)
+		assert.match(result.output, /The types of 'x\.y' are incompatible/, 'continuation lines travel with their diagnostic')
+		assert.doesNotMatch(result.output, /src\/a\.ts/, 'an error elsewhere is not the session’s')
+		assert.match(result.output, /1 error located in files this session did not edit was not counted/)
+	})
+
+	it('passes with a notice when every error is in a file the session did not edit', () => {
+		const result = judge(ran(1, TSC_RUN), ['src/b.ts'])
+		assert.equal(result.ok, true)
+		assert.match(result.notice?.text ?? '', /2 errors located in files this session did not edit were not counted/)
+	})
+
+	it('always keeps an error with no file', () => {
+		const result = judge(ran(1, "error TS2318: Cannot find global type 'Array'."), [])
+		assert.equal(result.ok, false)
+		assert.match(result.output, /TS2318/)
+		assert.match(result.output, /no file in this checkout/)
+	})
+
+	it('keeps whatever the runner locates as global', () => {
+		const result = judge(ran(1, TSC_RUN), [], () => 'global')
+		assert.equal(result.ok, false)
+	})
+
+	it('keys a failure by its diagnostics, so a line shift is not a new failure', () => {
+		const before = judge(ran(1, "src/c.ts(5,3): error TS2554: Expected 0 arguments, but got 1."), ['src/c.ts'])
+		const after = judge(ran(1, "src/c.ts(9,3): error TS2554: Expected 0 arguments, but got 1."), ['src/c.ts'])
+		assert.equal(failureSignature([before]), failureSignature([after]))
+	})
+
+	it('only attributes errors; a warning never blocks on its own', () => {
+		const result = judge(ran(1, "src/a.ts(1,1): warning TS6133: 'x' is declared but its value is never read."), ['src/a.ts'])
+		assert.equal(result.ok, false)
+		assert.match(result.output, /reported no error/, 'a non-zero exit explained only by a warning is shown unfiltered')
 	})
 })
 
-describe('decide — the block reason', () => {
-	const lintFail = fail('lint', LINT, 'src/a.ts:1:1  error  no-unused-vars')
-	const typeFail = fail('typecheck', TYPECHECK, 'src/b.ts(3,5): error TS2345')
-
-	it('names the failing command and includes its output', () => {
-		const reason = assertBlocked(decideFor([lintFail]))
-		assert.ok(reason.includes(LINT), `reason must name the command that failed:\n${reason}`)
-		assert.ok(reason.includes(lintFail.output), `reason must include the failure output:\n${reason}`)
-	})
-
-	it('covers every failing command, not just the first', () => {
-		const reason = assertBlocked(decideFor([lintFail, typeFail]))
-		for (const r of [lintFail, typeFail]) {
-			assert.ok(reason.includes(r.command), `reason must name ${r.name}'s command:\n${reason}`)
-			assert.ok(reason.includes(r.output), `reason must include ${r.name}'s output:\n${reason}`)
-		}
-	})
-
-	it('reports the failure among passing siblings', () => {
-		const passing = pass('lint', LINT, 'ALL-GOOD-NOISE')
-		const reason = assertBlocked(decideFor([passing, typeFail]))
-		assert.ok(reason.includes(typeFail.output), 'the failure output must be there')
-		assert.equal(reason.includes('ALL-GOOD-NOISE'), false, 'a passing command output is noise, not a defect')
-	})
-
-	it('carries a multi-line output through intact', () => {
-		const multi = fail('lint', LINT, 'src/a.ts\n  1:1  error  no-unused-vars\n  2:9  error  eqeqeq')
-		const reason = assertBlocked(decideFor([multi]))
-		assert.ok(reason.includes(multi.output), 'the agent must not have to re-run to see the errors')
-	})
-
-	it('still reads as a sentence when the failing command produced no output', () => {
-		const silent = fail('typecheck', TYPECHECK, '')
-		const reason = assertBlocked(decideFor([silent]))
-		assert.ok(reason.includes(TYPECHECK), `reason must still name the command:\n${reason}`)
-		assert.ok(reason.trim().length > TYPECHECK.length, 'a bare command string is not an explanation')
-	})
-})
-
+// ---------------------------------------------------------------------------
+// watched tests
+// ---------------------------------------------------------------------------
 
 const WATCH = 'npx vitest --watch --reporter=json --outputFile={status}'
 
@@ -1396,32 +793,11 @@ function verdictInput(overrides: Partial<Parameters<typeof testVerdict>[0]> = {}
 	})
 }
 
-describe('configuring a watched test suite', () => {
-	it('accepts a watch command that says where to write its report', () => {
-		assert.deepEqual(resolveConfig({ test: { watch: WATCH } }).test, { watch: WATCH })
-	})
-
-	it('drops a watch command with no {status} placeholder', () => {
-		// There would be nothing to read at Stop. Appending an output flag for the
-		// project would mean guessing the runner's CLI, and guessing wrong yields a
-		// watcher that runs forever and never reports.
-		assert.equal(resolveConfig({ test: { watch: 'npx vitest --watch' } }).test, undefined)
-	})
-
-	it('ignores a test key that is not an object', () => {
-		assert.equal(resolveConfig({ test: 'npx vitest' }).test, undefined)
-		assert.equal(resolveConfig({ test: ['npx vitest'] }).test, undefined)
-	})
-
+describe('filling a watcher command', () => {
 	it('fills the placeholder with a shell-quoted path', () => {
 		const filled = watchCommand(WATCH, "/tmp/a b/it's.json")
 		assert.ok(filled.includes(`'/tmp/a b/it'\\''s.json'`), filled)
 		assert.ok(!filled.includes('{status}'))
-	})
-
-	it('only tracks edit time when a watcher is configured', () => {
-		assert.equal(tracksEditTime({ test: { watch: WATCH } }), true)
-		assert.equal(tracksEditTime({ lint: 'npm run lint' }), false)
 	})
 })
 
@@ -1433,12 +809,10 @@ describe('reading a watcher verdict', () => {
 	})
 
 	it('does not pass when there is no report at all', () => {
-		const v = verdictInput({ status: null, statusMtime: null })
-		assert.equal(v.state, 'unknown')
+		assert.equal(verdictInput({ status: null, statusMtime: null }).state, 'unknown')
 	})
 
 	it('does not pass when the report predates the last edit', () => {
-		// The tests passed against code that has since changed.
 		const v = verdictInput({ statusMtime: 500, lastEditAt: 1_000 })
 		assert.equal(v.state, 'unknown')
 		assert.match((v as { reason: string }).reason, /predates the most recent edit/)
@@ -1450,14 +824,10 @@ describe('reading a watcher verdict', () => {
 	})
 
 	it('still trusts a fresh report from a watcher that has since died', () => {
-		// Liveness governs whether the *next* edit can be checked. It does not
-		// retroactively invalidate a verdict that postdates the last edit.
 		assert.deepEqual(verdictInput({ watcherAlive: false }), { state: 'pass' })
 	})
 
 	it('does not pass when the report is present but unreadable', () => {
-		// Mid-write or truncated. Freshness is judged first, so this is reached
-		// only for a report that is otherwise current.
 		assert.equal(verdictInput({ status: null }).state, 'unknown')
 		assert.equal(verdictInput({ status: 'not json' }).state, 'unknown')
 	})
@@ -1467,7 +837,6 @@ describe('reading a watcher verdict', () => {
 	})
 
 	it('treats a missing lastEditAt as no freshness constraint', () => {
-		// Nothing was edited this session, so no report can be out of date.
 		assert.deepEqual(verdictInput({ lastEditAt: null, statusMtime: 1 }), { state: 'pass' })
 	})
 
@@ -1478,32 +847,127 @@ describe('reading a watcher verdict', () => {
 	})
 
 	it('reports a failure it cannot count without inventing one', () => {
-		const v = verdictInput({ status: { success: false } })
-		assert.equal((v as { detail: string }).detail, 'Tests are failing.')
+		assert.equal((verdictInput({ status: { success: false } }) as { detail: string }).detail, 'Tests are failing.')
 	})
 })
 
-describe('folding a verdict into the block machinery', () => {
-	it('produces nothing to block on when the tests pass', () => {
-		assert.equal(verdictAsResult({ state: 'pass' }, WATCH), null)
+describe('folding a verdict into a result', () => {
+	const base = { name: 'test', command: WATCH, root: ROOT }
+
+	it('passes when the tests pass', () => {
+		assert.equal(verdictAsResult({ state: 'pass' }, base).ok, true)
 	})
 
-	it('blocks on a failure, naming the watcher as the command', () => {
-		const result = verdictAsResult({ state: 'fail', detail: '1 of 3 tests failing.' }, WATCH)
-		assert.equal(result?.ok, false)
-		assert.equal(result?.name, 'test')
-		assert.equal(result?.command, WATCH)
+	it('fails on a failing verdict, naming the watcher as the command', () => {
+		const result = verdictAsResult({ state: 'fail', detail: '1 of 3 tests failing.' }, base)
+		assert.equal(result.ok, false)
+		assert.equal(result.command, WATCH)
 	})
 
-	it('blocks on an unknown verdict too, since it is not permission to finish', () => {
-		const result = verdictAsResult({ state: 'unknown', reason: 'the watcher is not running' }, WATCH)
-		assert.equal(result?.ok, false)
-		assert.match(result!.output, /No usable verdict/)
+	it('fails on an unknown verdict too, since it is not permission to finish', () => {
+		const result = verdictAsResult({ state: 'unknown', reason: 'the watcher is not running' }, base)
+		assert.equal(result.ok, false)
+		assert.match(result.output, /No usable verdict/)
+	})
+})
+
+// ---------------------------------------------------------------------------
+// deciding
+// ---------------------------------------------------------------------------
+
+describe('failureSignature', () => {
+	it('is independent of array order and of passing siblings', () => {
+		const a = fail('lint', 'x')
+		const b = fail('typecheck', 'y')
+		assert.equal(failureSignature([a, b]), failureSignature([pass('test'), b, a]))
 	})
 
-	it('gives a failure and an unknown different signatures, so one does not silence the other', () => {
-		const fail = verdictAsResult({ state: 'fail', detail: 'x' }, WATCH)!
-		const unknown = verdictAsResult({ state: 'unknown', reason: 'x' }, WATCH)!
-		assert.notEqual(failureSignature([fail]), failureSignature([unknown]))
+	it('changes when the output, the command or the checkout changes', () => {
+		const original = failureSignature([fail('lint', 'x')])
+		assert.notEqual(failureSignature([fail('lint', 'y')]), original)
+		assert.notEqual(failureSignature([fail('lint', 'x', { command: 'other' })]), original)
+		assert.notEqual(failureSignature([fail('lint', 'x', { root: '/elsewhere' })]), original)
+	})
+
+	it('prefers an identity over raw output', () => {
+		assert.equal(
+			failureSignature([fail('typecheck', 'line 3', { identity: 'same' })]),
+			failureSignature([fail('typecheck', 'line 9', { identity: 'same' })]),
+		)
+	})
+})
+
+describe('conclude', () => {
+	it('stays silent when every check passes', () => {
+		assert.deepEqual(concludeFor([pass('lint'), pass('typecheck')]), { block: null, systemMessage: null, blocked: null, notified: [] })
+	})
+
+	it('blocks on a failure, naming the check, its command and its output', () => {
+		const conclusion = concludeFor([pass('lint', 'NOISE'), fail('typecheck', 'src/b.ts(3,5): error TS2345')])
+		const reason = assertBlocked(conclusion)
+		assert.match(reason, /typecheck — `typecheck-command`/)
+		assert.match(reason, /TS2345/)
+		assert.doesNotMatch(reason, /NOISE/, 'a passing check’s output is noise')
+		assert.equal(conclusion.blocked, failureSignature([fail('typecheck', 'src/b.ts(3,5): error TS2345')]))
+	})
+
+	it('covers every failure, not just the first', () => {
+		const reason = assertBlocked(concludeFor([fail('lint', 'L'), fail('test', 'T')]))
+		assert.match(reason, /2 checks failed/)
+		assert.match(reason, /lint/)
+		assert.match(reason, /test/)
+	})
+
+	it('says a failure is reported by location, not cause', () => {
+		assert.match(assertBlocked(concludeFor([fail('lint', 'x')])), /not by who caused it/)
+	})
+
+	it('appends notes to the block', () => {
+		assert.match(assertBlocked(concludeFor([fail('lint', 'x')], { notes: ['Note: no node_modules'] })), /no node_modules/)
+	})
+
+	it('does not ask the agent twice about the same failure, and tells the user once instead', () => {
+		const results = [fail('lint', 'same')]
+		const first = concludeFor(results)
+		const second = concludeFor(results, { alreadyBlocked: [first.blocked as string] })
+		assert.equal(second.block, null)
+		assert.match(second.systemMessage ?? '', /already told/)
+		const third = concludeFor(results, { alreadyBlocked: [first.blocked as string], alreadyNotified: second.notified })
+		assert.deepEqual(third, { block: null, systemMessage: null, blocked: null, notified: [] })
+	})
+
+	it('does not block while a stop hook is already continuing the turn, and tells the user', () => {
+		const conclusion = concludeFor([fail('lint', 'x')], { stopHookActive: true })
+		assert.equal(conclusion.block, null)
+		assert.equal(conclusion.blocked, null)
+		assert.match(conclusion.systemMessage ?? '', /stop hook/)
+	})
+
+	it('blocks again when the failure changes', () => {
+		const first = concludeFor([fail('lint', 'first')])
+		assertBlocked(concludeFor([fail('lint', 'second')], { alreadyBlocked: [first.blocked as string] }))
+	})
+
+	it('shows a passing check’s notice once', () => {
+		const noticed = pass('typecheck', '', { notice: { key: 'n1', text: 'typecheck found no errors in files this session edited' } })
+		const first = concludeFor([noticed])
+		assert.equal(first.block, null)
+		assert.match(first.systemMessage ?? '', /found no errors/)
+		assert.deepEqual(first.notified, ['n1'])
+		assert.equal(concludeFor([noticed], { alreadyNotified: ['n1'] }).systemMessage, null)
+	})
+
+	it('never blocks outside Stop and TeammateIdle', () => {
+		for (const trigger of ['PostToolUse', 'SessionEnd', 'Stopped', ''] as Trigger[]) {
+			assert.equal(concludeFor([fail('lint', 'x')], { trigger }).block, null, `blocked on ${trigger}`)
+		}
+	})
+
+	it('decides the same way for Stop and TeammateIdle', () => {
+		assert.equal(concludeFor([fail('lint', 'x')], { trigger: 'Stop' }).block, concludeFor([fail('lint', 'x')], { trigger: 'TeammateIdle' }).block)
+	})
+
+	it('tolerates junk inputs', () => {
+		assert.equal(conclude({ trigger: 'Stop', results: null as never, alreadyBlocked: null as never, alreadyNotified: null as never }).block, null)
 	})
 })

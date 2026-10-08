@@ -1,9 +1,9 @@
 {
-  "description": "Formats on edit, watches tests in the background, and gates lint, typecheck and the test verdict on stop and on teammate idle",
+  "description": "Formats each edit, records what the session changed, and on stop and teammate idle runs the configured checks those edits make owed",
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "^(Write|Edit|MultiEdit|NotebookEdit)$",
+        "matcher": "^(Write|Edit|MultiEdit|NotebookEdit|Bash)$",
         "hooks": [
           {
             "type": "command",
@@ -19,7 +19,7 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/gate.ts\"",
-            "timeout": 200
+            "timeout": 600
           }
         ]
       }
@@ -30,7 +30,7 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/gate.ts\"",
-            "timeout": 200
+            "timeout": 600
           }
         ]
       }
