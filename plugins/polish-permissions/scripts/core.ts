@@ -461,6 +461,224 @@ export function families(rules: Rule[]): Family[] {
 	return out.sort((a, b) => a.name.localeCompare(b.name))
 }
 
+// -------------------------------------------------- files that never load
+
+/**
+ * A rule in a settings file above the project. Claude Code reads settings only
+ * from the directory a session starts in (and the git root, for local
+ * settings), never from a parent directory, so such a file applies to no
+ * session started below it. Its rules are usually ones meant to be global.
+ */
+export interface InertRule {
+	raw: string
+	list: ListName
+	family: string
+	readonly: Readonly_
+	sensitive: boolean
+	recommendation: 'promote-to-user' | 'keep' | 'ask' | 'already-granted'
+	/** The user-scope rule that already grants this one. */
+	coveredBy?: string
+	reason: string
+}
+
+/** The user-scope rule that grants everything `r` does, if there is one. */
+function grantedBy(r: Rule, others: Rule[]): Rule | undefined {
+	return others.find((o) => o.list === r.list && (o.raw === r.raw || subsumes(o, r)))
+}
+
+/** Per-rule verdicts for a file that never loads, from the same read-only and
+ *  sensitivity classification the families use. */
+export function classifyInert(rules: Rule[], userRules: Rule[]): InertRule[] {
+	const unique = [...new Map(rules.map((r) => [`${r.list} ${r.raw}`, r])).values()]
+	return unique.map((r) => {
+		const base = {
+			raw: r.raw,
+			list: r.list,
+			family: r.family,
+			readonly: r.readonly,
+			sensitive: r.sensitive,
+		}
+		const covering = grantedBy(r, userRules)
+		if (covering) {
+			return {
+				...base,
+				recommendation: 'already-granted',
+				coveredBy: covering.raw,
+				reason: 'User scope already grants it; this copy adds nothing anywhere.',
+			}
+		}
+		if (r.list !== 'allow') {
+			return {
+				...base,
+				recommendation: 'ask',
+				reason: `A ${r.list} rule at user scope changes how every project prompts. Only the user can say whether that is intended.`,
+			}
+		}
+		if (r.sensitive) {
+			return {
+				...base,
+				recommendation: 'keep',
+				reason: 'Reads credentials or secrets. Promoting it means never being asked before a secret is read.',
+			}
+		}
+		if (r.readonly === 'yes') {
+			return { ...base, recommendation: 'promote-to-user', reason: 'Provably read-only.' }
+		}
+		if (r.readonly === 'no') {
+			return {
+				...base,
+				recommendation: 'keep',
+				reason: 'Can modify state. It belongs to sessions started in that directory, if anywhere.',
+			}
+		}
+		return {
+			...base,
+			recommendation: 'ask',
+			reason: 'Effect cannot be determined from the rule text.',
+		}
+	})
+}
+
+// ------------------------------------- project policy or personal preference
+
+/** What a repository owns, gathered from its files, for telling a project
+ *  rule apart from a personal preference that was committed. */
+export interface ProjectContext {
+	/** Absolute path of the project root. */
+	root: string
+	/** Script names from package.json, workspace packages included. */
+	scripts: Set<string>
+	/** Declared dependency and bin names from package.json. */
+	packages: Set<string>
+	/** Server names from .mcp.json. */
+	mcpServers: Set<string>
+	/** Whether a path, relative to the project or one of its workspace
+	 *  packages, exists in it. */
+	pathExists: (relative: string) => boolean
+}
+
+const FILE_TOOLS = ['Read', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Glob', 'Grep']
+const NPM_SCRIPT_ALIASES: Record<string, string> = {
+	test: 'test',
+	t: 'test',
+	start: 'start',
+	stop: 'stop',
+	restart: 'restart',
+}
+
+/** `lint:*` and `lint*` both name the `lint` script. */
+function bareToken(token: string | undefined): string {
+	return (token ?? '').replace(/[:*]+$/, '')
+}
+
+/** The literal part of a path pattern, up to its first wildcard. */
+function literalPrefix(path: string): string {
+	const star = path.indexOf('*')
+	return (star === -1 ? path : path.slice(0, star)).replace(/\/+$/, '')
+}
+
+function bashReference(spec: string, ctx: ProjectContext): string | null {
+	const tokens = spec
+		.trim()
+		.split(/\s+/)
+		.filter((t) => !/^[A-Za-z_][A-Za-z0-9_]*=/.test(t))
+	const [cmd, first, second] = tokens
+
+	if (cmd === 'npm' || cmd === 'pnpm' || cmd === 'yarn' || cmd === 'bun') {
+		let script: string | undefined
+		if (first === 'run' || first === 'run-script') script = bareToken(second)
+		else if (cmd === 'npm') script = NPM_SCRIPT_ALIASES[bareToken(first)]
+		else script = bareToken(first)
+		if (script && ctx.scripts.has(script)) return `package.json script "${script}"`
+
+		const bin = first === 'exec' ? bareToken(second) : cmd === 'yarn' ? bareToken(first) : ''
+		if (bin && ctx.packages.has(bin)) return `package "${bin}"`
+	}
+
+	if (cmd === 'npx' || cmd === 'bunx') {
+		const bin = bareToken(tokens.slice(1).find((t) => !t.startsWith('-')))
+		if (bin && ctx.packages.has(bin)) return `package "${bin}"`
+		// A dependency's executable is named by the dependency, not after it:
+		// `aws-cdk` installs `cdk`.
+		if (bin && ctx.pathExists(`node_modules/.bin/${bin}`)) return `installed executable "${bin}"`
+	}
+
+	if (cmd === 'make' && ctx.pathExists('Makefile')) return 'Makefile'
+
+	for (const token of tokens) {
+		if (token.includes('://')) continue
+		if (token.startsWith(`${ctx.root}/`)) return `repository path ${token}`
+		if (token.startsWith('/') || token.startsWith('~') || token.startsWith('-')) continue
+		if (!token.includes('/')) continue
+		const prefix = literalPrefix(token.replace(/^\.\//, ''))
+		if (prefix && ctx.pathExists(prefix)) return `repository path ${token}`
+	}
+	return null
+}
+
+/**
+ * What in the repository a rule names, or null when it names nothing the
+ * repository owns. A rule that names a script, dependency, path or MCP server
+ * of this repository is project policy; one that names none of them reads the
+ * same in every project.
+ */
+export function projectReference(r: Rule, ctx: ProjectContext): string | null {
+	if (r.tool.startsWith('mcp__')) {
+		const server = r.tool.split('__')[1]
+		return server && ctx.mcpServers.has(server) ? `.mcp.json server "${server}"` : null
+	}
+	if (r.spec === null) return null
+	if (r.tool === 'Bash') return bashReference(r.spec, ctx)
+	if (FILE_TOOLS.includes(r.tool)) {
+		// `~/x` is the home directory and `//x` an absolute path; every other
+		// form resolves inside the project.
+		if (r.spec.startsWith('~')) return null
+		if (r.spec.startsWith('//')) {
+			return r.spec.slice(1).startsWith(`${ctx.root}/`) ? `repository path ${r.spec}` : null
+		}
+		return `repository path ${r.spec}`
+	}
+	return null
+}
+
+export interface ProjectRuleVerdict {
+	rule: string
+	verdict: 'project-policy' | 'likely-personal'
+	/** What the rule names in the repository, for project policy. */
+	reference?: string
+	/** Where else the same grant sits, for a likely personal preference. */
+	evidence: string[]
+}
+
+/**
+ * Sorts every committed allow rule into project policy or a personal
+ * preference that was committed. Naming something the repository owns is the
+ * deciding signal; the same grant sitting at user scope or in a file above the
+ * project supports the personal reading. Deny and ask rules are guard rails a
+ * team commits on purpose and are not sorted.
+ */
+export function projectRuleVerdicts(
+	rules: Rule[],
+	elsewhere: { where: string; rules: Rule[] }[],
+	ctx: ProjectContext,
+): ProjectRuleVerdict[] {
+	const committed = rules.filter((r) => r.scope === 'project' && r.list === 'allow')
+	const unique = [...new Map(committed.map((r) => [r.raw, r])).values()]
+	return unique.map((r) => {
+		const reference = projectReference(r, ctx)
+		if (reference) return { rule: r.raw, verdict: 'project-policy', reference, evidence: [] }
+		const evidence: string[] = []
+		for (const place of elsewhere) {
+			const covering = grantedBy(r, place.rules)
+			if (!covering) continue
+			evidence.push(
+				covering.raw === r.raw ? `also in ${place.where}` : `covered in ${place.where} by ${covering.raw}`,
+			)
+		}
+		return { rule: r.raw, verdict: 'likely-personal', evidence }
+	})
+}
+
 // ----------------------------------------------------------- sorted view
 
 export function sortKey(r: Rule): string {

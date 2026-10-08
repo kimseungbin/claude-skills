@@ -1,6 +1,6 @@
 ---
 name: polish-permissions
-description: Audit the allow/deny/ask rules across the user, project and local settings scopes, then dedupe them and promote read-only rules up the scope ladder. Use when permission arrays have grown messy, when the same rule keeps getting re-approved in every project, or when reviewing what a repo grants.
+description: Audit the allow/deny/ask rules across the user, project and local settings scopes, then dedupe them and promote read-only rules up the scope ladder. Also finds settings files above the project that never load, and committed rules that are personal preferences rather than project policy. Use when permission arrays have grown messy, when the same rule keeps getting re-approved in every project, or when reviewing what a repo grants.
 argument-hint: "[optional: a tool family to focus on, e.g. gh]"
 disable-model-invocation: true
 allowed-tools: Bash Read Edit Write AskUserQuestion
@@ -14,13 +14,17 @@ This reorganizes what is there. It does not discover new rules from transcripts 
 
 ## What the scopes actually do
 
-Three files merge at runtime:
+Three scopes merge at runtime:
 
-| Scope | File | Reaches |
-|---|---|---|
-| User | `~/.claude/settings.json` | every project, only you |
-| Project | `.claude/settings.json` | only this repo, everyone who clones it |
-| Local | `.claude/settings.local.json` | only this repo, only you |
+| Scope | File | Read from | Reaches |
+|---|---|---|---|
+| User | `~/.claude/settings.json` | home | every project, only you |
+| Project | `.claude/settings.json` | the directory the session starts in | only this repo, everyone who clones it |
+| Local | `.claude/settings.local.json` | the git root | only this repo, only you |
+
+Local settings come from the working directory instead on Windows, outside a git repository, when the git root is home, and when the root is owned by another user. A `settings.local.json` left in the working directory of a subdirectory session is read alongside the git root's; new local rules go to the git root's.
+
+**Settings load from those directories only — never from a parent directory.** A `.claude/settings.local.json` in `~/repos` or in `~` applies only to sessions started in exactly that directory, though it looks like a scope covering everything below it. `~/.claude/settings.local.json` in particular is not user scope: it is the local file of a project rooted at home.
 
 Two facts drive every decision below, and both are easy to get wrong:
 
@@ -31,12 +35,12 @@ Two facts drive every decision below, and both are easy to get wrong:
 ## Step 1: Run the audit
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/audit.ts" --root "$(pwd)"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/audit.ts" --cwd "$(pwd)"
 ```
 
-Add `--json` when you want the structured form to work from. The script only reads.
+Add `--json` when you want the structured form to work from. The script only reads. The `Permission scopes` block lists the exact files it read, which are the ones Claude Code loads for a session started here.
 
-Read the output before doing anything. It reports six things, in the order they should be dealt with.
+Read the output before doing anything. The findings come in the order they should be dealt with.
 
 ## Step 2: Fix parse errors first, if there are any
 
@@ -99,14 +103,38 @@ A suggestion is also withheld when the pattern could reach a credential read, wh
 
 **Say out loud that these widen.** `Bash(aws * list-*)` replacing seven service-specific rules does not just tidy them — it grants `list-` on every AWS service, including ones the user has never touched. That is a decision, not housekeeping.
 
-## Step 6: Write the changes
+## Step 6: Report the settings files above the project
+
+The audit walks from the working directory up to home and lists every settings file that no session started here loads — typically `~/.claude/settings.local.json` and a `.claude/settings.local.json` in a folder of repositories. Rules land in these when a session happens to start in `~` or `~/repos`, and they are usually rules meant to be global.
+
+Each rule is marked from the same classification as the families:
+
+- `↑` provably read-only — a candidate for user scope
+- `·` modifies state or reads credentials — it belongs to sessions started in that directory, if anywhere
+- `?` deny, ask, or an effect the rule text does not reveal
+- `=` user scope already grants it — the copy adds nothing anywhere
+
+Present these as a report and leave the files as they are. Tell the user which directory each file actually applies to.
+
+## Step 7: Report committed rules that read as personal preferences
+
+Every allow rule in the committed `.claude/settings.json` is sorted into one of two kinds:
+
+- `project` — it names something the repository owns: a package.json script (workspace packages included), a dependency or installed executable, a path in the repository, a project-relative file pattern, a `.mcp.json` server, or the Makefile.
+- `personal?` — it names nothing in the repository, so it reads the same in every project. Where the same grant also sits at user scope or in a file above the project, the audit lists it as supporting evidence.
+
+A committed rule grants the permission to everyone who clones the repository, so a `personal?` rule is one person's preference applied to the whole team — or a stale rule whose script no longer exists. Deny and ask rules are guard rails a team commits on purpose and are not sorted.
+
+Present these as a report. Whether a committed rule moves is a change to the team's settings, made in a commit the user writes.
+
+## Step 8: Write the changes
 
 1. **Back up first.** Copy each file you are about to modify to `<file>.bak`. Add `*.bak` to `.gitignore` if the repo does not already ignore it — otherwise you have left untracked noise in someone's working tree.
 2. **Show a unified diff per file** and get confirmation before writing.
 3. **Preserve everything else in the file.** These files hold hooks, env vars and model settings. Read, modify the `permissions` arrays, write back — never reconstruct a settings file from the permissions alone.
-4. **Verify the result parses**, for every file you touched:
+4. **Verify the result parses**, for every file you touched — the paths the audit printed under `Permission scopes`:
    ```bash
-   for f in ~/.claude/settings.json .claude/settings.json .claude/settings.local.json; do
+   for f in <each file you touched>; do
      [ -f "$f" ] && { jq -e . "$f" >/dev/null && echo "ok   $f" || echo "BAD  $f"; }
    done
    ```
@@ -141,7 +169,7 @@ It **extends only**. A project cannot shorten the mutating-marker list to make i
 ## What this deliberately does not do
 
 - **Managed scope** is not touched. It is admin-controlled and not writable here.
-- **Cross-repo promotion** is out of scope: the audit reads one project's three scopes. A rule sitting in twelve repos' local settings is invisible to it. Run the skill per repo, or raise this as a follow-up.
+- **The walk is vertical.** The audit reads the files this session loads and the directories above it, up to home. Sibling repositories are audited by running the skill in each; once a rule is promoted to user scope, their copies show up as already covered.
 - **Glob subsumption beyond wildcard prefixes** is not attempted. `Read(src/**)` versus `Read(src/*.ts)` is left to the user.
 
 ## Notes

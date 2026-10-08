@@ -9,6 +9,7 @@ import assert from 'node:assert/strict'
 import {
 	analyze,
 	classify,
+	classifyInert,
 	coverageReaches,
 	defaultConfig,
 	extendConfig,
@@ -16,13 +17,14 @@ import {
 	familyOf,
 	isSensitive,
 	nearMiss,
+	projectReference,
 	rulesFrom,
 	sortRules,
 	splitRule,
 	subsumes,
 	suggestWildcards,
 } from './core.ts'
-import type { Config, ListName, Rule, Scope } from './core.ts'
+import type { Config, ListName, ProjectContext, Rule, Scope } from './core.ts'
 
 const CFG: Config = defaultConfig()
 
@@ -529,5 +531,96 @@ describe('the tidied lists the skill writes back', () => {
 		)
 		assert.deepEqual(sorted.user.allow, ['Read'])
 		assert.deepEqual(sorted.user.deny, ['Bash(rm *)'])
+	})
+})
+
+describe('what to do with a rule in a settings file that never loads', () => {
+	const verdict = (raw: string, user: string[] = [], list: ListName = 'allow') =>
+		classifyInert([rule(raw, 'local', list)], user.map((u) => rule(u, 'user')))[0]!
+
+	it('recommends promoting a read-only rule to user scope', () => {
+		assert.equal(verdict('Bash(git status)').recommendation, 'promote-to-user')
+	})
+
+	it('names the user-scope rule that already grants it', () => {
+		const v = verdict('Bash(gh issue view 12)', ['Bash(gh issue view *)'])
+		assert.equal(v.recommendation, 'already-granted')
+		assert.equal(v.coveredBy, 'Bash(gh issue view *)')
+	})
+
+	it('keeps a credential read, however read-only it is', () => {
+		assert.equal(verdict('Bash(gh auth token)').recommendation, 'keep')
+	})
+
+	it('keeps a rule that can modify state', () => {
+		assert.equal(verdict('Bash(rm -rf build)').recommendation, 'keep')
+	})
+
+	it('asks about a deny rule, since at user scope it restricts every project', () => {
+		assert.equal(verdict('Bash(git push *)', [], 'deny').recommendation, 'ask')
+	})
+
+	it('reports a rule listed twice in the file once', () => {
+		assert.equal(classifyInert([rule('Read'), rule('Read')], []).length, 1)
+	})
+})
+
+describe('whether a committed rule names something the repository owns', () => {
+	const ctx: ProjectContext = {
+		root: '/work/app',
+		scripts: new Set(['lint', 'test']),
+		packages: new Set(['eslint']),
+		mcpServers: new Set(['cdk']),
+		pathExists: (p) => ['scripts/deploy.sh', 'src', 'Makefile'].includes(p),
+	}
+	const ref = (raw: string) => projectReference(rule(raw, 'project'), ctx)
+
+	it('reads npm run, pnpm and yarn invocations of the repository’s scripts', () => {
+		assert.match(ref('Bash(npm run lint *)')!, /script "lint"/)
+		assert.match(ref('Bash(npm test)')!, /script "test"/)
+		assert.match(ref('Bash(pnpm lint)')!, /script "lint"/)
+		assert.match(ref('Bash(yarn run lint:*)')!, /script "lint"/)
+	})
+
+	it('does not read a wildcard script name as naming a script', () => {
+		assert.equal(ref('Bash(npm run *)'), null)
+	})
+
+	it('reads npx of a declared dependency', () => {
+		assert.match(ref('Bash(npx eslint *)')!, /package "eslint"/)
+	})
+
+	it('reads a path that exists in the repository', () => {
+		assert.match(ref('Bash(./scripts/deploy.sh *)')!, /scripts\/deploy\.sh/)
+		assert.match(ref('Bash(bash scripts/deploy.sh)')!, /scripts\/deploy\.sh/)
+	})
+
+	it('ignores a slash-bearing token that is not a path in the repository', () => {
+		assert.equal(ref('Bash(git log origin/main)'), null)
+		assert.equal(ref('Bash(curl https://example.com/x)'), null)
+	})
+
+	it('treats a project-relative file rule as naming the repository', () => {
+		assert.ok(ref('Read(src/**)'))
+		assert.ok(ref('Edit(//work/app/src/**)'))
+	})
+
+	it('treats a home-directory or outside absolute file rule as naming nothing in it', () => {
+		assert.equal(ref('Read(~/.aws/**)'), null)
+		assert.equal(ref('Read(//etc/hosts)'), null)
+	})
+
+	it('reads a tool from one of the repository’s MCP servers', () => {
+		assert.match(ref('mcp__cdk__synth')!, /server "cdk"/)
+		assert.equal(ref('mcp__linear__list_issues'), null)
+	})
+
+	it('reads make only when the repository has a Makefile', () => {
+		assert.equal(ref('Bash(make build)'), 'Makefile')
+	})
+
+	it('finds nothing in a generic tool rule', () => {
+		assert.equal(ref('WebSearch'), null)
+		assert.equal(ref('Bash(git status)'), null)
 	})
 })

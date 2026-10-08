@@ -61,7 +61,7 @@
     {
       "name": "polish-permissions",
       "source": "./plugins/polish-permissions",
-      "description": "Audit permission rules across the user/project/local settings scopes, then dedupe them and promote read-only rules up the scope ladder",
+      "description": "Audit permission rules across the user/project/local settings scopes and the settings files above the project, then dedupe them and promote read-only rules up the scope ladder",
       "version": "0.1.2"
     }
   ]

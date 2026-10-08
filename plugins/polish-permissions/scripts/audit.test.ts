@@ -1,48 +1,57 @@
-// End-to-end tests for the command-line side: finding the three settings
-// files, surviving a broken one, and emitting the JSON the skill consumes.
+// End-to-end tests for the command-line side: finding the settings files
+// Claude Code loads and the ones above the project it never loads, surviving a
+// broken one, and emitting the JSON the skill consumes.
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { ancestorDirs, loadChain } from './audit.ts'
 
 const AUDIT = fileURLToPath(new URL('./audit.ts', import.meta.url))
 
 interface Fixture {
-	root: string
-	userSettings: string
+	/** Stands in for the home directory, so the walk up stops here. */
+	home: string
+	/** A git repository inside `home`, where the session starts. */
+	project: string
 }
 
-/** Lays down a throwaway project with whichever scopes the test needs.
- *  Values are written verbatim, so a test can pass malformed JSON on purpose. */
+/** Writes a value verbatim, so a test can pass malformed JSON on purpose. */
+function write(path: string, value: unknown): void {
+	mkdirSync(dirname(path), { recursive: true })
+	writeFileSync(path, typeof value === 'string' ? value : JSON.stringify(value, null, 2))
+}
+
+/** Lays down a throwaway home directory holding one git repository, with
+ *  whichever scopes the test needs. */
 function fixture(files: { user?: unknown; project?: unknown; local?: unknown }): Fixture {
-	const root = mkdtempSync(join(tmpdir(), 'polish-permissions-'))
-	mkdirSync(join(root, '.claude'), { recursive: true })
-	const userSettings = join(root, 'user-settings.json')
+	const home = realpathSync(mkdtempSync(join(tmpdir(), 'polish-permissions-')))
+	const project = join(home, 'repos', 'app')
+	mkdirSync(join(project, '.git'), { recursive: true })
 
-	const write = (path: string, value: unknown) =>
-		writeFileSync(path, typeof value === 'string' ? value : JSON.stringify(value, null, 2))
+	if (files.user !== undefined) write(join(home, '.claude', 'settings.json'), files.user)
+	if (files.project !== undefined) write(join(project, '.claude', 'settings.json'), files.project)
+	if (files.local !== undefined) write(join(project, '.claude', 'settings.local.json'), files.local)
 
-	if (files.user !== undefined) write(userSettings, files.user)
-	if (files.project !== undefined) write(join(root, '.claude', 'settings.json'), files.project)
-	if (files.local !== undefined) write(join(root, '.claude', 'settings.local.json'), files.local)
-
-	return { root, userSettings }
+	return { home, project }
 }
 
 function run(fx: Fixture, ...extra: string[]): string {
-	return execFileSync(
-		process.execPath,
-		[AUDIT, '--root', fx.root, '--user-settings', fx.userSettings, ...extra],
-		{ encoding: 'utf8' },
-	)
+	return runAt(fx.project, fx, ...extra)
 }
 
-function runJson(fx: Fixture): any {
-	return JSON.parse(run(fx, '--json'))
+function runAt(cwd: string, fx: Fixture, ...extra: string[]): string {
+	return execFileSync(process.execPath, [AUDIT, '--cwd', cwd, '--home', fx.home, ...extra], {
+		encoding: 'utf8',
+	})
+}
+
+function runJson(fx: Fixture, cwd = fx.project): any {
+	return JSON.parse(runAt(cwd, fx, '--json'))
 }
 
 const allow = (...rules: string[]) => ({ permissions: { allow: rules } })
@@ -123,19 +132,14 @@ describe('the JSON the skill consumes', () => {
 describe('project config that extends the safelist', () => {
 	it('is picked up from .claude/config/polish-permissions.json', () => {
 		const fx = fixture({ local: allow('Bash(mycli show users)') })
-		mkdirSync(join(fx.root, '.claude', 'config'), { recursive: true })
-		writeFileSync(
-			join(fx.root, '.claude', 'config', 'polish-permissions.json'),
-			JSON.stringify({ readonlyBash: ['mycli show *'] }),
-		)
+		write(join(fx.project, '.claude', 'config', 'polish-permissions.json'), { readonlyBash: ['mycli show *'] })
 		const json = runJson(fx)
 		assert.equal(json.rules[0].readonly, 'yes')
 	})
 
 	it('falls back to the built-in safelist when the config is unreadable', () => {
 		const fx = fixture({ local: allow('Bash(git status)') })
-		mkdirSync(join(fx.root, '.claude', 'config'), { recursive: true })
-		writeFileSync(join(fx.root, '.claude', 'config', 'polish-permissions.json'), '{ not json')
+		write(join(fx.project, '.claude', 'config', 'polish-permissions.json'), '{ not json')
 		const json = runJson(fx)
 		assert.equal(json.rules[0].readonly, 'yes')
 	})
@@ -145,7 +149,9 @@ describe('the human-readable report', () => {
 	it('names every finding section even when a section is empty', () => {
 		const out = run(fixture({ local: allow('Read') }))
 		for (const heading of [
-			'Duplicated inside one file',
+			'Duplicated inside one scope',
+			'Settings files above this project that never load here',
+			'Committed allow rules',
 			'Present in more than one scope',
 			'Already covered by a broader rule',
 			'allow / deny overlap',
@@ -162,5 +168,168 @@ describe('the human-readable report', () => {
 		)
 		assert.match(out, /↑ Bash:gh/)
 		assert.match(out, /· Bash:terraform/)
+	})
+})
+
+describe('which files Claude Code loads for the session', () => {
+	const paths = (fx: Fixture, cwd: string, platform?: NodeJS.Platform) =>
+		loadChain(cwd, fx.home, platform).map((f) => [f.scope, f.path.slice(fx.home.length), !!f.legacy])
+
+	it('reads shared settings from the working directory and local settings from the git root', () => {
+		const fx = fixture({})
+		const sub = join(fx.project, 'packages', 'api')
+		mkdirSync(sub, { recursive: true })
+		assert.deepEqual(paths(fx, sub), [
+			['user', '/.claude/settings.json', false],
+			['project', '/repos/app/packages/api/.claude/settings.json', false],
+			['local', '/repos/app/.claude/settings.local.json', false],
+		])
+	})
+
+	it('also reads a leftover local file in the working directory', () => {
+		const fx = fixture({})
+		const sub = join(fx.project, 'packages', 'api')
+		write(join(sub, '.claude', 'settings.local.json'), allow('Read'))
+		assert.deepEqual(paths(fx, sub).at(-1), ['local', '/repos/app/packages/api/.claude/settings.local.json', true])
+	})
+
+	it('reads local settings from the working directory outside a git repository', () => {
+		const fx = fixture({})
+		const plain = join(fx.home, 'notes')
+		mkdirSync(plain)
+		assert.deepEqual(paths(fx, plain).at(-1), ['local', '/notes/.claude/settings.local.json', false])
+	})
+
+	it('reads local settings from the working directory when the git root is home', () => {
+		const fx = fixture({})
+		mkdirSync(join(fx.home, '.git'))
+		const plain = join(fx.home, 'notes')
+		mkdirSync(plain)
+		assert.deepEqual(paths(fx, plain).at(-1), ['local', '/notes/.claude/settings.local.json', false])
+	})
+
+	it('reads local settings from the working directory on Windows', () => {
+		const fx = fixture({})
+		const sub = join(fx.project, 'packages', 'api')
+		mkdirSync(sub, { recursive: true })
+		assert.deepEqual(paths(fx, sub, 'win32').at(-1), [
+			'local',
+			'/repos/app/packages/api/.claude/settings.local.json',
+			false,
+		])
+	})
+
+	it('counts the user settings file once when the session starts in home', () => {
+		const fx = fixture({})
+		assert.equal(paths(fx, fx.home).filter(([, p]) => p === '/.claude/settings.json').length, 1)
+	})
+})
+
+describe('settings files above the project', () => {
+	it('walks up to home and no further', () => {
+		const fx = fixture({})
+		assert.deepEqual(ancestorDirs(fx.project, fx.home), [fx.project, join(fx.home, 'repos'), fx.home])
+	})
+
+	it('lists a parent directory’s settings file, which applies to nothing below it', () => {
+		const fx = fixture({})
+		write(join(fx.home, 'repos', '.claude', 'settings.local.json'), allow('Bash(gh repo list *)'))
+		const json = runJson(fx)
+		assert.deepEqual(
+			json.inert.map((f: any) => [f.path.slice(fx.home.length), f.loadsFor.slice(fx.home.length)]),
+			[['/repos/.claude/settings.local.json', '/repos']],
+		)
+	})
+
+	it('lists the local file in home, which is not user scope', () => {
+		const fx = fixture({})
+		write(join(fx.home, '.claude', 'settings.local.json'), allow('WebSearch'))
+		const json = runJson(fx)
+		assert.deepEqual(json.inert.map((f: any) => f.path.slice(fx.home.length)), ['/.claude/settings.local.json'])
+	})
+
+	it('lists the git root’s shared settings when the session starts in a subdirectory', () => {
+		const fx = fixture({ project: allow('Read') })
+		const sub = join(fx.project, 'packages', 'api')
+		mkdirSync(sub, { recursive: true })
+		const json = runJson(fx, sub)
+		assert.deepEqual(json.inert.map((f: any) => f.path.slice(fx.home.length)), ['/repos/app/.claude/settings.json'])
+	})
+
+	it('leaves out every file the session loads', () => {
+		const fx = fixture({ user: allow('Read'), project: allow('Read'), local: allow('Read') })
+		assert.deepEqual(runJson(fx).inert, [])
+	})
+
+	it('marks each rule for promotion, keeping, asking, or as already granted', () => {
+		const fx = fixture({ user: allow('WebSearch') })
+		write(
+			join(fx.home, 'repos', '.claude', 'settings.local.json'),
+			allow('WebSearch', 'Bash(gh issue view *)', 'Bash(terraform apply)', 'mcp__linear__list_issues'),
+		)
+		const [file] = runJson(fx).inert
+		assert.deepEqual(
+			file.rules.map((r: any) => [r.raw, r.recommendation]),
+			[
+				['WebSearch', 'already-granted'],
+				['Bash(gh issue view *)', 'promote-to-user'],
+				['Bash(terraform apply)', 'keep'],
+				['mcp__linear__list_issues', 'ask'],
+			],
+		)
+	})
+
+	it('reports a file above the project that does not parse', () => {
+		const fx = fixture({})
+		write(join(fx.home, 'repos', '.claude', 'settings.local.json'), '{ broken')
+		const out = run(fx)
+		assert.match(out, /settings\.local\.json\s+PARSE ERROR/)
+	})
+})
+
+describe('committed rules: project policy or personal preference', () => {
+	it('calls a rule that names a package.json script project policy', () => {
+		const fx = fixture({ project: allow('Bash(npm run lint *)') })
+		write(join(fx.project, 'package.json'), { scripts: { lint: 'eslint .' } })
+		const [verdict] = runJson(fx).projectRules
+		assert.equal(verdict.verdict, 'project-policy')
+		assert.match(verdict.reference, /script "lint"/)
+	})
+
+	it('finds scripts in workspace packages', () => {
+		const fx = fixture({ project: allow('Bash(npm run type-check:*)') })
+		write(join(fx.project, 'package.json'), { workspaces: ['packages/*'] })
+		write(join(fx.project, 'packages', 'web', 'package.json'), { scripts: { 'type-check': 'tsc' } })
+		assert.equal(runJson(fx).projectRules[0].verdict, 'project-policy')
+	})
+
+	it('calls a rule for one of the repository’s MCP servers project policy', () => {
+		const fx = fixture({ project: allow('mcp__cdk__*') })
+		write(join(fx.project, '.mcp.json'), { mcpServers: { cdk: { command: 'cdk-mcp' } } })
+		assert.equal(runJson(fx).projectRules[0].verdict, 'project-policy')
+	})
+
+	it('calls a rule that names a path in the repository project policy', () => {
+		const fx = fixture({ project: allow('Bash(./scripts/deploy.sh *)') })
+		write(join(fx.project, 'scripts', 'deploy.sh'), '#!/bin/sh')
+		assert.equal(runJson(fx).projectRules[0].verdict, 'project-policy')
+	})
+
+	it('flags a generic rule as a likely personal preference, with where else it is granted', () => {
+		const fx = fixture({ user: allow('WebSearch'), project: allow('WebSearch', 'Bash(git log *)') })
+		write(join(fx.home, '.claude', 'settings.local.json'), allow('Bash(git *)'))
+		const verdicts = runJson(fx).projectRules
+		assert.deepEqual(
+			verdicts.map((v: any) => [v.rule, v.verdict, v.evidence.map((e: string) => e.replace(fx.home, '~'))]),
+			[
+				['WebSearch', 'likely-personal', ['also in user scope']],
+				['Bash(git log *)', 'likely-personal', ['covered in ~/.claude/settings.local.json by Bash(git *)']],
+			],
+		)
+	})
+
+	it('leaves committed deny rules out, since a team commits those on purpose', () => {
+		const fx = fixture({ project: { permissions: { deny: ['Bash(rm -rf *)'] } } })
+		assert.deepEqual(runJson(fx).projectRules, [])
 	})
 })
