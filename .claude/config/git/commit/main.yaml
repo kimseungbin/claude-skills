@@ -32,7 +32,7 @@ scopes_quick:
   cdk-expert: "AWS CDK plugin (plugins/cdk-expert/)"
   korean-technical-translator: "Korean translation plugin (plugins/korean-technical-translator/)"
   tidy: "Obsidian note organization plugin (plugins/tidy/)"
-  issue-manager: "Issue triage skill (.claude/skills/issue-manager/)"
+  issue-manager: "Open-issue review skill (.claude/skills/issue-manager/)"
   skill-creator: "Skill creator (.claude/skills/skill-creator/)"
   skills: "Shared skills (skills/)"
   commands: "Slash commands (commands/)"
