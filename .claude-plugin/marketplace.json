@@ -50,7 +50,7 @@
       "name": "lint-gate",
       "source": "./plugins/lint-gate",
       "description": "Formats each edit and gates lint and typecheck until an agent believes it is finished, so intermediate states are never reported as defects",
-      "version": "0.1.10"
+      "version": "0.1.11"
     },
     {
       "name": "agent-team",

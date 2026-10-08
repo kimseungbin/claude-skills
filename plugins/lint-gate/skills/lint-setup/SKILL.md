@@ -131,17 +131,36 @@ If `package.json` has `workspaces` (or there is a `pnpm-workspace.yaml`), check 
 
 ## Step 4: Verify the commands actually run
 
-A config you have not executed is not done. Run each one exactly as written:
+A config you have not executed is not done. Every `lint` and `typecheck` command has to be seen in both directions: exiting non-zero on a problem, and exiting 0 on clean code. A linter that reports problems but exits 0 — some do by default — will never trigger the gate, which is worse than having no gate, because it looks configured. If you find that, fix the command so failure is a non-zero exit, and say that you did.
+
+Start by running each command exactly as written:
 
 ```bash
 npm run lint; echo "exit=$?"
 ```
 
-Confirm that a passing command exits 0 and a failing one exits non-zero. A linter that reports problems but exits 0 — some do by default — will never trigger the gate, which is worse than having no gate, because it looks configured. If you find that, fix the command so failure is a non-zero exit, and say that you did.
+That run shows one direction only — exit 0 on a clean repo, non-zero on a repo with a backlog. Observe the other direction as follows.
 
-Then check the formatter on a single file and confirm it edits only that file.
+**Pass path on a repo with a backlog.** Run the same linter, with the same flags the recorded command uses, on a file you know is clean:
 
-A command with `{files}` cannot be run as written, so substitute a path by hand and check both directions — that a real path is actually examined, and that the exit code still means something:
+```bash
+npx eslint path/to/a/clean/file.ts; echo "exit=$?"   # expect 0
+```
+
+**Failure path on a clean repo.** Add a probe file with a deliberate error, run the command, then delete the probe and confirm it is gone:
+
+```bash
+printf 'const n: number = "boom"\nexport default n\n' > src/__lint_gate_probe.ts
+npm run typecheck; echo "exit=$?"                      # expect non-zero
+rm -f src/__lint_gate_probe.ts
+git status --porcelain -- src/__lint_gate_probe.ts     # expect no output
+```
+
+Place the probe where the command actually looks — inside a path the `tsconfig` includes, or the linter's target directory. If the command still exits 0, check the probe's location before concluding the command is broken. Confirm the deletion every time: a deliberate error left in the tree is worse than the unverified gate it was meant to test, and it is easy to lose in a dirty working tree. Use a lint violation the project's rules actually flag (an unused variable, say) to probe `lint`.
+
+A `typecheck` that already fails on the backlog has no observable pass path — the whole program is always checked. Record that direction as unverified and report it in Step 5.
+
+**Commands with `{files}`** cannot be run as written. Substitute paths by hand and run both directions — a file you know has problems (expect non-zero) and a clean one (expect 0):
 
 ```bash
 npx eslint --no-warn-ignored path/to/a/real/file.ts; echo "exit=$?"
@@ -151,9 +170,21 @@ If it exits 0 on a file you know has problems, the placeholder is being ignored 
 
 For a list, verify every entry the same way, and run each `when` check from the project root — that is where the gate runs it, not the package directory.
 
+**`format`** is verified by what it touches, not by its exit code: a formatter pointed at the whole tree also exits 0. On a working tree with no other uncommitted changes, run the recorded command with `{file}` replaced by a real path and compare the tree before and after:
+
+```bash
+before=$(git status --porcelain)
+npx prettier --write --ignore-unknown path/to/file.ts
+diff <(echo "$before") <(git status --porcelain)       # expect only path/to/file.ts, or nothing
+```
+
+Any other path in the diff means the command reaches beyond `{file}`. Restore those files and fix the command, or omit `format`.
+
 ## Step 5: Report
 
 State what was found versus what was added, the exact commands recorded, and anything deliberately omitted and why. If you declined to install something, say that too — a project left without a linter by choice should be visible in the transcript, not silently absent.
+
+Report each command's verification result in both directions, and name any direction you could not observe — an unverified pass path is exactly how a gate that never fires ends up looking configured.
 
 If you scoped `lint` with `{files}`, report the pre-existing failure count you measured and say that those files are now outside what the gate examines. That number is the thing a user needs in order to decide whether to fix the backlog later, and scoping is the one choice here that makes the gate check *less* than it looks like it does.
 
