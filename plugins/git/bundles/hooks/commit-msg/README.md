@@ -13,7 +13,7 @@ type(scope)!: subject
 | Part | Rule |
 |------|------|
 | `type` | A key of `types_quick` in the config. With no config, or no `types_quick`, the [standard types](#standard-types). |
-| `(scope)` | Optional. When `scopes_quick` lists scopes, it must be one of them; otherwise any scope passes. |
+| `(scope)` | Optional. When `scopes_quick` or `scope_conventions` is set, it must be a `scopes_quick` key or a directory that exists at a convention's `<scope>` segment; otherwise any scope passes. |
 | `!` | Optional breaking-change marker, as the commit skill writes it. |
 | `subject` | Follows `: ` and is not blank. |
 
@@ -33,6 +33,14 @@ scopes_quick:
   deployment:                      # nested — description, patterns and
     description: "CI/CD pipelines" # default_type are not read as scopes
     default_type: "chore"
+```
+
+`scope_conventions` entries are expanded against the working tree, so a module directory created in the same commit is already allowed:
+
+```yaml
+scope_conventions:
+  - "packages/<scope>/**"          # allows web, api, … if packages/web/, packages/api/ exist
+  - "apps/*/modules/<scope>/**"    # wildcards before <scope> are expanded too
 ```
 
 Types and scopes can be in any language (`기능(인증): 로그인 추가`). To add a type or scope, add its key to the config; the hook and the commit skill pick it up together.

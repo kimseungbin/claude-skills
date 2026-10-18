@@ -86,6 +86,15 @@ scopes_quick:
       - "packages/backend/**"
 ```
 
+When many scopes are just directory names under one parent, use a convention instead of an entry each:
+
+```yaml
+scope_conventions:
+  - "packages/<scope>/**"   # packages/billing/** -> billing
+```
+
+The directory at the `<scope>` segment is the scope, and the commit-msg hook allows any directory that exists there. Explicit `scopes_quick` patterns win over a convention, so keep entries only for scopes that span several paths or are named differently from their directory.
+
 ### Using Implementation Guides
 
 Set `implementation` in your main.yaml:

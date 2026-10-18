@@ -1,5 +1,5 @@
 #!/bin/bash
-# plugin_version: 1.0.28
+# plugin_version: 1.0.29
 #
 # Pre-commit hook with Stylelint for CSS validation
 #

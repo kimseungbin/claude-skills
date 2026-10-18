@@ -1,11 +1,12 @@
 #!/bin/bash
-# plugin_version: 1.0.28
+# plugin_version: 1.0.29
 #
 # Commit-msg hook for Conventional Commits validation
 #
 # Validates the subject line: type(scope)!: subject
 #   - type:  a key of types_quick, or the standard types when none are configured
-#   - scope: optional; when scopes_quick lists scopes, it must be one of them
+#   - scope: optional; when scopes_quick or scope_conventions is set, it must be
+#            a scopes_quick key or a directory name at a convention's <scope> segment
 #   - !:     optional breaking-change marker
 #
 # Reads the commit skill's config, .claude/config/git/commit/main.yaml
@@ -84,11 +85,53 @@ section_keys() {
     ' "$CONFIG_FILE"
 }
 
+# Print the "- item" entries of a top-level YAML list section, unquoted
+section_items() {
+    local section="$1"
+    awk -v section="$section" -v q="'" '
+        !in_section { if ($0 ~ "^" section ":") in_section = 1; next }
+        /^[^[:space:]#]/ { exit }
+        /^[[:space:]]*-[[:space:]]/ {
+            item = $0
+            sub(/^[[:space:]]*-[[:space:]]+/, "", item)
+            sub(/[[:space:]]+#.*$/, "", item)
+            gsub(/"/, "", item)
+            gsub(q, "", item)
+            print item
+        }
+    ' "$CONFIG_FILE"
+}
+
+# Expand each scope_conventions glob to the directory names that exist at its
+# <scope> segment. Read from disk, not the index, so a module created in this
+# very commit is already allowed.
+convention_scopes() {
+    local glob prefix dir
+    while IFS= read -r glob; do
+        [[ "$glob" == *"<scope>"* ]] || continue
+        prefix="${glob%%<scope>*}"
+        # The prefix may hold its own wildcards (apps/*/src/), so it stays unquoted
+        for dir in "$GIT_ROOT"/$prefix*/; do
+            [[ -d "$dir" ]] && basename "$dir"
+        done
+    done <<< "$CONVENTIONS"
+}
+
 TYPES=""
 SCOPES=""
+CONVENTIONS=""
 if [[ -f "$CONFIG_FILE" ]]; then
     TYPES=$(section_keys types_quick)
     SCOPES=$(section_keys scopes_quick)
+    CONVENTIONS=$(section_items scope_conventions)
+fi
+
+# Declaring either section restricts scopes, even if a convention matches no
+# directory yet — otherwise an empty expansion would silently allow anything.
+RESTRICT_SCOPES=""
+[[ -n "$SCOPES" || -n "$CONVENTIONS" ]] && RESTRICT_SCOPES=1
+if [[ -n "$CONVENTIONS" ]]; then
+    SCOPES=$(printf '%s\n%s\n' "$SCOPES" "$(convention_scopes)" | awk 'NF && !seen[$0]++')
 fi
 
 TYPES_SOURCE="$CONFIG_FILE"
@@ -120,7 +163,7 @@ else
     MATCHED_SCOPE="${BASH_REMATCH[3]}"
     if ! in_list "$MATCHED_TYPE" "$TYPES"; then
         PROBLEM="Unknown type: $MATCHED_TYPE"
-    elif [[ -n "$MATCHED_SCOPE" && -n "$SCOPES" ]] && ! in_list "$MATCHED_SCOPE" "$SCOPES"; then
+    elif [[ -n "$MATCHED_SCOPE" && -n "$RESTRICT_SCOPES" ]] && ! in_list "$MATCHED_SCOPE" "$SCOPES"; then
         PROBLEM="Unknown scope: $MATCHED_SCOPE"
     fi
 fi
@@ -142,10 +185,11 @@ echo "Expected format: type(scope): subject   (scope and ! are optional)"
 echo ""
 echo "Allowed types (from $TYPES_SOURCE):"
 while IFS= read -r t; do echo -e "  ${GREEN}${t}${NC}"; done <<< "$TYPES"
-if [[ -n "$SCOPES" ]]; then
+if [[ -n "$RESTRICT_SCOPES" ]]; then
     echo ""
     echo "Allowed scopes (from $CONFIG_FILE):"
-    while IFS= read -r s; do echo -e "  ${GREEN}${s}${NC}"; done <<< "$SCOPES"
+    while IFS= read -r s; do [[ -n "$s" ]] && echo -e "  ${GREEN}${s}${NC}"; done <<< "$SCOPES"
+    while IFS= read -r c; do [[ -n "$c" ]] && echo -e "  ${GREEN}${c}${NC}  (any directory at <scope>)"; done <<< "$CONVENTIONS"
 fi
 echo ""
 

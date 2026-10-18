@@ -137,6 +137,28 @@ Select scopes to assign a default_type (or skip):
 
 For each selected scope, set `default_type` in the generated config. The commit skill will use this as the pre-selected type, skipping type deliberation unless the change clearly contradicts it.
 
+#### Fold directory-named scopes into a convention
+
+When **3 or more** confirmed scopes are sibling directories named exactly like the scope (`packages/web`, `packages/api`, `packages/admin` → `web`, `api`, `admin`), write one `scope_conventions` rule for that parent instead of an entry per scope. Every `scopes_quick` entry is read on every commit, so a list that grows with the codebase costs context linearly; a convention costs the same at 5 modules or 50, and new modules need no config change.
+
+Confirm in **one** AskUserQuestion per parent:
+
+```
+These scopes are just directory names under packages/:
+  web, api, admin
+- Use a convention (Recommended) — one rule, new packages need no config change
+- Keep explicit entries — list each scope in scopes_quick
+```
+
+On accept, write the rule and drop those entries:
+
+```yaml
+scope_conventions:
+  - "packages/<scope>/**"
+```
+
+Keep a `scopes_quick` entry only where a convention can't express it: a scope spanning several paths, a scope named differently from its directory (explicit patterns win over conventions), or one that needs a `default_type` — that entry may omit `patterns`.
+
 ### Step 4.5: Detect Derived Files (diff_policy)
 
 The commit skill never loads diffs for derived files — lock files, snapshots, checked-in codegen. That list is project-specific, so detect it here and write it into `diff_policy`.
@@ -232,6 +254,7 @@ Identify differences:
 2. **Removed fields** — Fields no longer used
 3. **Changed structure** — Reorganized sections
 4. **Updated values** — Default values changed
+5. **Foldable scopes** — 3+ `scopes_quick` entries whose only pattern is `<parent>/<key>/**` under the same parent, with no `default_type`. Offer to fold them into a `scope_conventions` rule (see Step 4's *Fold directory-named scopes into a convention*); this is a suggestion like any other update, never applied unasked. Also confirm each key still names an existing directory — a folded scope whose directory is gone stops being a valid scope.
 
 ### Step 8: Present and Apply Updates
 

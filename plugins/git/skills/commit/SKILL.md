@@ -254,7 +254,8 @@ List only the types that genuinely compete — 2 minimum, 4 maximum. No `(Recomm
 **5b. Determine Scope**
 1. Split config: read `scopes/index.md`. Single-file: use `scopes_quick` + `scope_decision`
 2. Split config, still unclear: read the specific file for pattern matching
-3. If still ambiguous or multiple scopes could apply, fire **C5**
+3. No explicit pattern matched: try `scope_conventions`. Each entry is a glob with one `<scope>` path segment; the directory name the group's files share at that segment is the scope (`workspaces/api/src/<scope>/**` + `workspaces/api/src/billing/service.ts` → `billing`). Explicit `scopes_quick` patterns always win over a convention — that is how a config renames or merges a directory. A `scopes_quick` entry with no `patterns` (only `description` / `default_type`) attaches metadata to a convention-derived scope of the same name.
+4. If still ambiguous or multiple scopes could apply, fire **C5**
 
 #### C5 — Ambiguous scope
 

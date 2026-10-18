@@ -77,6 +77,13 @@ scopes_quick:
   # Add your scopes here
 ```
 
+For a parent holding many modules, one convention replaces an entry per directory (see `monorepo-main.yaml`):
+
+```yaml
+scope_conventions:
+  - "packages/<scope>/**"   # packages/billing/** -> billing
+```
+
 ### Tune Breaking-Change Detection
 
 Each `*-main.yaml` carries a `breaking_changes` section. The commit skill reads the group's diff and judges semantically whether the change breaks a consumer; this section tells it where to look.

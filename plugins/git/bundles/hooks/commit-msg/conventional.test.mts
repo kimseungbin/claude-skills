@@ -127,6 +127,64 @@ describe('config parsing', () => {
     })
 })
 
+describe('scope_conventions', () => {
+    function makeModuleRepo(config: string, dirs: string[]): string {
+        const repo = makeRepo(config)
+        for (const dir of dirs) mkdirSync(path.join(repo, dir), { recursive: true })
+        return repo
+    }
+
+    it('accepts a directory name at the <scope> segment', () => {
+        const repo = makeModuleRepo('scope_conventions:\n  - "workspaces/api/src/<scope>/**"\n', [
+            'workspaces/api/src/billing',
+            'workspaces/api/src/auth',
+        ])
+        accepts(repo, 'feat(billing): Add invoices\n')
+        accepts(repo, 'fix(auth): Refresh tokens\n')
+    })
+
+    it('rejects a name with no matching directory', () => {
+        const repo = makeModuleRepo('scope_conventions:\n  - "workspaces/api/src/<scope>/**"\n', ['workspaces/api/src/billing'])
+        rejects(repo, 'feat(biling): Add invoices\n', 'Unknown scope: biling')
+    })
+
+    it('unions convention scopes with scopes_quick keys', () => {
+        const repo = makeModuleRepo(
+            'scopes_quick:\n  monorepo:\n    patterns: ["package.json"]\nscope_conventions:\n  - "packages/<scope>/**"\n',
+            ['packages/web'],
+        )
+        accepts(repo, 'chore(monorepo): Bump engines\n')
+        accepts(repo, 'feat(web): Add page\n')
+        rejects(repo, 'feat(api): Add route\n', 'Unknown scope: api')
+    })
+
+    it('expands wildcards before the <scope> segment', () => {
+        const repo = makeModuleRepo("scope_conventions:\n  - 'apps/*/modules/<scope>/**'\n", [
+            'apps/admin/modules/users',
+            'apps/shop/modules/cart',
+        ])
+        accepts(repo, 'feat(users): Add filter\n')
+        accepts(repo, 'feat(cart): Add coupon\n')
+    })
+
+    it('treats <scope> at the start as top-level directories', () => {
+        const repo = makeModuleRepo('scope_conventions:\n  - "<scope>/**"  # every top-level dir\n', ['server'])
+        accepts(repo, 'fix(server): Close socket\n')
+    })
+
+    it('still restricts scopes when a convention matches no directory', () => {
+        const repo = makeModuleRepo('scope_conventions:\n  - "packages/<scope>/**"\n', [])
+        rejects(repo, 'feat(anything): Add it\n', 'Unknown scope: anything')
+    })
+
+    it('lists the conventions among the allowed scopes', () => {
+        const repo = makeModuleRepo('scope_conventions:\n  - "packages/<scope>/**"\n', ['packages/web'])
+        const r = run(repo, 'feat(api): Add route\n')
+        assert.match(r.out, /packages\/<scope>\/\*\*\S* {2}\(any directory at <scope>\)/)
+        assert.match(r.out, /web/)
+    })
+})
+
 describe('no config', () => {
     const repo = makeRepo()
 
