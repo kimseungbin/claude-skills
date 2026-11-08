@@ -1,55 +1,30 @@
 # Tidy Plugin
 
-Organize and polish Obsidian notes via seven sequential passes. Works with English and Korean notes (including STT transcripts).
+Tidy Markdown study notes in five sequential passes. Works with English and Korean notes, including STT transcripts.
+
+```
+/tidy:tidy path/to/note.md
+```
+
+## Repo conventions
+
+Before editing, the skill reads the repo's `CLAUDE.md` and finds its templates (the path `CLAUDE.md` names, or `templates/`, `_templates/`, `.templates/`). Repo rules override the skill's defaults, so callout styles, writing rules, and frontmatter fields come from the repo, not the plugin.
 
 ## Passes
 
-The skill applies changes one pass at a time, showing each diff for review before the next pass runs.
+The skill runs one pass at a time and waits for you to review each diff before the next.
 
-### 1. Typos & Grammar
+1. **Typos and grammar**: spelling, grammar, punctuation, and Korean 띄어쓰기 (spacing). For transcripts, removes filler words and fixes sentence boundaries.
+2. **Frontmatter**: for notes whose template defines frontmatter, matches the template's fields. Fills what the file already says and asks for the rest; never guesses dates.
+3. **Formatting**: consistent heading levels, lists, and code blocks; GitHub alerts (`> [!NOTE]`, `> [!TIP]`, `> [!WARNING]`) or the repo's own callout conventions.
+4. **Restructuring**: follows the repo's note template, or Summary / Details / References if there is none.
+5. **Linking**: finds related notes with Glob/Grep, searching each concept in Korean, English, and by abbreviation, and checking other notes' `tags:`. Suggests relative Markdown links and asks before adding them.
 
-Fixes spelling, grammar, punctuation. For Korean, fixes 띄어쓰기 (spacing). For STT transcripts, removes filler words (`um`, `uh`, `어`, `음`, `그`...) and corrects sentence boundaries. Structure is preserved — this pass only edits text content.
+## Markers
 
-### 2. Frontmatter (Properties)
+- `@claude <request>` in a note: a question or TODO for Claude. The skill handles one per turn.
+- `<!-- tidy: pass N done above -->` and `<!-- tidy: done above -->`: progress markers the skill writes, so a long note can be tidied across sessions.
 
-Ensures YAML frontmatter exists with `tags`, `aliases`, `cssclasses`, `status`, `created`, `updated`. Sets `updated` to today. Prompts for `created:` when file mtime is unreliable, and for `status:` when it's absent or unrecognized. Consolidates inline `#tags` into frontmatter.
+## Overriding per project
 
-### 3. Formatting
-
-Normalizes lists, bold/italic, code blocks. Applies Obsidian callouts (`> [!note]`, `> [!warning]`, `> [!tip]`, `> [!question]`) where appropriate. Never adds an H1 that duplicates the filename — uses H1 only for major section dividers (e.g., per session in an event note).
-
-### 4. Restructuring
-
-Applies a note-type template (Meeting, Event/Conference, Knowledge/Reference) and reorders sections to match. Groups transcript content by topic at natural breaks. For Event notes with more than three sessions, offers to split into separate files plus an index note.
-
-### 5. Diagrams
-
-Detects prose flow patterns (e.g., `User -> API Gateway -> Lambda -> DynamoDB`, `Browser <-> CloudFront`) and explicit `(다이어그램)` / `(diagram)` markers. For each candidate, proposes a Mermaid conversion (preferred) or ASCII fallback, with per-candidate confirmation. Detection is contextual — standalone lines containing arrows are stronger signals than arrows inside flowing prose.
-
-### 6. Enrichment
-
-Adds inline doc links and `[[wikilinks]]` for canonical concepts mentioned in the note. Uses a two-tiered confirmation model:
-
-- **In-topic** terms (those that relate to the note's primary topic, inferred from title → tags → headings) are confirmed in a single batch.
-- **Out-of-topic** mentions are confirmed per-term (≤3 mentions) or in a single batch (>3 mentions).
-
-**Internal-first resolution.** Before fetching an external URL, the skill checks the local vault for a matching note (by filename or `aliases:`). Matching vault notes are linked as `[[wikilink]]`. Only when no vault match exists does the skill fall through to an external source.
-
-To avoid re-scanning the vault per term, the skill builds an in-memory alias map once at the start of Pass 6 and reuses it for all term lookups through Pass 7.
-
-### 7. Linking
-
-Final wikilink sweep. Surfaces softer concept-to-note matches Pass 6 didn't capture — judgment-call links rather than canonical doc references. Reuses the alias map from Pass 6 (or builds one if Pass 6 was skipped). Candidates are presented as a multi-select checkbox prompt so the user can cherry-pick.
-
-## AWS Knowledge MCP
-
-Pass 6 (Enrichment) uses the [AWS Knowledge MCP server](https://github.com/aws-samples/aws-mcp-servers) when looking up AWS service documentation. The MCP returns canonical `docs.aws.amazon.com` URLs, avoiding stale or low-quality links that generic web search sometimes produces.
-
-**Required tools** (must be available in the Claude Code session):
-
-- `mcp__claude_ai_AWS_Knowledge_MCP_Server__aws___search_documentation`
-- `mcp__claude_ai_AWS_Knowledge_MCP_Server__aws___read_documentation`
-
-**Graceful degradation.** If the AWS MCP is unavailable, Pass 6 falls back to `WebSearch` + `WebFetch` for all terms (including AWS ones). The fallback works but may return less canonical URLs.
-
-**Non-AWS terms** always go through `WebSearch` + `WebFetch` regardless of MCP availability.
+A project skill named `tidy` (`.claude/skills/tidy/SKILL.md`) takes precedence over this plugin's `tidy:tidy`. Use one to pin repo-specific paths.
