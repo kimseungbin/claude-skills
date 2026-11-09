@@ -47,6 +47,7 @@ Finish each pass and let the user review the diff before starting the next. Neve
 - Match the frontmatter fields of the template for this note type and language.
 - Fill missing fields from what the file already says, and ask for anything else. Don't guess dates such as a publication year; other checks may depend on them.
 - Skip this pass if the repo has no template with frontmatter.
+- The frontmatter belongs to the whole file, not a section. If the file already has a `<!-- tidy: done above -->` marker, it has been checked: skip this pass, and after Pass 1 write `pass 2 done above` instead of `pass 1 done above`.
 
 #### Pass 3: Formatting
 - Keep the user's heading structure; only make levels consistent within a file.

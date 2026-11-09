@@ -38,7 +38,7 @@
       "name": "tidy",
       "source": "./plugins/tidy",
       "description": "Tidy Markdown study notes via 5 sequential passes: typos, frontmatter, formatting, restructuring, linking. Follows the repo's CLAUDE.md and templates. English and Korean.",
-      "version": "0.2.0"
+      "version": "0.2.1"
     },
     {
       "name": "aws-cli-access",
@@ -49,7 +49,7 @@
     {
       "name": "lint-gate",
       "source": "./plugins/lint-gate",
-      "description": "Formats each edit and, when an agent believes it is finished, runs the checks its edits made owed — scoped by file, build unit or verdict — so intermediate states are never reported as defects and nobody else's backlog blocks the turn",
+      "description": "Formats each edit and, when an agent believes it is finished, runs the checks its edits made owed \u2014 scoped by file, build unit or verdict \u2014 so intermediate states are never reported as defects and nobody else's backlog blocks the turn",
       "version": "0.2.0"
     },
     {
