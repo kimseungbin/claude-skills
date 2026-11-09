@@ -38,7 +38,7 @@
       "name": "tidy",
       "source": "./plugins/tidy",
       "description": "Tidy Markdown study notes via 5 sequential passes: typos, frontmatter, formatting, restructuring, linking. Follows the repo's CLAUDE.md and templates. English and Korean.",
-      "version": "0.2.1"
+      "version": "0.2.2"
     },
     {
       "name": "aws-cli-access",
