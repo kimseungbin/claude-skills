@@ -65,6 +65,7 @@ Finish each pass and let the user review the diff before starting the next. Neve
   - Search each concept in Korean and English, plus its abbreviation (임베딩 / embedding, 근사 최근접 이웃 / ANN).
   - Check `tags:` in other notes' frontmatter for related notes.
 - Suggest relative Markdown links (`[Docker engine](../docker/engine.md)`) only where the concept is meaningfully related, not on every keyword match.
+- Don't suggest in-file anchor links unless one is really needed: the passage can't be understood without the linked section.
 - Present the candidates before adding any.
 - Grep is enough while the repo is small. If the notes reach hundreds of files, or links are missed because the same concept is worded differently, tell the user it's time to consider semantic search with a vector DB (e.g. `sqlite-vec`).
 
