@@ -15,7 +15,7 @@ Before editing, the skill reads the repo's `CLAUDE.md` and finds its templates (
 The skill runs one pass at a time and waits for you to review each diff before the next.
 
 1. **Typos and grammar**: spelling, grammar, punctuation, and Korean 띄어쓰기 (spacing). For transcripts, removes filler words and fixes sentence boundaries.
-2. **Frontmatter**: for notes whose template defines frontmatter, matches the template's fields. Fills what the file already says and asks for the rest; never guesses dates.
+2. **Frontmatter**: for notes whose template defines frontmatter, matches the template's fields. Fills what the file already says and asks for the rest; never guesses dates. Runs once per file: once a file has been tidied before, later runs skip it.
 3. **Formatting**: consistent heading levels, lists, and code blocks; GitHub alerts (`> [!NOTE]`, `> [!TIP]`, `> [!WARNING]`) or the repo's own callout conventions.
 4. **Restructuring**: follows the repo's note template, or Summary / Details / References if there is none.
 5. **Linking**: finds related notes with Glob/Grep, searching each concept in Korean, English, and by abbreviation, and checking other notes' `tags:`. Suggests relative Markdown links and asks before adding them.
