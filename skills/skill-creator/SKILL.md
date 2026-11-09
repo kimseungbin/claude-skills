@@ -474,22 +474,22 @@ The `!` backtick syntax (`!`\`command\``) expands all `$` references before exec
 !`grep version file | cut -d= -f2`
 ```
 
-### ❌ Using Relative File Paths in Pre-loaded Context Commands
+### ❌ Using Relative Paths for Files Bundled with the Skill
 
-Pre-loaded `!` commands run relative to the **skill's base directory**, not the consumer project root. For marketplace plugins, this is the plugin's cache directory — so relative paths like `.claude/config/...` will not resolve to the consumer project.
+Pre-loaded `!` commands run in the consumer project's working directory, not the skill's base directory. Relative paths resolve against the project, so they work for project files and break for files shipped with the plugin.
 
 ```markdown
-# WRONG: Resolves relative to skill directory, not project root
+# CORRECT: Project files resolve against the project root
 !`cat .claude/config/my-skill/main.yaml 2>/dev/null || echo "NO_CONFIG"`
-!`test -f .claude/config/my-skill/main.yaml && echo "true" || echo "false"`
 
-# CORRECT: Move file checks to the workflow body using Bash/Read tools
-# These tools run in the consumer project's working directory
+# WRONG: Looks for scripts/ in the consumer project
+!`bash scripts/check.sh`
+
+# CORRECT: Reach bundled files through the plugin root
+!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/check.sh"`
 ```
 
-**Git commands are the exception** — `git status`, `git diff`, `git log` etc. work in pre-loaded context because git traverses up to find the `.git` directory regardless of CWD.
-
-**Rule:** Only use `!` commands for git commands or other CWD-independent operations. For any file path access, use Bash/Read/Glob tools in the workflow body instead.
+Verified 2026-11-10: the installed `git:commit` skill's `!`git status`` reported the consumer project, while its base directory (the plugin cache) is not a git repository. This reverses an earlier note in this file.
 
 ### ❌ Incomplete Frontmatter
 
