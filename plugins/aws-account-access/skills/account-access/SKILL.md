@@ -1,27 +1,31 @@
 ---
 name: account-access
-description: Grant/revoke access to an AWS member account via IAM Identity Center and configure a matching CLI profile that shares an existing SSO session token cache. Use when you need to jump into a member account for CLI work and clean up afterward.
-argument-hint: "[account-id] [profile-name] [--temp]"
-allowed-tools: Bash Read Write AskUserQuestion TaskCreate
+description: Get your own access to an AWS member account and a CLI profile for it. Grants go through an access-broker MCP server (account_access_request — it records a tier, lease, approval and reason) and fall back to IAM Identity Center directly from the CLI when no broker covers the account. Also runs commands on the account's EC2 instances over Instance Connect or Session Manager, and gives the access back when done. Use whenever a task needs access to, or a CLI profile for, an account reached by SSO or role chaining; the console skill then opens its console.
+argument-hint: "<account-id> [profile-name]"
+allowed-tools: Bash Read Write AskUserQuestion ToolSearch
 ---
 
-# AWS CLI Account Access
+# AWS Account Access
 
-Grant (or revoke) access to an AWS member account through IAM Identity Center (SSO), then write a CLI profile that reuses your existing SSO session — no separate `aws sso login` per profile.
+Get your own access to an AWS member account, then write a CLI profile that reuses your existing SSO session — no separate `aws sso login` per profile.
 
 **Arguments**: `$ARGUMENTS`
-- First non-flag token (required): AWS account ID.
-- Second non-flag token (optional): CLI profile name. Defaults to the account ID.
-- `--temp` flag (optional, may appear anywhere): mark access as temporary (adds a cleanup reminder).
+- First token (required): AWS account ID, `<ACCOUNT_ID>`.
+- Second token (optional): CLI profile name, `<PROFILE_NAME>`. Defaults to the name the access broker returns, else the account ID.
 
-Parse by splitting `$ARGUMENTS` on whitespace. Extract `--temp` if present. First non-flag token is `<ACCOUNT_ID>`, second (if any) is `<PROFILE_NAME>` (else `<PROFILE_NAME>` = `<ACCOUNT_ID>`).
+| Task | Where |
+|------|-------|
+| Get access through an access broker | this file |
+| Get access when no broker covers the account | [references/cli-path.md](references/cli-path.md) |
+| Run commands on an EC2 instance | [references/instance-connect.md](references/instance-connect.md) |
+| Give the access back | [references/cleanup.md](references/cleanup.md) |
+| Open the account's console | the `console` skill, with the profile written here |
+
+`SCRIPT` below is `${CLAUDE_PLUGIN_ROOT}/scripts/manage-profile.sh`; it makes every `~/.aws/config` change, and its usage text (no arguments) documents each command.
 
 ## Step 0: Load Configuration
 
-All org-specific values live in a **user config file** (never in this plugin). Resolve it in this order and read the first that exists:
-
-1. Next to the AWS config file: `${AWS_CONFIG_FILE%/*}/claude-aws-account-access.json` if `AWS_CONFIG_FILE` is set, else `~/.aws/claude-aws-account-access.json`.
-2. Fallback: `~/.config/claude-code/aws-account-access.json`.
+Org-specific values live in a **user config file**, never in this plugin. Read the first that exists:
 
 ```bash
 CFG="${AWS_CONFIG_FILE:-$HOME/.aws/config}"; CFG="${CFG%/*}/claude-aws-account-access.json"
@@ -29,115 +33,91 @@ CFG="${AWS_CONFIG_FILE:-$HOME/.aws/config}"; CFG="${CFG%/*}/claude-aws-account-a
 cat "$CFG" 2>/dev/null || echo "NO_CONFIG"
 ```
 
-The file provides: `sso_instance_arn`, `identity_store_id`, `principal_id`, `principal_type` (default `USER`), `management_profile`, `sso_session_name`, `region`, `default_role`.
+| Key | Used by | Meaning |
+|---|---|---|
+| `access_mcp` | broker path | Tool-name prefix of the access-broker MCP server, e.g. `mcp__<server-id>` |
+| `sso_session_name` | both | The `[sso-session ...]` new profiles share |
+| `region` | both | Region for new profiles and Identity Center calls |
+| `role_session_name` | both | Session name stamped on assumed roles, so the target account's CloudTrail names you |
+| `sso_instance_arn`, `identity_store_id`, `principal_id`, `principal_type`, `management_profile`, `default_role` | CLI path | See [references/cli-path.md](references/cli-path.md) |
 
-If `NO_CONFIG`, run **First-Run Setup** below before continuing.
+When the file is missing or lacks a key a step needs, fill it in: detect `[sso-session ...]` blocks with `grep -E '^\[sso-session ' "${AWS_CONFIG_FILE:-$HOME/.aws/config}"` (ask which via AskUserQuestion when there are several; when there are none, tell the user to run `aws configure sso` first and stop), take `region` from that session's `sso_region`, and offer `whoami` for `role_session_name`. Confirm the values with the user and write the file at the first path above (shape: `config/sample.json`).
 
-### First-Run Setup
+## Step 1: Choose the Path
 
-Auto-detect what you can, confirm with the user, then write the config file (see `config/sample.json` for the shape).
+The broker path is the default. Its tools are deferred, so load them by exact name:
 
-1. **SSO instance + identity store** (one call):
-   ```bash
-   aws sso-admin list-instances --region <REGION> --profile <MGMT_PROFILE>
-   ```
-   Returns `InstanceArn` and `IdentityStoreId`.
-2. **Principal ID** — find the user in the identity store:
-   ```bash
-   aws identitystore list-users --identity-store-id <ID> --region <REGION> --profile <MGMT_PROFILE>
-   ```
-   Match on the user's UserName; take `UserId`.
-3. **SSO session name** — detect existing `[sso-session ...]` blocks:
-   ```bash
-   grep -E '^\[sso-session ' "${AWS_CONFIG_FILE:-$HOME/.aws/config}"
-   ```
-   If several exist, ask the user which to reuse via AskUserQuestion. If none, tell the user to run `aws configure sso` first and stop.
-4. Confirm the assembled values with the user, then write the JSON config to the primary path from Step 0. Never echo it into the repo or a committed file.
+- With `access_mcp` set: `ToolSearch` with `select:<access_mcp>__account_access_request,<access_mcp>__account_access_guide,<access_mcp>__account_access_list,<access_mcp>__account_access_revoke`.
+- Without it: `ToolSearch` for `account_access_request`, and take the server whose tool names end in `__account_access_request`, `__account_access_guide`, `__account_access_list` and `__account_access_revoke`. Offer to save its prefix as `access_mcp`.
 
-## Pre-flight Questions
+| Tool | Use |
+|---|---|
+| `account_access_list` | Who reaches the account now, by tier, with `expiresAt` |
+| `account_access_request` | Your own access at a tier: `granted`, `requested` (an approval is pending elsewhere) or `needs_input` (give a reason and call again) |
+| `account_access_guide` (`via: cli`) | The profile name, `config` and `expectedArn` for a tier you hold |
+| `account_access_revoke` | Give a tier back |
 
-Before creating any resources, gather missing info in a **single** AskUserQuestion call:
+Take the **CLI path** ([references/cli-path.md](references/cli-path.md)) when no server offers these tools, the server cannot be reached, or it reports that it does not manage the account (a not-found error). Tell the user which of these sent you there.
 
-1. **If `--temp` is NOT provided**: ask whether this access is temporary or permanent.
-2. **Always**: which role/permission set to assign — default `default_role` from config (usually `ReadOnlyAccess`); the user may need `AdministratorAccess` or another set.
+## Step 2: Existing Access
 
-If `--temp` IS provided, skip question 1 (treat as temporary) and only ask question 2.
-
-## Resolve the Permission Set (by name, not ARN)
-
-Permission sets are referenced **by name** — resolve the ARN at runtime so no ARN is hardcoded:
+Accounts are often already reachable under a profile named after the client rather than the id:
 
 ```bash
-# List permission set ARNs, then describe each to find the one whose Name matches <ROLE>.
-aws sso-admin list-permission-sets --instance-arn <SSO_INSTANCE_ARN> \
-  --region <REGION> --profile <MGMT_PROFILE>
-# For each ARN:
-aws sso-admin describe-permission-set --instance-arn <SSO_INSTANCE_ARN> \
-  --permission-set-arn <PS_ARN> --region <REGION> --profile <MGMT_PROFILE>
+grep -n -B3 -A3 -E 'sso_account_id = <ACCOUNT_ID>|role_arn = arn:aws:iam::<ACCOUNT_ID>:' "${AWS_CONFIG_FILE:-$HOME/.aws/config}"
 ```
 
-Select the ARN whose `PermissionSet.Name == <ROLE>`. If no match, surface the available names to the user and stop.
+On the broker path, also call `account_access_list` for the account. A tier you already hold plus a profile carrying its role is the access: verify it with `aws sts get-caller-identity --profile <its name>` and use it.
 
-## Setup Steps
+## Step 3: Pre-flight Question
 
-1. **Ask pre-flight questions** and resolve `<ROLE>` → `<PS_ARN>` and `<IS_TEMPORARY>`.
+Ask what the access is for in one AskUserQuestion call. Ask the purpose, never the tier name, and recommend the least privileged tier that covers what the conversation already says the task is. When the user named a duration, carry it as `days`.
 
-2. **Create the SSO assignment** using the management profile:
-   ```bash
-   aws sso-admin create-account-assignment \
-     --instance-arn "<SSO_INSTANCE_ARN>" \
-     --permission-set-arn "<PS_ARN>" \
-     --principal-id "<PRINCIPAL_ID>" \
-     --principal-type "<PRINCIPAL_TYPE>" \
-     --target-id "<ACCOUNT_ID>" \
-     --target-type AWS_ACCOUNT \
-     --region "<REGION>" \
-     --profile "<MGMT_PROFILE>"
-   ```
+| Purpose (option label) | Tier |
+|---|---|
+| Look at what runs and what it costs | `view` — metadata and metrics, no log contents or object data |
+| Diagnose a problem | `read` — adds log events, parameters, object contents |
+| Get onto an instance | `connect` — read plus Instance Connect and Session Manager shells |
+| Change resources | `admin` |
 
-3. **Add the CLI profile** with the script (session name + region come from config, not hardcoded):
-   ```bash
-   SCRIPT="${CLAUDE_PLUGIN_ROOT}/scripts/manage-profile.sh"
-   # Temporary:
-   "$SCRIPT" add <ACCOUNT_ID> <PROFILE_NAME> <ROLE> --temporary \
-     --sso-session "<SSO_SESSION_NAME>" --region "<REGION>"
-   # Permanent:
-   "$SCRIPT" add <ACCOUNT_ID> <PROFILE_NAME> <ROLE> \
-     --sso-session "<SSO_SESSION_NAME>" --region "<REGION>"
-   ```
-   No separate `aws sso login` needed — the profile is written with `sso_session = <SSO_SESSION_NAME>`, sharing that session's existing token cache. If the session token has expired, run `aws sso login --sso-session <SSO_SESSION_NAME>` once.
+A shell has root on the instance, so `connect` is an elevated tier like `admin`. On someone else's account, say so in the option's description.
 
-4. **Verify** access:
-   ```bash
-   aws sts get-caller-identity --profile <PROFILE_NAME>
-   ```
+## Step 4: Request the Access
 
-5. Tell the user the account is ready and they can pass `--profile <PROFILE_NAME>` to CLI commands. When the task needs the console, open it as this profile with the `console` skill.
+`account_access_request` with `accountId`, `tier`, the user's reason when they gave one, and `days` only when they named a duration.
 
-6. **If temporary**: create a cleanup reminder with TaskCreate containing `<ACCOUNT_ID>`, `<PROFILE_NAME>`, `<PS_ARN>`, and the exact Cleanup Steps commands below.
+- `granted` → continue, and tell the user when it ends (`expiresAt`, in the user's time zone; none means it does not expire).
+- `requested` → tell the user an approval is waiting, and stop until it is approved.
+- `needs_input` → ask the user why they need it, then call again with `reason`.
 
-## Cleanup Steps (when the user says they're done)
+## Step 5: Write the CLI Profile
 
-1. **Delete the SSO assignment** (same identifiers as creation):
-   ```bash
-   aws sso-admin delete-account-assignment \
-     --instance-arn "<SSO_INSTANCE_ARN>" \
-     --permission-set-arn "<PS_ARN>" \
-     --principal-id "<PRINCIPAL_ID>" \
-     --principal-type "<PRINCIPAL_TYPE>" \
-     --target-id "<ACCOUNT_ID>" \
-     --target-type AWS_ACCOUNT \
-     --region "<REGION>" \
-     --profile "<MGMT_PROFILE>"
-   ```
+`account_access_guide` with `via: cli` and the tier returns the profile name, the `config` and the `expectedArn`. Write the profiles in `config` with the script, naming them `<PROFILE_NAME>` when the user gave one and after the guide otherwise. The `config` takes one of two shapes:
 
-2. **Remove the CLI profile**:
-   ```bash
-   "${CLAUDE_PLUGIN_ROOT}/scripts/manage-profile.sh" remove <ACCOUNT_ID> <PROFILE_NAME>
-   ```
+- **One SSO profile** (`sso_account_id = <ACCOUNT_ID>`) — an account in the broker's Identity Center organization:
+  ```bash
+  "$SCRIPT" add <ACCOUNT_ID> <PROFILE_NAME> <sso_role_name>
+  ```
+- **An SSO hop profile plus a `role_arn` profile** — an account outside that organization. The hop signs in to the broker's hop account as a permission set made for this account, and the second profile assumes the account's role from it:
+  ```bash
+  "$SCRIPT" add <hop's sso_account_id> <PROFILE_NAME>-hop <hop's sso_role_name>
+  "$SCRIPT" add-chained <ACCOUNT_ID> <PROFILE_NAME> <PROFILE_NAME>-hop <role name from role_arn>
+  ```
+  Role-chained sessions last at most 1 hour. The CLI re-assumes transparently; a long-running script may not.
+
+When a profile of that name already exists with another route, confirm with the user, then `"$SCRIPT" remove <PROFILE_NAME>` before writing. Every SSO profile shares `sso_session_name`, so one `aws sso login --sso-session <SSO_SESSION_NAME>` covers them all.
+
+## Step 6: Verify and Report
+
+Compare against the guide's `expectedArn`. Identity Center provisions the role a few seconds after the grant, so a first `ForbiddenException: No access` clears on a retry:
+
+```bash
+aws sts get-caller-identity --profile <PROFILE_NAME>
+```
+
+Tell the user the account is ready under `--profile <PROFILE_NAME>`, at which tier, and until when. When the lease matters later in the session, add a task-list step naming the account, the profile and [references/cleanup.md](references/cleanup.md). When the task needs the console, open it as this profile with the `console` skill.
 
 ## Notes
 
-- `manage-profile.sh` also supports `set-role <account> <profile> <role>` and `list` (all sso-session profiles).
-- All AWS CLI commands pass `--profile <MGMT_PROFILE>` **last**, after the service/action and other args.
-- This skill mutates IAM Identity Center assignments and `~/.aws/config`. Confirm destructive actions (assignment deletion) with the user before running.
+- All AWS CLI commands pass `--profile` **last**, after the service, action and other arguments.
+- This skill changes access grants and `~/.aws/config`. Confirm revocations and profile replacements with the user before running them.

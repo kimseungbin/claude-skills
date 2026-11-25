@@ -43,8 +43,8 @@
     {
       "name": "aws-account-access",
       "source": "./plugins/aws-account-access",
-      "description": "Grant/revoke AWS IAM Identity Center access to member accounts, configure matching CLI profiles that share an SSO session token cache, and open the console from any profile through federated sign-in",
-      "version": "0.2.0"
+      "description": "Get your own access to AWS member accounts through an access-broker MCP server, or IAM Identity Center directly as a fallback; write matching CLI profiles that share an SSO session, run commands on EC2 instances, and open the console from any profile through federated sign-in",
+      "version": "0.3.0"
     },
     {
       "name": "lint-gate",

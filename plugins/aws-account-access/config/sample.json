@@ -1,11 +1,13 @@
 {
-  "_comment": "Copy this to ~/.aws/claude-aws-account-access.json (resolved next to your AWS config file; honors AWS_CONFIG_FILE) or ~/.config/claude-code/aws-account-access.json. These values are org-specific — never commit them.",
+  "_comment": "Copy to ~/.aws/claude-aws-account-access.json (next to your AWS config file; honors AWS_CONFIG_FILE) or ~/.config/claude-code/aws-account-access.json. These values are org-specific: keep them out of any repository.",
+  "access_mcp": "mcp__your-access-broker",
+  "sso_session_name": "your-sso-session",
+  "region": "us-east-1",
+  "role_session_name": "your-name",
   "sso_instance_arn": "arn:aws:sso:::instance/ssoins-xxxxxxxxxxxxxxxx",
   "identity_store_id": "d-xxxxxxxxxx",
   "principal_id": "00000000-0000-0000-0000-000000000000",
   "principal_type": "USER",
   "management_profile": "your-management-profile",
-  "sso_session_name": "your-sso-session",
-  "region": "us-east-1",
   "default_role": "ReadOnlyAccess"
 }
