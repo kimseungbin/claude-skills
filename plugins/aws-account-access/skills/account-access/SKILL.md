@@ -20,12 +20,12 @@ Parse by splitting `$ARGUMENTS` on whitespace. Extract `--temp` if present. Firs
 
 All org-specific values live in a **user config file** (never in this plugin). Resolve it in this order and read the first that exists:
 
-1. Next to the AWS config file: `${AWS_CONFIG_FILE%/*}/claude-aws-cli-access.json` if `AWS_CONFIG_FILE` is set, else `~/.aws/claude-aws-cli-access.json`.
-2. Fallback: `~/.config/claude-code/aws-cli-access.json`.
+1. Next to the AWS config file: `${AWS_CONFIG_FILE%/*}/claude-aws-account-access.json` if `AWS_CONFIG_FILE` is set, else `~/.aws/claude-aws-account-access.json`.
+2. Fallback: `~/.config/claude-code/aws-account-access.json`.
 
 ```bash
-CFG="${AWS_CONFIG_FILE:-$HOME/.aws/config}"; CFG="${CFG%/*}/claude-aws-cli-access.json"
-[ -f "$CFG" ] || CFG="$HOME/.config/claude-code/aws-cli-access.json"
+CFG="${AWS_CONFIG_FILE:-$HOME/.aws/config}"; CFG="${CFG%/*}/claude-aws-account-access.json"
+[ -f "$CFG" ] || CFG="$HOME/.config/claude-code/aws-account-access.json"
 cat "$CFG" 2>/dev/null || echo "NO_CONFIG"
 ```
 

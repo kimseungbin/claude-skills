@@ -1,4 +1,4 @@
-# aws-cli-access
+# aws-account-access
 
 Grant or revoke access to an AWS **member account** through IAM Identity Center (SSO), and configure a matching AWS CLI profile that **reuses your existing SSO session** — no separate `aws sso login` per profile.
 
@@ -22,8 +22,8 @@ Built for the common ops loop: jump into a member account for a quick look, then
 All org-specific values live in a **user config file** (never committed). Copy the sample and fill it in:
 
 ```bash
-cp plugins/aws-cli-access/config/sample.json ~/.aws/claude-aws-cli-access.json
-# or: ~/.config/claude-code/aws-cli-access.json
+cp plugins/aws-account-access/config/sample.json ~/.aws/claude-aws-account-access.json
+# or: ~/.config/claude-code/aws-account-access.json
 ```
 
 | Field | Meaning |
@@ -39,7 +39,7 @@ cp plugins/aws-cli-access/config/sample.json ~/.aws/claude-aws-cli-access.json
 
 If the config is missing, the skill runs a **first-run setup** that auto-detects the instance, identity store, and existing sso-sessions, confirms with you, and writes the file.
 
-The `manage-profile.sh` script reads the session name and region from `--sso-session` / `--region` flags or the `AWS_CLI_ACCESS_SSO_SESSION` / `AWS_CLI_ACCESS_REGION` environment variables — nothing is hardcoded.
+The `manage-profile.sh` script reads the session name and region from `--sso-session` / `--region` flags or the `AWS_ACCOUNT_ACCESS_SSO_SESSION` / `AWS_ACCOUNT_ACCESS_REGION` environment variables — nothing is hardcoded.
 
 ## Usage
 

@@ -3,7 +3,7 @@
 #
 # The SSO session name and region are NOT hardcoded — pass them via flags
 # (--sso-session, --region) or environment variables
-# (AWS_CLI_ACCESS_SSO_SESSION, AWS_CLI_ACCESS_REGION). The account-access
+# (AWS_ACCOUNT_ACCESS_SSO_SESSION, AWS_ACCOUNT_ACCESS_REGION). The account-access
 # skill reads them from the user config and forwards them here.
 set -euo pipefail
 
@@ -11,8 +11,8 @@ set -euo pipefail
 # AWS_CONFIG_FILE, otherwise default to ~/.aws/config.
 CONFIG_FILE="${AWS_CONFIG_FILE:-$HOME/.aws/config}"
 
-SSO_SESSION_NAME="${AWS_CLI_ACCESS_SSO_SESSION:-}"
-DEFAULT_REGION="${AWS_CLI_ACCESS_REGION:-}"
+SSO_SESSION_NAME="${AWS_ACCOUNT_ACCESS_SSO_SESSION:-}"
+DEFAULT_REGION="${AWS_ACCOUNT_ACCESS_REGION:-}"
 
 usage() {
   cat <<USAGE
@@ -34,8 +34,8 @@ Arguments:
 
 Flags:
   --temporary        Mark profile as temporary (adds a cleanup-tracking comment).
-  --sso-session STR  SSO session name (or set AWS_CLI_ACCESS_SSO_SESSION).
-  --region STR       Region for new profiles (or set AWS_CLI_ACCESS_REGION).
+  --sso-session STR  SSO session name (or set AWS_ACCOUNT_ACCESS_SSO_SESSION).
+  --region STR       Region for new profiles (or set AWS_ACCOUNT_ACCESS_REGION).
 
 Config file: $CONFIG_FILE (override with AWS_CONFIG_FILE)
 USAGE
@@ -66,11 +66,11 @@ ROLE_NAME="${POSITIONAL[2]:-ReadOnlyAccess}"
 
 require_session_and_region() {
   if [[ -z "$SSO_SESSION_NAME" ]]; then
-    echo "ERROR: SSO session name is required (--sso-session or AWS_CLI_ACCESS_SSO_SESSION)" >&2
+    echo "ERROR: SSO session name is required (--sso-session or AWS_ACCOUNT_ACCESS_SSO_SESSION)" >&2
     exit 1
   fi
   if [[ -z "$DEFAULT_REGION" ]]; then
-    echo "ERROR: region is required (--region or AWS_CLI_ACCESS_REGION)" >&2
+    echo "ERROR: region is required (--region or AWS_ACCOUNT_ACCESS_REGION)" >&2
     exit 1
   fi
 }

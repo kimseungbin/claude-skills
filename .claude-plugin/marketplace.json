@@ -41,10 +41,10 @@
       "version": "0.2.2"
     },
     {
-      "name": "aws-cli-access",
-      "source": "./plugins/aws-cli-access",
+      "name": "aws-account-access",
+      "source": "./plugins/aws-account-access",
       "description": "Grant/revoke AWS IAM Identity Center access to member accounts and configure matching CLI profiles that share an SSO session token cache",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "name": "lint-gate",
