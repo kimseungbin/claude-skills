@@ -277,7 +277,56 @@ For each selected update:
 2. Apply the edit
 3. Update the plugin_version field to match the plugin's version
 
-### Step 9: Summary
+Then go to Step 9.
+
+### Step 9: Check the commit-msg Hook
+
+The config only binds commits that skip the commit skill if the project's `commit-msg` hook reads it. A hook copied from an older bundle reads a config path that no longer exists and falls back to the standard types without a word, so the config's type and scope lists go unenforced. Classify the hook with **Bash**:
+
+```bash
+HOOK=$(git rev-parse --git-path hooks/commit-msg)
+EXPECTED=$(grep -m1 '# plugin_version:' "${CLAUDE_PLUGIN_ROOT}/bundles/hooks/commit-msg/conventional.sh" | cut -d: -f2 | tr -d ' ')
+if [ ! -f "$HOOK" ]; then
+  echo "NO_HOOK"
+elif grep -q '\.claude/config/git/commit/main\.yaml' "$HOOK"; then
+  STAMP=$(grep -m1 '# plugin_version:' "$HOOK" | cut -d: -f2 | tr -d ' ')
+  if [ "$STAMP" = "$EXPECTED" ]; then echo "CURRENT $HOOK"; else echo "OUTDATED $HOOK ${STAMP:-unstamped} -> $EXPECTED"; fi
+elif grep -qE '# plugin_version:|\.claude/config/' "$HOOK"; then
+  echo "STALE $HOOK"
+else
+  echo "CUSTOM $HOOK"
+fi
+```
+
+`git rev-parse --git-path` resolves `core.hooksPath`, so this finds the hook wherever the project keeps it.
+
+| Result | Meaning | Action |
+|--------|---------|--------|
+| `CURRENT` | Bundled hook at the plugin's version, reading this config | Summary line only |
+| `OUTDATED` | Bundled hook reading this config, from an older release that may not enforce newer fields (e.g. `scope_conventions`) | Offer to replace |
+| `STALE` | Bundled hook reading an older config path — this config is **not enforced** | Offer to replace |
+| `CUSTOM` | The project's own hook (commitlint, husky, hand-written) | Summary line only: it enforces its own rules, not this config |
+| `NO_HOOK` | Nothing validates commits outside the commit skill | Summary line only, pointing at `Skill(git:git-hooks-setup)` |
+
+For `OUTDATED` and `STALE`, use AskUserQuestion, naming the hook path and what goes unenforced:
+
+```
+.githooks/commit-msg reads .claude/config/conventional-commits/main.yaml,
+which does not exist — commits are checked against the 11 standard types,
+not the 5 in your config.
+- Replace with the current hook (Recommended) — validates against this config
+- Leave it — the summary will flag the config as unenforced
+```
+
+On accept, copy the bundled hook over it:
+
+```bash
+cp "${CLAUDE_PLUGIN_ROOT}/bundles/hooks/commit-msg/conventional.sh" "<hook path>" && chmod +x "<hook path>"
+```
+
+The bundled hook is self-contained — it sources `lib/` next to it when present and has fallbacks otherwise — so replacing the one file is enough. Run the classification again to confirm it reports `CURRENT`. If the hook is tracked, the replacement shows up in `git status` for the user to commit.
+
+### Step 10: Summary
 
 ```
 ✓ Config created/updated at .claude/config/git/commit/main.yaml
@@ -287,7 +336,10 @@ Settings:
 - Project type: simple
 - Scopes: app, config, docs
 - Breaking-change detection: on (package API, database schema)
+- commit-msg hook: .githooks/commit-msg enforces this config
 ```
+
+Report the hook line from Step 9's result. When the config goes unenforced (`STALE` left in place, `CUSTOM`, or `NO_HOOK`), say so in that line.
 
 ## Non-Destructive Updates
 
