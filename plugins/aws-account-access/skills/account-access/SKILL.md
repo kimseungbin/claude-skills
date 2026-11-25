@@ -112,7 +112,7 @@ Select the ARN whose `PermissionSet.Name == <ROLE>`. If no match, surface the av
    aws sts get-caller-identity --profile <PROFILE_NAME>
    ```
 
-5. Tell the user the account is ready and they can pass `--profile <PROFILE_NAME>` to CLI commands.
+5. Tell the user the account is ready and they can pass `--profile <PROFILE_NAME>` to CLI commands. When the task needs the console, open it as this profile with the `console` skill.
 
 6. **If temporary**: create a cleanup reminder with TaskCreate containing `<ACCOUNT_ID>`, `<PROFILE_NAME>`, `<PS_ARN>`, and the exact Cleanup Steps commands below.
 

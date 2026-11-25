@@ -43,8 +43,8 @@
     {
       "name": "aws-account-access",
       "source": "./plugins/aws-account-access",
-      "description": "Grant/revoke AWS IAM Identity Center access to member accounts and configure matching CLI profiles that share an SSO session token cache",
-      "version": "0.1.2"
+      "description": "Grant/revoke AWS IAM Identity Center access to member accounts, configure matching CLI profiles that share an SSO session token cache, and open the console from any profile through federated sign-in",
+      "version": "0.2.0"
     },
     {
       "name": "lint-gate",
@@ -62,7 +62,7 @@
       "name": "polish-permissions",
       "source": "./plugins/polish-permissions",
       "description": "Audit permission rules across the user/project/local settings scopes and the settings files above the project, then dedupe them and promote read-only rules up the scope ladder",
-      "version": "0.1.2"
+      "version": "0.2.0"
     }
   ]
 }

@@ -1,10 +1,10 @@
 {
   "name": "aws-account-access",
-  "version": "0.1.2",
-  "description": "Grant/revoke AWS IAM Identity Center access to member accounts and configure matching CLI profiles that share an SSO session token cache",
+  "version": "0.2.0",
+  "description": "Grant/revoke AWS IAM Identity Center access to member accounts, configure matching CLI profiles that share an SSO session token cache, and open the console from any profile through federated sign-in",
   "author": {
     "name": "kimseungbin"
   },
-  "keywords": ["aws", "sso", "iam-identity-center", "cli", "profile", "access-management"],
+  "keywords": ["aws", "sso", "iam-identity-center", "cli", "profile", "console", "federation", "access-management"],
   "skills": "./skills/"
 }
